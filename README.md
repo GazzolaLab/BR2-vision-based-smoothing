@@ -115,13 +115,13 @@ skeleton/skeleton_compare.py
 
 ## Smoothing
 
-''' bash
+``` bash
 python run_smoothing.py --problem <Keyword>
-'''
+```
 
 ## Citation
-
-'''
+Kim, Chang, Shih, Uppalapati, Halder, Krishnan, Mehta and Gazzola <strong>A physics-informed , vision-based method to reconstruct all deformation modes in slender bodies</strong>, IEEE Robotics and Automation Letters (In Review)
+```
 @article{Kim2021,
 abstract = {This paper is concerned with the problem of esti- mating (interpolating and smoothing) the shape (pose and the six modes of deformation) of a slender flexible body from multiple camera measurements. This problem is important in both biol- ogy, where slender, soft, and elastic structures are ubiquitously encountered across species, and in engineering, particularly in the area of soft robotics. The proposed mathematical formulation for shape estimation is physics-informed, based on the use of the special Cosserat rod theory whose equations encode slender body mechanics in the presence of bending, shearing, twisting and stretching. The approach is used to derive numerical algorithms which are experimentally demonstrated for fiber reinforced and cable-driven soft robot arms. These experimental demonstrations show that the methodology is accurate (<5 mm error, three times less than the arm diameter) and robust to noise and uncertainties. CONTINUUM},
 author = {Kim, Seung Hyun and Chang, Heng-Sheng and Shih, Chia-Hsien and Uppalapati, Naveen Kumar and Halder, Udit},
@@ -129,4 +129,4 @@ file = {:Users/skim0119/Documents/Mendeley Desktop/2021 - Kim et al. - A physics
 title = {{A physics-informed , vision-based method to reconstruct all deformation modes in slender bodies}},
 year = {2021}
 }
-'''
+```
