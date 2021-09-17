@@ -1,18 +1,37 @@
 # A physics-informed, vision-based method to reconstruct all deformation modes in slender bodies
 
-## Requirement
+[Corresponding Paper (arXiv)]() - In Review (RA-L with ICRA 2022) 
+
+## How To Use
 
 All the tools are developed using python 3 and openCV.
 The open-source package numpy/numba is used to process the data.
 The remaining dependencies are listed in [requirements.txt](requirements.txt) file.
 To visualize the data, we used ```ffmpeg``` tool to render video.
 
+- python 3.6+
+- numpy/numba
+- Matplotlib
 - ffmpeg
-- python==3.8
+= PyQt (optional)
 
-__The PyQt may not operate in some OS environment__
+_(The PyQt may not operate in some OS environment)_
 
-## Video Pre-processing
+## Publication
+
+Kim, Chang, Shih, Uppalapati, Halder, Krishnan, Mehta and Gazzola <strong>A physics-informed , vision-based method to reconstruct all deformation modes in slender bodies</strong>, IEEE Robotics and Automation Letters (In Review)
+```
+@article{Kim2021,
+abstract = {This paper is concerned with the problem of esti- mating (interpolating and smoothing) the shape (pose and the six modes of deformation) of a slender flexible body from multiple camera measurements. This problem is important in both biol- ogy, where slender, soft, and elastic structures are ubiquitously encountered across species, and in engineering, particularly in the area of soft robotics. The proposed mathematical formulation for shape estimation is physics-informed, based on the use of the special Cosserat rod theory whose equations encode slender body mechanics in the presence of bending, shearing, twisting and stretching. The approach is used to derive numerical algorithms which are experimentally demonstrated for fiber reinforced and cable-driven soft robot arms. These experimental demonstrations show that the methodology is accurate (<5 mm error, three times less than the arm diameter) and robust to noise and uncertainties. CONTINUUM},
+author = {Kim, Seung Hyun and Chang, Heng-Sheng and Shih, Chia-Hsien and Uppalapati, Naveen Kumar and Halder, Udit},
+file = {:Users/skim0119/Documents/Mendeley Desktop/2021 - Kim et al. - A physics-informed , vision-based method to reconstruct all deformation modes in slender bodies.pdf:pdf},
+title = {{A physics-informed , vision-based method to reconstruct all deformation modes in slender bodies}},
+year = {2021}
+}
+```
+
+## Instruction
+### Video Pre-processing
 
 - Defish: 718
     - TODO: Find better way to defish the captured frames
@@ -20,13 +39,15 @@ __The PyQt may not operate in some OS environment__
 
 - undistort_rotate.py
     - undistort and rotate video (take time)
+- undistort_rotate_calibration.py
+    - undistort and rotate calibration frame 
 - trim_led.py (TODO: do trim before undistort_rotate operation)
     detect led and trim video (take time)
 - undistort_rotate_calibration.py
     - undistort and rotate images
 
 
-## Calibration Steps
+### Calibration Steps
 
 Prepare all calibration video.
 First, try to extract calibration frames.
@@ -52,7 +73,7 @@ python calibration.py --camid 1
 Read calibration points and output L and R matrix in 'calibration.npz' file.
 Calibration configuration is saved in this step.
 
-## Data Point Tracking
+### Data Point Tracking
 
 1. Initial Reference Point
 
@@ -82,7 +103,7 @@ python process_dlt.py --runid 1
 
 Convert each tracked point to 3d point using DLT, and save in 'runRUNID-position.npz' file.
 
-## Utilities
+### Utilities
 
 - Color Clustering
 
@@ -92,7 +113,7 @@ python color_cluster.py --path <image_path.png> -N 10
 
 Create cluster of color in given image.
 
-## Debug
+### Debug
 
 - Plot axis on calibration image.
 
@@ -110,20 +131,13 @@ python process_dlt_inverse.py --runid 1
 Plot simulated data points on camera space.
 Careful choice of axis is required
 
-## Skeletonize (incompleted)
 
-```bash
-skeleton/skeleton.py
-skeleton/skeleton_bend.py
-skeleton/skeleton_compare.py
-```
-
-## Utility Scripts
+### Utility Scripts
 
 - dlt.py
     - Contain all DLT related methods.
 
-## Smoothing
+### Smoothing
 
 1. Check that the posture data file is inside the folder named ```data``` and the data file name is ```<Keyword>.npz```.
 * Default Sample ```<Keyword>``` Options: ```bend``` / ```twist``` / ```mix``` / ```cable```.
@@ -143,14 +157,3 @@ python visualization.py --problem <Keyword>
 ```
 This will create a visualization video named ```<Keyword>.mov``` and a folder named ```frames``` with all frame results in it.
 
-## Citation
-Kim, Chang, Shih, Uppalapati, Halder, Krishnan, Mehta and Gazzola <strong>A physics-informed , vision-based method to reconstruct all deformation modes in slender bodies</strong>, IEEE Robotics and Automation Letters (In Review)
-```
-@article{Kim2021,
-abstract = {This paper is concerned with the problem of esti- mating (interpolating and smoothing) the shape (pose and the six modes of deformation) of a slender flexible body from multiple camera measurements. This problem is important in both biol- ogy, where slender, soft, and elastic structures are ubiquitously encountered across species, and in engineering, particularly in the area of soft robotics. The proposed mathematical formulation for shape estimation is physics-informed, based on the use of the special Cosserat rod theory whose equations encode slender body mechanics in the presence of bending, shearing, twisting and stretching. The approach is used to derive numerical algorithms which are experimentally demonstrated for fiber reinforced and cable-driven soft robot arms. These experimental demonstrations show that the methodology is accurate (<5 mm error, three times less than the arm diameter) and robust to noise and uncertainties. CONTINUUM},
-author = {Kim, Seung Hyun and Chang, Heng-Sheng and Shih, Chia-Hsien and Uppalapati, Naveen Kumar and Halder, Udit},
-file = {:Users/skim0119/Documents/Mendeley Desktop/2021 - Kim et al. - A physics-informed , vision-based method to reconstruct all deformation modes in slender bodies.pdf:pdf},
-title = {{A physics-informed , vision-based method to reconstruct all deformation modes in slender bodies}},
-year = {2021}
-}
-```
