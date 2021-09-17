@@ -4,7 +4,7 @@
 
 [Demo Data](https://uofi.box.com/s/7wjf2wrtq6ykn5km7umng4mf6reme3sq)
 
-## How To Use
+## Requirements
 
 All the tools are developed using python 3 and openCV.
 The open-source package numpy/numba is used to process the data.
@@ -32,12 +32,29 @@ year = {2021}
 }
 ```
 
-## Instruction
-### Video Pre-processing
+## How To Use
 
-- Defish: 718
-    - TODO: Find better way to defish the captured frames
-- Calibration frames (control frames)
+### Reconstruction (Smoothing)
+
+1. Check that the posture data file is inside the folder named ```data``` and the data file name is ```<Keyword>.npz```.
+* Default Sample ```<Keyword>``` Options: ```bend``` / ```twist``` / ```mix``` / ```cable```.
+* Note that if you have your own data, please properly modify the ```delta_s_position``` variable in the ```main()``` function of the ```run_smoothing.py``` file.
+* The ```delta_s_position``` parameter decides the distance between each marker in the rest state of the soft arm.
+
+2. Run the smoothing algorithm
+``` bash
+python run_smoothing.py --problem <Keyword>
+```
+
+3. Once the algorithm is completed, the processed data will then be stored in the ```result_data``` folder and is named as ```<Keyword>.pickle```.
+
+4. To visualize the result, run
+``` bash
+python visualization.py --problem <Keyword>
+```
+This will create a visualization video named ```<Keyword>.mov``` and a folder named ```frames``` with all frame results in it.
+
+### Video Pre-processing
 
 - undistort_rotate.py
     - undistort and rotate video (take time)
@@ -45,9 +62,6 @@ year = {2021}
     - undistort and rotate calibration frame 
 - trim_led.py (TODO: do trim before undistort_rotate operation)
     detect led and trim video (take time)
-- undistort_rotate_calibration.py
-    - undistort and rotate images
-
 
 ### Calibration Steps
 
@@ -138,24 +152,3 @@ Careful choice of axis is required
 
 - dlt.py
     - Contain all DLT related methods.
-
-### Smoothing
-
-1. Check that the posture data file is inside the folder named ```data``` and the data file name is ```<Keyword>.npz```.
-* Default Sample ```<Keyword>``` Options: ```bend``` / ```twist``` / ```mix``` / ```cable```.
-* Note that if you have your own data, please properly modify the ```delta_s_position``` variable in the ```main()``` function of the ```run_smoothing.py``` file.
-* The ```delta_s_position``` parameter decides the distance between each marker in the rest state of the soft arm.
-
-2. Run the smoothing algorithm
-``` bash
-python run_smoothing.py --problem <Keyword>
-```
-
-3. Once the algorithm is completed, the processed data will then be stored in the ```result_data``` folder and is named as ```<Keyword>.pickle```.
-
-4. To visualize the result, run
-``` bash
-python visualization.py --problem <Keyword>
-```
-This will create a visualization video named ```<Keyword>.mov``` and a folder named ```frames``` with all frame results in it.
-
