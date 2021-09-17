@@ -115,9 +115,23 @@ skeleton/skeleton_compare.py
 
 ## Smoothing
 
+1. Check that the posture data file is inside the folder named ```data``` and the data file name is ```<Keyword>.npz```.
+* Default Sample ```<Keyword>``` Options: ```bend``` / ```twist``` / ```mix``` / ```cable```.
+* Note that if you have your own data, please properly modify the ```delta_s_position``` variable in the ```main()``` function of the ```run_smoothing.py``` file.
+* The ```delta_s_position``` parameter decides the distance between each marker in the rest state of the soft arm.
+
+2. Run the smoothing algorithm
 ``` bash
 python run_smoothing.py --problem <Keyword>
 ```
+
+3. Once the algorithm is completed, the processed data will then be stored in the ```result_data``` folder and is named as ```<Keyword>.pickle```.
+
+4. To visualize the result, run
+``` bash
+python visualization.py --problem <Keyword>
+```
+This will create a visualization video named ```<Keyword>.mov``` and a folder named ```frames``` with all frame results in it.
 
 ## Citation
 Kim, Chang, Shih, Uppalapati, Halder, Krishnan, Mehta and Gazzola <strong>A physics-informed , vision-based method to reconstruct all deformation modes in slender bodies</strong>, IEEE Robotics and Automation Letters (In Review)
