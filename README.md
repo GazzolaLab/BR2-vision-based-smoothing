@@ -15,13 +15,14 @@ To visualize the data, we used ```ffmpeg``` tool to render video.
 - numpy/numba
 - Matplotlib
 - ffmpeg
-= PyQt (optional)
+- PyQt (optional, only for calibration)
 
 _(The PyQt may not operate in some OS environment)_
 
 ## Publication
 
 Kim, Chang, Shih, Uppalapati, Halder, Krishnan, Mehta and Gazzola <strong>A physics-informed , vision-based method to reconstruct all deformation modes in slender bodies</strong>, IEEE Robotics and Automation Letters (In Review)
+
 ```
 @article{Kim2021,
 abstract = {This paper is concerned with the problem of esti- mating (interpolating and smoothing) the shape (pose and the six modes of deformation) of a slender flexible body from multiple camera measurements. This problem is important in both biol- ogy, where slender, soft, and elastic structures are ubiquitously encountered across species, and in engineering, particularly in the area of soft robotics. The proposed mathematical formulation for shape estimation is physics-informed, based on the use of the special Cosserat rod theory whose equations encode slender body mechanics in the presence of bending, shearing, twisting and stretching. The approach is used to derive numerical algorithms which are experimentally demonstrated for fiber reinforced and cable-driven soft robot arms. These experimental demonstrations show that the methodology is accurate (<5 mm error, three times less than the arm diameter) and robust to noise and uncertainties. CONTINUUM},
@@ -33,6 +34,10 @@ year = {2021}
 ```
 
 ## How To Use
+
+### Path Configuration
+
+All data paths and output paths can be changed in ```config.py``` file.
 
 ### Reconstruction (Smoothing)
 
@@ -54,36 +59,38 @@ python visualization.py --problem <Keyword>
 ```
 This will create a visualization video named ```<Keyword>.mov``` and a folder named ```frames``` with all frame results in it.
 
-### Video Pre-processing
-
-- undistort_rotate.py
-    - undistort and rotate video (take time)
-- undistort_rotate_calibration.py
-    - undistort and rotate calibration frame 
-- trim_led.py (TODO: do trim before undistort_rotate operation)
-    detect led and trim video (take time)
-
 ### Calibration Steps
 
-Prepare all calibration video.
-First, try to extract calibration frames.
+1. Select DLT calibration points
 
-calibration_frame_extract.py
-undistort_rotate_calibrations_batch.sh
-
-1. DLT calibration points
+Select calibration point for all calibration frames in the directory.
+Save the points in camera (each) coordinate and lab-coordinate.
 
 ```bash
-python calibration_point_selection.py
+python run_calibration_points.py
 ```
 
-Select calibration point from control frames.
-Save the points in camera (each) coordinate and lab-coordinate.
+The red mark on reference point indicates 'locked' status.
+Using locked points, we estimate the remaining reference locations with inverse DLT.
+Locked points does not move after the interpolation; only blue points are re-evaluated and re-located.
+Each points have unique label that is used to interpolate the true coordinate.
+
+- Left Click: Select point
+    - Control-Left Click: Delete point
+- Right Click: Lock point
+    - Control-Right Click: Lock all points
+- Key 'D' or 'd': Delete last coordinate
+- Key 'b': Label points
+- Key 'p': Interpolate using planar(2D) DLT (At least 4 locked points are required)
+- Key 'P': Use Harry's corner detection.
+- Key 'o': Use 3D DLT (from other reference frame images)
+' Key 's': Save
+- 'Enter,' 'Space,' 'ESC': Complete
 
 2. Calibration
 
 ```bash
-python calibration.py --camid 1
+python run_calibration.py
 ```
 
 Read calibration points and output L and R matrix in 'calibration.npz' file.
@@ -152,3 +159,12 @@ Careful choice of axis is required
 
 - dlt.py
     - Contain all DLT related methods.
+    
+### Video Pre-processing
+
+Following preprocessing scripts are included.
+
+- undistort_rotate.py: undistort and rotate video
+- undistort_rotate_calibration.py: undistort and rotate calibration frame 
+- trim_video_intervals.py: detect led and trim video
+
