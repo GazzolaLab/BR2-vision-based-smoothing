@@ -93,8 +93,8 @@ Each points have unique label that is used to interpolate the true coordinate.
 python run_calibration.py
 ```
 
-Read calibration points and output L and R matrix in 'calibration.npz' file.
-Calibration configuration is saved in this step.
+Read all 2D calibration points and determines the camera parameters.
+Calibration configuration is saved.
 
 ### Data Point Tracking
 
