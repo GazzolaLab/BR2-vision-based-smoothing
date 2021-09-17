@@ -2,7 +2,17 @@
 
 ## Requirement
 
-## Video Processing
+All the tools are developed using python 3 and openCV.
+The open-source package numpy/numba is used to process the data.
+The remaining dependencies are listed in [requirements.txt](requirements.txt) file.
+To visualize the data, we used ```ffmpeg``` tool to render video.
+
+- ffmpeg
+- python==3.8
+
+__The PyQt may not operate in some OS environment__
+
+## Video Pre-processing
 
 - Defish: 718
     - TODO: Find better way to defish the captured frames
