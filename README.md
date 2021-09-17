@@ -15,7 +15,7 @@ To visualize the data, we used ```ffmpeg``` tool to render video.
 - numpy/numba
 - Matplotlib
 - ffmpeg
-- PyQt (optional, only for calibration)
+- PyQt (optional, not used in reconstruction)
 
 _(The PyQt may not operate in some OS environment)_
 
@@ -96,15 +96,28 @@ python run_calibration.py
 Read all 2D calibration points and determines the camera parameters.
 Calibration configuration is saved.
 
-### Data Point Tracking
+### Optical Flow: Data Point Tracking
 
 1. Initial Reference Point
 
 ```bash
-python trackinge_point_selection.py
+python add_initial_flow_point.py -h
+python add_initial_flow_point.py --camid <camera id> --runid <run id>
 ```
 
-Select the initial reference points and save in 'cam-CAMID-run-p0.npz' file.
+The script is used to select multiple initial flow position and to label them.
+The desire window of flow can be determined using the optional argument ```start_frame''' and '''end_frame''' (default is from first to last frame).
+Multiple flow position can be selected.
+
+- Left Click: Click the pixel to label
+- Right Click: Zoom-in
+    - Left Click: Reselect the point
+    - Right Click: Return to original point
+    - Key 'a': accept the selection
+    - Key 'd': decline the selection
+- Key 'p': Print the selection
+- Key 'd': Delete the last seletion
+- Key 'c': Complete
 
 2. Optical Flow
 
@@ -126,34 +139,21 @@ python process_dlt.py --runid 1
 
 Convert each tracked point to 3d point using DLT, and save in 'runRUNID-position.npz' file.
 
-### Utilities
-
-- Color Clustering
+4. Interpolate Cross-Section Data
 
 ```bash
-python color_cluster.py --path <image_path.png> -N 10
+python data_augment_cross_section.py
 ```
 
-Create cluster of color in given image.
-
-### Debug
-
-- Plot axis on calibration image.
+### Overlay Result
 
 ```bash
-python project_axis.py --camid 1
-python project_axis.py --camid 2
-```
-
-- Inverse dlt
-
-```bash
-python process_dlt_inverse.py --runid 1
+python overlay_cross_section_info.py
+python overlay_smoothing.py
 ```
 
 Plot simulated data points on camera space.
 Careful choice of axis is required
-
 
 ### Utility Scripts
 
