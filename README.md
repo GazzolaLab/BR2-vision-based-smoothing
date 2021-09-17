@@ -1,6 +1,7 @@
 # A physics-informed, vision-based method to reconstruct all deformation modes in slender bodies
 
-[Corresponding Paper (arXiv)]() - In Review (RA-L with ICRA 2022) 
+[Paper (arXiv)]() - In Review (RA-L with ICRA 2022) 
+[Sample Data](https://uofi.box.com/s/7wjf2wrtq6ykn5km7umng4mf6reme3sq)
 
 ## How To Use
 
