@@ -1,6 +1,6 @@
 # A physics-informed, vision-based method to reconstruct all deformation modes in slender bodies
 
-[Paper (arXiv)]() - In Review (RA-L with ICRA 2022) 
+[Paper (arXiv)](https://arxiv.org/abs/2109.08372) - In Review (RA-L with ICRA 2022) 
 
 [Demo Data](https://uofi.box.com/s/7wjf2wrtq6ykn5km7umng4mf6reme3sq)
 
@@ -96,6 +96,12 @@ python run_calibration.py
 Read all 2D calibration points and determines the camera parameters.
 Calibration configuration is saved.
 
+3. Check Calibration Error
+
+```bash
+python calibration_error.py
+```
+
 ### Optical Flow: Data Point Tracking
 
 1. Initial Reference Point
@@ -122,14 +128,11 @@ Multiple flow position can be selected.
 2. Optical Flow
 
 ```bash
-python optical_flow.py --runid 1 --camid 1
-python optical_flow.py --runid 1 --camid 2
+python run_optical_flow.py --camid <camera id> --runid <run id>
 ```
 
-Track the point on camera space and save in 'cam-CAMID-runRUNID-ps.npz' file.
-If OUTPUT_RENDERING is set to true, save tracking video 'cam-CAMID-runRUNID-tracking.mp4' video.
-
-Note, the script must run for each video.
+Run optical flow given the initial poiition selected from ```add_initial_flow_point.py```.
+The script export the result in a video(mp4) format.
 
 3. DLT Process
 
