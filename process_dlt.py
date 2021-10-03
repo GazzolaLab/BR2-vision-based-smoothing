@@ -16,6 +16,8 @@ import matplotlib.cm as cm
 
 from utility.convert_coordinate import three_ring_xyz_converter
 
+from config import *
+
 # CONFIGURATION
 EXCLUDE_TAGS = []
 color_scheme = plt.rcParams['axes.prop_cycle'].by_key()['color']
