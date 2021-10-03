@@ -11,11 +11,11 @@ The open-source package numpy/numba is used to process the data.
 The remaining dependencies are listed in [requirements.txt](requirements.txt) file.
 To visualize the data, we used `ffmpeg` tool to render video.
 
-- PyElastica 0.1.0
+- [PyElastica 0.1.0](https://github.com/GazzolaLab/PyElastica)
 - python 3.6+
 - numpy/numba
 - Matplotlib
-- OpenCV [4 5](4.5)
+- OpenCV 4.5
 - ffmpeg
 - PyQt (optional, not used in reconstruction)
 
@@ -165,7 +165,7 @@ Careful choice of axis is required
 
 - dlt.py
     - Contain all DLT related methods.
-    
+
 ### Video Pre-processing
 
 Following preprocessing scripts are included.
