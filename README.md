@@ -9,11 +9,13 @@
 All the tools are developed using python 3 and openCV.
 The open-source package numpy/numba is used to process the data.
 The remaining dependencies are listed in [requirements.txt](requirements.txt) file.
-To visualize the data, we used ```ffmpeg``` tool to render video.
+To visualize the data, we used `ffmpeg` tool to render video.
 
+- PyElastica 0.1.0
 - python 3.6+
 - numpy/numba
 - Matplotlib
+- OpenCV [4 5](4.5)
 - ffmpeg
 - PyQt (optional, not used in reconstruction)
 
@@ -37,27 +39,28 @@ year = {2021}
 
 ### Path Configuration
 
-All data paths and output paths can be changed in ```config.py``` file.
+All data paths and output paths can be changed in `config.py` file.
 
 ### Reconstruction (Smoothing)
 
-1. Check that the posture data file is inside the folder named ```data``` and the data file name is ```<Keyword>.npz```.
-* Default Sample ```<Keyword>``` Options: ```bend``` / ```twist``` / ```mix``` / ```cable```.
-* Note that if you have your own data, please properly modify the ```delta_s_position``` variable in the ```main()``` function of the ```run_smoothing.py``` file.
-* The ```delta_s_position``` parameter decides the distance between each marker in the rest state of the soft arm.
+1. Check that the posture data file is inside the folder named `data` and the data file name is `<Keyword>.npz`.
+* Default Sample `<Keyword>` Options: `bend` / `twist` / `mix` / `cable`.
+* Note that if you have your own data, please properly modify the `delta_s_position` variable in the `main()` function of the `run_smoothing.py` file.
+* The `delta_s_position` parameter decides the distance between each marker in the rest state of the soft arm.
 
 2. Run the smoothing algorithm
+
 ``` bash
 python run_smoothing.py --problem <Keyword>
 ```
 
-3. Once the algorithm is completed, the processed data will then be stored in the ```result_data``` folder and is named as ```<Keyword>.pickle```.
+3. Once the algorithm is completed, the processed data will then be stored in the `result_data` folder and is named as `<Keyword>.pickle`.
 
 4. To visualize the result, run
 ``` bash
 python visualization.py --problem <Keyword>
 ```
-This will create a visualization video named ```<Keyword>.mov``` and a folder named ```frames``` with all frame results in it.
+This will create a visualization video named `<Keyword>.mov` and a folder named `frames` with all frame results in it.
 
 ### Calibration Steps
 
@@ -112,7 +115,7 @@ python add_initial_flow_point.py --camid <camera id> --runid <run id>
 ```
 
 The script is used to select multiple initial flow position and to label them.
-The desire window of flow can be determined using the optional argument ```start_frame''' and '''end_frame''' (default is from first to last frame).
+The desire window of flow can be determined using the optional argument `start_frame` and `end_frame` (default is from first to last frame).
 Multiple flow position can be selected.
 
 - Left Click: Click the pixel to label
@@ -131,7 +134,7 @@ Multiple flow position can be selected.
 python run_optical_flow.py --camid <camera id> --runid <run id>
 ```
 
-Run optical flow given the initial poiition selected from ```add_initial_flow_point.py```.
+Run optical flow given the initial poiition selected from `add_initial_flow_point.py`.
 The script export the result in a video(mp4) format.
 
 3. DLT Process
