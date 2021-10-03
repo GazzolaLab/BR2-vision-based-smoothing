@@ -154,7 +154,6 @@ python data_augment_cross_section.py
 ### Overlay Result
 
 ```bash
-python overlay_cross_section_info.py
 python overlay_smoothing.py
 ```
 
