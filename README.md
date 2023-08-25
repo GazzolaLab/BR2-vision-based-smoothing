@@ -1,6 +1,8 @@
 # A physics-informed, vision-based method to reconstruct all deformation modes in slender bodies
 
-[Paper (arXiv)](https://arxiv.org/abs/2109.08372) - In Review (RA-L with ICRA 2022) 
+[Paper (arXiv)](https://arxiv.org/abs/2109.08372) - ICRA 2022
+
+> The code to reproduce the result for the paper is [v0.1](https://github.com/skim0119/BR2-vision-based-smoothing/tree/v0.1). The current version is under further development for utilization. While we are trying our best to keep the code back-compatible, past version might require installing deprecated packages and python.
 
 [Demo Data](https://uofi.box.com/s/7wjf2wrtq6ykn5km7umng4mf6reme3sq)
 
@@ -37,6 +39,9 @@ year = {2021}
 
 ## How To Use
 
+To process the video data, check out section [(Calibration Steps)](#calibration-steps) for camera calibration and [(Optical Flow: Data Point Tracking)](#optical-flow-data-point-tracking) for the point tracking.
+To process reconstruction (smoothing) algorithm, check out section [(Reconstruction (Smoothing))](#reconstruction-smoothing).
+
 ### Path Configuration
 
 All data paths and output paths can be changed in `config.py` file.
@@ -64,13 +69,15 @@ This will create a visualization video named `<Keyword>.mov` and a folder named 
 
 ### Calibration Steps
 
+> Following calibration stages does not include the fish-eye warp correction.
+
 1. Select DLT calibration points
 
 Select calibration point for all calibration frames in the directory.
 Save the points in camera (each) coordinate and lab-coordinate.
 
 ```bash
-python run_calibration_points.py
+python run_select_calibration_points.py
 ```
 
 The red mark on reference point indicates 'locked' status.
