@@ -47,7 +47,7 @@ def undistort_and_rotate(cam_id, rotate, output_fps, verbose):
     for video_path in raw_videos:
         basename = os.path.basename(video_path)[:-4]
         save_path = os.path.join(PATH, "postprocess", basename + ".mp4")
-        logger(f"{save_path=}")
+        logger.info(f"{save_path=}")
 
         # Create an object to read
         video = cv2.VideoCapture(video_path)
@@ -55,7 +55,7 @@ def undistort_and_rotate(cam_id, rotate, output_fps, verbose):
         # We need to check if camera
         # is opened previously or not
         if video.isOpened() == False:
-            logger("Error reading video file {}".format(video_path))
+            logger.info("Error reading video file {}".format(video_path))
             continue
 
         # We need to set resolutions.
@@ -72,7 +72,7 @@ def undistort_and_rotate(cam_id, rotate, output_fps, verbose):
             save_path, cv2.VideoWriter_fourcc(*"mp4v"), output_fps, size
         )
 
-        logger("writing video...")
+        logger.info("writing video...")
         while True:
             ret, frame = video.read()
             if not ret:
@@ -94,7 +94,7 @@ def undistort_and_rotate(cam_id, rotate, output_fps, verbose):
         video.release()
         result.release()
 
-        logger("The video was successfully saved - {}".format(save_path))
+        logger.info("The video was successfully saved - {}".format(save_path))
 
 
 if __name__ == "__main__":

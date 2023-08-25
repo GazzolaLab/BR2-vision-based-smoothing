@@ -7,22 +7,29 @@ import matplotlib.pyplot as plt
 import os
 import glob
 
-from config import *
+import click
 
-"""
-The video includes LED light that indicates the active status of the experiment.
-The script asks for a region-of-interest (roi), which selects where the LED is
-visible, and trim the video for each interval that LED light is on.
-"""
+from utility.logging import config_logging, get_script_logger
+from naming import *
 
-def process(camera_id:int, fps=60, run_id=1,
-        trailing_frames=0, led_threshold=(70,65,150)):
+
+@click.command()
+@click.option('-c', '--cam-id', type=int, default=1, help='Camera index given in file.')
+@click.option('-f', '--fps', type=int, default=60, help='Frames per seconds (default=60). Make sure it matches the orignal framerate of the video.')
+@click.option('-r', '--run-id', type=int, default=1, help='Run index given in file')
+@click.option('--trailing-frames', type=int, default=0, help='Number of trailing frames after the LED status is turned off. (default=0)')
+@click.option('--led-threshold', type=(int,int,int), default=(70,65,150), help='RGB threshold of the LED: greater value will be considered as "on"')
+def process(cam_id, fps, run_id, trailing_frames, led_threshold):
     """
     Trimming process. Script asks for ROI and trim the video.
+    
+    The video includes LED light that indicates the active status of the experiment.
+    The script asks for a region-of-interest (roi), which selects where the LED is
+    visible, and trim the video for each interval that LED light is on.
 
     Parameters
     ----------
-    camera_id : int
+    cam_id : int
         Camera index given in file.
     fps : int
         Frames per seconds (default=60)
@@ -34,11 +41,14 @@ def process(camera_id:int, fps=60, run_id=1,
         RGB threshold of the LED: greater value will be considered as 'on'
     """
 
+    config_logging(verbose)
+    logger = get_script_logger(os.path.basename(__file__))
+
     # Utility lambdas
     frame2timestr = lambda frame: str(frame/fps)
     
     # Path Configuration
-    video_path = RAW_VIDEO_PATH.format(camera_id)
+    video_path = RAW_VIDEO_PATH.format(cam_id)
     output_path = RAW_FOOTAGE_VIDEO_PATH
 
     # Load Video
@@ -46,7 +56,7 @@ def process(camera_id:int, fps=60, run_id=1,
 
     # Select LED region
     r = cv2.selectROI('select roi', frame)
-    print('LED region: ', r)
+    logger.info('LED region: ', r)
     
     # LED Threshold
     led_threshold = np.array(led_threshold)
@@ -80,14 +90,15 @@ def process(camera_id:int, fps=60, run_id=1,
             end_stamp = frame2timestr(end_frame)
             current_state = False
             command = f'ffmpeg -y -i {video_path} -ss {start_stamp} \
-                    -to {end_stamp} {output_path.format(camera_id, run_id)}'
-            print(command)
+                    -to {end_stamp} {output_path.format(cam_id, run_id)}'
+            logger.info(command)
             os.system(command)
 
             run_id += 1
     capture.release()
 
 if __name__ == '__main__':
-    for camera_id in range(1,6):
-        run_id = 1
-        process(camera_id=camera_id, run_id=run_id)
+    pricess()
+    #for cam_id in range(1,6):
+    #    run_id = 1
+    #    process(cam_id=cam_id, run_id=run_id)

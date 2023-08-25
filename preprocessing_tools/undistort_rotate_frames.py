@@ -55,7 +55,7 @@ def undistort_and_rotate_frames(cam_id, rotate, verbose):
         # Write
         cv2.imwrite(path, frame)
 
-        logger("The image was successfully saved - {}".format(path))
+        logger.info("The image was successfully saved - {}".format(path))
 
 
 if __name__ == "__main__":
