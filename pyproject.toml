@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "br2-vision-based-smoothing"
+version = "0.2.0"
+description = "Video tracking and strain reconstruction algorithm for soft-arm project."
+authors = ["Seung Hyun Kim <skim449@illinois.edu>"]
+license = "MIT"
+readme = "README.md"
+packages = [
+    { include = "script" },
+    { include = "br2_vision" },
+]
+
+[tool.poetry.scripts]
+distortion_calibration = 'script.distortion_calibration:calibrate'
+trim_video_intervals_by_led = 'script.trim_video_intervals_by_led:process'
+undistort_rotate_frames = 'script.undistort_rotate_frames:undistort_and_rotate_frames'
+undistort_rotate_video = 'script.undistort_rotate_video:undistort_and_rotate'
+
+[tool.poetry.dependencies]
+python = "^3.6"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

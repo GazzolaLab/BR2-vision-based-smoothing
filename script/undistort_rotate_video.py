@@ -5,12 +5,12 @@ import cv2
 import glob
 import argparse
 
-from undistort_tools.undistort import undistort
+from .undistort import undistort
 
 import click
 
-from utility.logging import config_logging, get_script_logger
-from naming import *
+from br2_vision.utility.logging import config_logging, get_script_logger
+from br2_vision.naming import *
 
 
 @click.command()
