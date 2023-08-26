@@ -106,7 +106,7 @@ def calibrate(directory: str, extension: str, output: pathlib.Path, verbose: boo
 
     # Save output to pkl file
     with open(output, "wb") as f:
-        pkl.dump({"DIM": _img_shape[::-1], "K": K, "D": D}, f)
+        pkl.dump({"K": K, "D": D}, f)
 
 
 if __name__ == "__main__":

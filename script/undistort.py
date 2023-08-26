@@ -4,14 +4,15 @@ import cv2
 import numpy as np
 import os
 import glob
+import pathlib
 
 import pickle as pkl
 
 
-def undistort(image, calibration_file:pathlib.Path):
+def undistort(image, width, height, calibration_file:pathlib.Path):
+    dim = (width, height)
     with open(calibration_file, "rb") as f:
         params = pkl.load(f)
-        dim = params["dim"]
         k = params["K"]
         d = params["D"]
 
@@ -52,3 +53,7 @@ if __name__ == "__main__":
             [-0.4013399826024004],
         ]
     )
+
+    output = "calibration.pkl"
+    with open(output, "wb") as f:
+        pkl.dump({"K": K, "D": D}, f)

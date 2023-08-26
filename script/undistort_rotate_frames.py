@@ -47,7 +47,8 @@ def undistort_and_rotate_frames(cam_id, rotate, file, verbose):
         frame = cv2.imread(path)
 
         # Undistort
-        frame = undistort(frame, file)
+        height, width = frame.shape[:2]
+        frame = undistort(frame, width, height, file)
 
         # Rotate
         if cv2_rotation != None:

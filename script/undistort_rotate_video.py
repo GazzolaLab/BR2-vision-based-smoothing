@@ -44,7 +44,8 @@ def undistort_and_rotate(cam_id, rotate, output_fps, file, verbose):
         cv2_rotation = None
 
     raw_videos = glob.glob(RAW_FOOTAGE_VIDEO_PATH_WILD.format(cam_id), recursive=True)
-
+    
+    os.makedirs(os.path.join(PATH, "postprocess"), exist_ok=True)
     for video_path in raw_videos:
         basename = os.path.basename(video_path)[:-4]
         save_path = os.path.join(PATH, "postprocess", basename + ".mp4")
@@ -80,7 +81,8 @@ def undistort_and_rotate(cam_id, rotate, output_fps, file, verbose):
                 break
 
             # Undistort
-            frame = undistort(frame, file)
+            height, width = frame.shape[:2]
+            frame = undistort(frame, width, height, file)
 
             # Rotate
             if cv2_rotation != None:
