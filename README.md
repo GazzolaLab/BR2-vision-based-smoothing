@@ -2,7 +2,7 @@
 
 [Paper (arXiv)](https://arxiv.org/abs/2109.08372) - ICRA 2022
 
-> The code to reproduce the result for the paper is [v0.1](https://github.com/skim0119/BR2-vision-based-smoothing/tree/v0.1). The current version is under further development for utilization. While we are trying our best to keep the code back-compatible, past version might require installing deprecated packages and python.
+> The code to reproduce the result for the paper is [v0.1](https://github.com/GazzolaLab/BR2-vision-based-smoothing/tree/v0.1). The current version is under further development for utilization. While we are trying our best to keep the code back-compatible, past version might require installing deprecated packages and python.
 
 [Demo Data](https://uofi.box.com/s/7wjf2wrtq6ykn5km7umng4mf6reme3sq)
 

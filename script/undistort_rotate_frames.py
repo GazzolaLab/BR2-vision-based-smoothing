@@ -20,10 +20,11 @@ from br2_vision.naming import *
     default=None,
     help="Rotation in cv2 (ex:ROTATE_90_CLOCKWISE)",
 )
+@click.option("-f", "--file", type=click.Path(exists=True), help="Path to the calibration file")
 @click.option(
     "--verbose", "-v", is_flag=True, default=False, help="Enables verbose mode."
 )
-def undistort_and_rotate_frames(cam_id, rotate, verbose):
+def undistort_and_rotate_frames(cam_id, rotate, file, verbose):
     """
     Undistort and rotate calibration frames.
 
@@ -46,7 +47,7 @@ def undistort_and_rotate_frames(cam_id, rotate, verbose):
         frame = cv2.imread(path)
 
         # Undistort
-        frame = undistort(frame)
+        frame = undistort(frame, file)
 
         # Rotate
         if cv2_rotation != None:

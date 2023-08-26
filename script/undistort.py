@@ -5,8 +5,16 @@ import numpy as np
 import os
 import glob
 
+import pickle as pkl
 
-def undistort(image, dim, k, d):
+
+def undistort(image, calibration_file:pathlib.Path):
+    with open(calibration_file, "rb") as f:
+        params = pkl.load(f)
+        dim = params["dim"]
+        k = params["K"]
+        d = params["D"]
+
     map1, map2 = cv2.fisheye.initUndistortRectifyMap(
         k, d, np.eye(3), k, dim, cv2.CV_16SC2
     )

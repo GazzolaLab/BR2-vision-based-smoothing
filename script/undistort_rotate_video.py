@@ -28,8 +28,9 @@ from br2_vision.naming import *
     default=60,
     help="Output video FPS. Try to match the original video settings.",
 )
+@click.option("-f", "--file", type=click.Path(exists=True), help="Path to the calibration file")
 @click.option("-v", "--verbose", is_flag=True, default=False, help="Verbose")
-def undistort_and_rotate(cam_id, rotate, output_fps, verbose):
+def undistort_and_rotate(cam_id, rotate, output_fps, file, verbose):
     """
     Undistort and rotate the video.
     """
@@ -79,7 +80,7 @@ def undistort_and_rotate(cam_id, rotate, output_fps, verbose):
                 break
 
             # Undistort
-            frame = undistort(frame)
+            frame = undistort(frame, file)
 
             # Rotate
             if cv2_rotation != None:
