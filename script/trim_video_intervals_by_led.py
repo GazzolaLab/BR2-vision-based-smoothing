@@ -1,5 +1,7 @@
 import cv2
 import sys
+import pathlib
+from tqdm import tqdm
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,12 +11,41 @@ import glob
 
 import click
 
+import br2_vision
 from br2_vision.utility.logging import config_logging, get_script_logger
-from br2_vision.naming import *
+
+
+def get_led_state(frame, roi, led_threshold):
+    """ """
+    # Crop Image
+    crop = frame[int(roi[1]) : int(roi[1] + roi[3]), int(roi[0]) : int(roi[0] + roi[2])]
+
+    # Determine State
+    led_threshold = np.asarray(led_threshold)
+    average_color = crop.mean(axis=0).mean(axis=0)
+
+    # LED Threshold
+    new_state = np.linalg.norm(average_color) > np.linalg.norm(led_threshold)
+    return new_state, average_color
+
+
+def export(input_path, output_path, start_stamp, end_stamp):
+    # TODO: dont use os.system, use subsystem
+    command = f"ffmpeg -y -i {input_path} -ss {start_stamp} \
+            -to {end_stamp} {output_path}"
+    os.system(command)
 
 
 @click.command()
-@click.option("-c", "--cam-id", type=int, default=1, help="Camera index given in file.")
+@click.option(
+    "-t",
+    "--tag",
+    type=click.Path(exists=True),
+    help="Experiment tag. Path ./tag should exist.",
+)
+@click.option(
+    "-c", "--cam-id", type=int, help="Camera index given in file.", multiple=True
+)
 @click.option(
     "-f",
     "--fps",
@@ -24,6 +55,7 @@ from br2_vision.naming import *
 )
 @click.option("-r", "--run-id", type=int, default=1, help="Run index given in file")
 @click.option(
+    "-tr",
     "--trailing-frames",
     type=int,
     default=0,
@@ -36,7 +68,7 @@ from br2_vision.naming import *
     help='RGB threshold of the LED: greater value will be considered as "on"',
 )
 @click.option("-v", "--verbose", is_flag=True, help="Verbose mode.")
-def process(cam_id, fps, run_id, trailing_frames, led_threshold, verbose: bool):
+def process(tag, cam_id, fps, run_id, trailing_frames, led_threshold, verbose: bool):
     """
     Trimming process. Script asks for ROI and trim the video.
 
@@ -46,8 +78,10 @@ def process(cam_id, fps, run_id, trailing_frames, led_threshold, verbose: bool):
 
     Parameters
     ----------
+    tag : pathlib.Path
+        Experiment tag. The raw data are expected to be stored in the path ./tag
     cam_id : int
-        Camera index given in file.
+        Camera index given in file (multiple).
     fps : int
         Frames per seconds (default=60)
     run_id : int
@@ -57,7 +91,7 @@ def process(cam_id, fps, run_id, trailing_frames, led_threshold, verbose: bool):
     led_threshold : tuple(int,int,int)
         RGB threshold of the LED: greater value will be considered as 'on'
     """
-
+    config = br2_vision.load_config()
     config_logging(verbose)
     logger = get_script_logger(os.path.basename(__file__))
 
@@ -65,35 +99,62 @@ def process(cam_id, fps, run_id, trailing_frames, led_threshold, verbose: bool):
     frame2timestr = lambda frame: str(frame / fps)
 
     # Path Configuration
-    video_path = RAW_VIDEO_PATH.format(cam_id)
-    output_path = RAW_FOOTAGE_VIDEO_PATH
+    os.makedirs(config["PATHS"]["postprocessing_path"].format(tag), exist_ok=True)
+    video_path = config["PATHS"]["undistorted_video_path"].format(
+        tag, tag, "{}"
+    )  # (cam_id)
+    output_path = config["PATHS"]["preprocessed_footage_video_path"].format(
+        tag, tag, "{}", "{}"
+    )  # (cam_id, run_id)
 
-    # Load Video
-    capture = cv2.VideoCapture(video_path)
+    # Select LED regions for all cameras
+    rois = []
+    for i in cam_id:
+        path = video_path.format(i)
+        logger.info(f"Processing camera {i}: {path}")
+        capture = cv2.VideoCapture(path)
+        ret, frame = capture.read()
+        if not ret:
+            continue
+        else:
+            logger.info(f"Processing camera {i}: frame shape {frame.shape}")
+        r = cv2.selectROI("select roi", frame)
+        logger.info(f"ROI is selected: {r}")
+        rois.append(r)
+        capture.release()
+    cv2.waitKey(500)  # Ensure all windows close
+    cv2.destroyAllWindows()
 
-    # Select LED region
-    r = cv2.selectROI("select roi", frame)
-    logger.info("LED region: ", r)
+    # Iterate all cameras
+    captures = [cv2.VideoCapture(video_path.format(i)) for i in cam_id]
+    captures_status = [True for i in cam_id]
 
-    # LED Threshold
-    led_threshold = np.array(led_threshold)
-    led_state = lambda c: np.linalg.norm(c) > np.linalg.norm(led_threshold)
-
-    # Iterate Video
+    # Iterate Video and export
     current_state = False
     frame_count = 0
-    while capture.isOpened():
-        ret, frame = capture.read()
-        frame_count += 1
-        if frame is None:
+    total_frame = min(
+        [int(capture.get(cv2.CAP_PROP_FRAME_COUNT)) for capture in captures]
+    )
+    logger.info(f"Total frame: {total_frame}")
+    pbar = tqdm(total=total_frame)
+    state_list = []
+    colors_list = [[] for _ in cam_id]
+    while frame_count < total_frame:
+        states = []
+        for i in range(len(cam_id)):
+            ret, frame = captures[i].read()
+            captures_status[i] = ret
+            if ret and (rois[i][2] > 0 and rois[i][3] > 0):
+                _state, ave_color = get_led_state(frame, rois[i], led_threshold)
+                states.append(_state)
+                colors_list[i].append(ave_color)
+        if not all(captures_status):
             break
+        frame_count += 1
+        pbar.update(1)
 
-        # Crop Image
-        imCrop = frame[int(r[1]) : int(r[1] + r[3]), int(r[0]) : int(r[0] + r[2])]
-
-        # Determine State
-        average_color = imCrop.mean(axis=0).mean(axis=0)
-        new_state = led_state(average_color)
+        new_state = any(states)
+        state_list.append(new_state)
 
         if new_state and not current_state:
             # Mark the start-frame
@@ -106,17 +167,44 @@ def process(cam_id, fps, run_id, trailing_frames, led_threshold, verbose: bool):
             start_stamp = frame2timestr(start_frame)
             end_stamp = frame2timestr(end_frame)
             current_state = False
-            command = f"ffmpeg -y -i {video_path} -ss {start_stamp} \
-                    -to {end_stamp} {output_path.format(cam_id, run_id)}"
-            logger.info(command)
-            os.system(command)
+            logger.info(f"Trimming: {start_stamp=} to {end_stamp=}")
+            for i in cam_id:
+                export(
+                    input_path=video_path.format(i),
+                    output_path=output_path.format(i, run_id),
+                    start_stamp=start_stamp,
+                    end_stamp=end_stamp,
+                )
 
             run_id += 1
-    capture.release()
+
+    # Release all captures
+    for capture in captures:
+        capture.release()
+    pbar.close()
+
+    # Plot LED state
+    plt.plot(state_list)
+    plt.xlabel("Frame")
+    plt.ylabel("LED State")
+    plt.savefig(config["PATHS"]["postprocessing_path"].format(tag) + "/led_state.png")
+    plt.close()
+
+    # Plot LED color
+    for i in range(len(cam_id)):
+        colors = np.array(colors_list[i])
+        plt.plot(colors[:, 0], label="R")
+        plt.plot(colors[:, 1], label="G")
+        plt.plot(colors[:, 2], label="B")
+        plt.legend()
+        plt.xlabel("Frame")
+        plt.ylabel("LED Color")
+        plt.savefig(
+            config["PATHS"]["postprocessing_path"].format(tag)
+            + f"/led_color_cam{i}.png"
+        )
+        plt.close()
 
 
 if __name__ == "__main__":
-    pricess()
-    # for cam_id in range(1,6):
-    #    run_id = 1
-    #    process(cam_id=cam_id, run_id=run_id)
+    process()
