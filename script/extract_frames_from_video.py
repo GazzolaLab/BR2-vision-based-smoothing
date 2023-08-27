@@ -36,10 +36,13 @@ from br2_vision.utility.logging import config_logging, get_script_logger
     default=6,
     help="PNG compression level 0-9. (default: 6)",
 )
+@click.option("-r", "--use-roi", is_flag=True, default=False, help="Use ROI")
 @click.option("-v", "--verbose", is_flag=True, default=False, help="Verbose")
 @click.option("-d", "--dry", is_flag=True, default=False, help="Dry run")
-@click.option("-S", "--show", is_flag=True, default=False, help="Show similarity plot")
-def extract_frames(file, skip_frame, compression, verbose, dry, show):
+@click.option("-S", "--show", is_flag=True, default=False, help="Show frames")
+def extract_frames(
+    file, skip_frame, compression, use_roi: bool, verbose: bool, dry: bool, show: bool
+):
     """
     Perform:
     ffmpeg -i input.mov -r 0.25 output_%04d.png
@@ -75,15 +78,27 @@ def extract_frames(file, skip_frame, compression, verbose, dry, show):
         frame_count = 0
         pbar = tqdm(total=total_frames)
 
-        maxlen = 100
+        fig, ax = plt.subplots(1, 1, figsize=(10, 5))
+
+        maxlen = 80
         prev_frames = deque(maxlen=maxlen)
         prev_similarity = 1.0
-        similarity_threshold = 0.995
+        similarity_threshold = 0.98
         similarities = []
+        roi = None
         while cap.isOpened():
             ret, frame = cap.read()
+            if ret and use_roi:
+                if roi is None:
+                    roi = cv2.selectROI(frame)
+                    cv2.destroyAllWindows()
+                frame = frame[roi[1] : roi[1] + roi[3], roi[0] : roi[0] + roi[2]]
             if ret and (frame_count + 1) % skip_frame == 0:
                 pbar.update(skip_frame)
+                # if show:
+                #    cv2.imshow('frame', frame)
+                #    cv2.waitKey(1)
+
                 filename = (
                     directory / "frame_{:04d}.png".format(frame_count)
                 ).as_posix()
@@ -99,7 +114,11 @@ def extract_frames(file, skip_frame, compression, verbose, dry, show):
                         prev_frames[0],
                         [cv2.IMWRITE_PNG_COMPRESSION, compression],
                     )
-                    # plt.axvline(x=1.0 * (frame_count - maxlen) / skip_frame, color='r', linestyle='--')
+                    plt.axvline(
+                        x=1.0 * (frame_count - maxlen) / skip_frame,
+                        color="r",
+                        linestyle="--",
+                    )
                 prev_similarity = similarity
                 similarities.append(similarity)
             elif not ret:
@@ -110,10 +129,13 @@ def extract_frames(file, skip_frame, compression, verbose, dry, show):
         pbar.close()
 
         # DEBUG
-        # plt.plot(similarities)
-        # plt.xlabel('Frame')
-        # plt.ylabel('Similarity')
-        # plt.show()
+        plt.plot(similarities)
+        plt.xlabel("Frame")
+        plt.ylabel("Similarity")
+        plt.savefig(
+            (video_path.parent / video_path.stem).as_posix() + "_similarity.png"
+        )
+        plt.close("all")
 
         logger.info("Elapsed time: {:.2f}s".format(time.time() - stime))
     logger.info("Done.")
