@@ -18,9 +18,10 @@ import click
 import br2_vision
 from br2_vision.utility.logging import config_logging, get_script_logger
 
+
 def process_frame(frame, calibration_file, rotate):
     # Monitor memory usage
-    #print(psutil.virtual_memory())
+    # print(psutil.virtual_memory())
 
     # Undistort
     height, width = frame.shape[:2]
@@ -32,9 +33,16 @@ def process_frame(frame, calibration_file, rotate):
 
     return frame
 
+
 @click.command()
-@click.option("--folder", type=click.Path(exists=True), default=None, help="Directory containing the videos.")
-@click.option("-f", "--file", type=click.Path(exists=True), default=None, help="Video path.", multiple=True)
+@click.option(
+    "-f",
+    "--file",
+    type=click.Path(exists=True),
+    default=None,
+    help="Video path.",
+    multiple=True,
+)
 @click.option(
     "-r",
     "--rotate",
@@ -48,16 +56,50 @@ def process_frame(frame, calibration_file, rotate):
     default=60,
     help="Output video FPS. Try to match the original video settings.",
 )
-@click.option("-c", "--calibration-file", type=click.Path(exists=True), help="Path to the calibration file")
+@click.option(
+    "-c",
+    "--calibration-file",
+    type=click.Path(exists=True),
+    help="Path to the calibration file",
+)
 @click.option("-v", "--verbose", is_flag=True, default=False, help="Verbose")
 @click.option("-d", "--dry", is_flag=True, default=False, help="Dry run")
-@click.option("-p", "--processes", type=int, default=mp.cpu_count(), help="Max workers. (default: all cores)")
-@click.option("-cs", "--chunksize", type=int, default=1, help="Chunksize per core for multiprocessing. (default: 1)")
-def undistort_and_rotate(folder, file, rotate, output_fps, calibration_file, verbose, dry, processes, chunksize):
+@click.option(
+    "-p",
+    "--processes",
+    type=int,
+    default=mp.cpu_count(),
+    help="Max workers. (default: all cores)",
+)
+@click.option(
+    "-cs",
+    "--chunksize",
+    type=int,
+    default=1,
+    help="Chunksize per core for multiprocessing. (default: 1)",
+)
+@click.option(
+    "-o",
+    "--override",
+    is_flag=True,
+    default=False,
+    help="Override existing file. If False, skip existing file.",
+)
+def undistort_and_rotate(
+    file,
+    rotate,
+    output_fps,
+    calibration_file,
+    verbose,
+    dry,
+    processes,
+    chunksize,
+    override,
+):
     """
     Undistort and rotate the video.
     """
-    assert (folder is not None) ^ (file is not None), "You must specify (only one of) a folder or a file."
+    assert file is not None, "You must specify (only one of) a folder or a file."
 
     config = br2_vision.load_config()
     config_logging(verbose)
@@ -70,16 +112,24 @@ def undistort_and_rotate(folder, file, rotate, output_fps, calibration_file, ver
     else:
         cv2_rotation = None
 
-    if folder is not None:
-        folder = pathlib.Path(folder)
-        raw_videos = glob.glob(folder/"*.{config['DEFAULT']['raw_video_extension']}", recursive=True)
-    else:
-        raw_videos = file
+    raw_videos = []
+    for f in file:
+        if os.path.isdir(f):
+            collections = glob.glob(
+                f"{f}/*.{config['DEFAULT']['processing_video_extension']}",
+                recursive=True,
+            )
+            raw_videos.extend(collections)
+        else:
+            raw_videos.append(f)
 
     for video_path in raw_videos:
         video_path = pathlib.Path(video_path)
         basename = video_path.stem
-        save_path = video_path.parent / f"{basename}_undistorted.{config['DEFAULT']['processing_video_extension']}"
+        save_path = (
+            video_path.parent
+            / f"{basename}_undistorted.{config['DEFAULT']['processing_video_extension']}"
+        )
         logger.info(f"processing {video_path=} -> {save_path=}")
 
         save_path = save_path.as_posix()
@@ -87,8 +137,12 @@ def undistort_and_rotate(folder, file, rotate, output_fps, calibration_file, ver
 
         # if save_path axist, remove
         if os.path.exists(save_path):
-            logger.info(f"file exist. overwriting on {save_path}")
-            os.remove(save_path)
+            if override:
+                logger.info(f"file exist. overwriting on {save_path}")
+                os.remove(save_path)
+            else:
+                logger.info(f"file exist. skipping {save_path}")
+                continue
 
         if dry:
             continue
@@ -107,7 +161,10 @@ def undistort_and_rotate(folder, file, rotate, output_fps, calibration_file, ver
 
         frame_width = int(video.get(3))
         frame_height = int(video.get(4))
-        if cv2_rotation is cv2.ROTATE_90_CLOCKWISE or cv2_rotation is cv2.ROTATE_90_COUNTERCLOCKWISE:
+        if (
+            cv2_rotation is cv2.ROTATE_90_CLOCKWISE
+            or cv2_rotation is cv2.ROTATE_90_COUNTERCLOCKWISE
+        ):
             frame_width, frame_height = frame_height, frame_width
         size = (frame_width, frame_height)  # Make sure the size is upright
         logger.info(f"video size: {frame_width=}x{frame_height=}")
@@ -134,13 +191,19 @@ def undistort_and_rotate(folder, file, rotate, output_fps, calibration_file, ver
                     break
                 chunk.append(frame)
             if len(chunk) > 0:
-                func = partial(process_frame, calibration_file=calibration_file, rotate=cv2_rotation)
+                func = partial(
+                    process_frame,
+                    calibration_file=calibration_file,
+                    rotate=cv2_rotation,
+                )
                 results = pool.map(func, chunk, chunksize=chunksize)
                 pbar.update(len(results))
 
                 # Write video
                 shape = results[0].shape
-                assert shape[0] == frame_height and shape[1] == frame_width, f"shape={shape} != {frame_height}x{frame_width}x3"
+                assert (
+                    shape[0] == frame_height and shape[1] == frame_width
+                ), f"shape={shape} != {frame_height}x{frame_width}x3"
                 for frame in results:
                     # check nan
                     _frame = cv2.resize(frame, (frame_width, frame_height))

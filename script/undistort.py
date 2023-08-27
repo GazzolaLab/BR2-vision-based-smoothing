@@ -9,7 +9,7 @@ import pathlib
 import pickle as pkl
 
 
-def undistort(image, width, height, calibration_file:pathlib.Path):
+def undistort(image, width, height, calibration_file: pathlib.Path):
     dim = (width, height)
     with open(calibration_file, "rb") as f:
         params = pkl.load(f)

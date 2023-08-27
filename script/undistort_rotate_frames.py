@@ -20,7 +20,9 @@ from br2_vision.naming import *
     default=None,
     help="Rotation in cv2 (ex:ROTATE_90_CLOCKWISE)",
 )
-@click.option("-f", "--file", type=click.Path(exists=True), help="Path to the calibration file")
+@click.option(
+    "-f", "--file", type=click.Path(exists=True), help="Path to the calibration file"
+)
 @click.option(
     "--verbose", "-v", is_flag=True, default=False, help="Enables verbose mode."
 )
