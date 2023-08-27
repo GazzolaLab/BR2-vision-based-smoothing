@@ -16,18 +16,8 @@ from cv2_custom.marking import cv2_draw_label
 
 from PyQt5.QtWidgets import (QApplication, QWidget, QPushButton, QLineEdit, QInputDialog)
 
-from config import *
+from br2_vision.naming import *
 
-# Config - Search for all calibration images
-IMAGE_PATH = CALIBRATION_PATH
-calibration_images = glob.glob(os.path.join(IMAGE_PATH, 'cam-*-calibration-*[0-9].png'))
-calibration_images.sort(key=lambda x: (int(x.split('-')[1]), int(x.split('-')[-1].split('.')[0])) )
-reference_image_paths = {}  # key: (Camera ID, x-location ID)
-for path in calibration_images:
-    base = os.path.basename(path)
-    base = base.split('.')[0].split('-')
-    reference_image_paths[(base[1], base[3])] = path
-OUTPUT_NAME = CALIBRATION_REF_POINTS_PATH
 
 # Label to 3d coordinate
 def label_to_3Dcoord(x_label:int, y_label:int, z_label:int):
@@ -272,6 +262,16 @@ def labeling(frame, tag, save_path_points, save_path_dlt, save_path_image, cam_i
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
+    # Config - Search for all calibration images
+    IMAGE_PATH = CALIBRATION_PATH
+    calibration_images = glob.glob(os.path.join(IMAGE_PATH, 'cam-*-calibration-*[0-9].png'))
+    calibration_images.sort(key=lambda x: (int(x.split('-')[1]), int(x.split('-')[-1].split('.')[0])) )
+    reference_image_paths = {}  # key: (Camera ID, x-location ID)
+    for path in calibration_images:
+        base = os.path.basename(path)
+        base = base.split('.')[0].split('-')
+        reference_image_paths[(base[1], base[3])] = path
+
     # Label Reference Point
     results = defaultdict(list)
     for (camera_id, x_id), path in reference_image_paths.items():
@@ -294,4 +294,5 @@ if __name__ == "__main__":
             v = int(v)
             results[camera_id].append((u,v,x,y,z))
 
+    OUTPUT_NAME = CALIBRATION_REF_POINTS_PATH
     np.savez(OUTPUT_NAME, **results)

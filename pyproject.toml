@@ -28,6 +28,7 @@ scikit-spatial = "^7.0.0"
 scipy = "^1.11.2"
 pyqt5 = "^5.15.9"
 matplotlib = "^3.7.2"
+click = "^8.1.7"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"
