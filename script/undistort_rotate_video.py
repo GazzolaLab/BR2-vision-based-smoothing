@@ -128,7 +128,7 @@ def undistort_and_rotate(
         basename = video_path.stem
         save_path = (
             video_path.parent
-            / f"{basename}_undistorted.{config['DEFAULT']['processing_video_extension']}"
+            / config['PATH']['undistorted_video_path_stem'].format(basename)
         )
         logger.info(f"processing {video_path=} -> {save_path=}")
 

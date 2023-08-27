@@ -23,7 +23,7 @@ from elastica._calculus import quadrature_kernel
 from elastica._elastica_numba._rotations import _rotate, _inv_rotate
 from elastica._elastica_numba._external_forces import inplace_addition
 
-from algorithms.algorithm import Algorithm
+from .algorithm import Algorithm
 from rod_tools import (
     forward_path,
     calculate_dilatation,

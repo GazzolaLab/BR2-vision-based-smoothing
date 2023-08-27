@@ -11,8 +11,8 @@ RAW_FOOTAGE_VIDEO_PATH_WILD      = os.path.join(PATH, 'raw', 'cam-{}-footage-*.m
 
 # CALIBRATION PATH
 CALIBRATION_PATH                 = os.path.join(PATH, 'calibration')
-CALIBRATION_IMAGE_COLLECTION     = os.path.join(PATH, 'calibration', 'cam-{}-*.png'.)
-CALIBRATION_REF_POINTS_PATH      = os.path.join(PATH, 'calibration', 'calibration_points.npz'.)
+CALIBRATION_IMAGE_COLLECTION     = os.path.join(PATH, 'calibration', 'cam-{}-*.png')
+CALIBRATION_REF_POINTS_PATH      = os.path.join(PATH, 'calibration', 'calibration_points.npz')
 CALIBRATION_REF_POINT_SAVE       = os.path.join(PATH, 'calibration', 'cam-{}-calibration-{}-refpoints.npz')
 CALIBRATION_REF_POINT_SAVE_WILD  = os.path.join(PATH, 'calibration', 'cam-{}-calibration-*-refpoints.npz')
 CALIBRATION_DLT_PATH             = os.path.join(PATH, 'calibration', 'cam-{}-calibration-{}-dlt.npz')
