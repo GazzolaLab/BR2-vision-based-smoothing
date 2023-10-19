@@ -80,7 +80,6 @@ def extract_frames(
 
         fig, ax = plt.subplots(1, 1, figsize=(10, 5))
 
-        # TODO: Document these parameters
         maxlen = 80
         prev_frames = deque(maxlen=maxlen)
         prev_similarity = 1.0
