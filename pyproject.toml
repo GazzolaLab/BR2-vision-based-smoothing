@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "br2-vision-based-smoothing"
-version = "0.2.0"
+version = "0.2.1"
 description = "Video tracking and strain reconstruction algorithm for soft-arm project."
 authors = ["Seung Hyun Kim <skim449@illinois.edu>"]
 license = "MIT"
@@ -16,6 +16,7 @@ trim_video_intervals_by_led = 'script.trim_video_intervals_by_led:process'
 undistort_rotate_frames = 'script.undistort_rotate_frames:undistort_and_rotate_frames'
 undistort_rotate_video = 'script.undistort_rotate_video:undistort_and_rotate'
 extract_frames_from_video = 'script.extract_frames_from_video:extract_frames'
+select_calibration_points = 'script.run_select_calibration_points:select_calibration_points'
 
 [tool.poetry.dependencies]
 python = "^3.9,<3.11"

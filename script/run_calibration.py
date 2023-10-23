@@ -33,20 +33,17 @@ print(reference_point_filenames)
 # Read Configuration Points
 data = np.load(reference_point_filenames, allow_pickle=True)
 
-# Print datapoints 
+# Print datapoints
 for k, v in data.items():
     print(k, v.shape)
     print(v)
 
 # DLT calibration
-dlt = DLT(
-    calibration_path=CALIBRATION_PATH
-)
+dlt = DLT(calibration_path=CALIBRATION_PATH)
 for camera_id, points in data.items():
     camera_id = int(camera_id)
     dlt.add_camera(camera_id, calibration_type=11)
-    for point in points: # point : (u,v,x,y,z)
+    for point in points:  # point : (u,v,x,y,z)
         dlt.add_reference(*point, camera_id=camera_id)
 dlt.finalize(verbose=True)
 dlt.save()
-

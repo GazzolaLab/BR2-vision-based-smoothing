@@ -68,7 +68,10 @@ def export(input_path, output_path, start_stamp, end_stamp):
     help='RGB threshold of the LED: greater value will be considered as "on"',
 )
 @click.option("-v", "--verbose", is_flag=True, help="Verbose mode.")
-def process(tag, cam_id, fps, run_id, trailing_frames, led_threshold, verbose: bool):
+@click.option("-d", "--dry", is_flag=True, help="Dry run.")
+def process(
+    tag, cam_id, fps, run_id, trailing_frames, led_threshold, verbose: bool, dry: bool
+):
     """
     Trimming process. Script asks for ROI and trim the video.
 
@@ -155,6 +158,8 @@ def process(tag, cam_id, fps, run_id, trailing_frames, led_threshold, verbose: b
 
         new_state = any(states)
         state_list.append(new_state)
+        if dry:
+            continue
 
         if new_state and not current_state:
             # Mark the start-frame
@@ -192,7 +197,8 @@ def process(tag, cam_id, fps, run_id, trailing_frames, led_threshold, verbose: b
 
     # Plot LED color
     for i in range(len(cam_id)):
-        colors = np.array(colors_list[i])
+        colors = np.asarray(colors_list[i])
+        print(colors.shape)
         plt.plot(colors[:, 0], label="R")
         plt.plot(colors[:, 1], label="G")
         plt.plot(colors[:, 2], label="B")
