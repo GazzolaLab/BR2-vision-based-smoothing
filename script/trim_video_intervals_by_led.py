@@ -38,9 +38,15 @@ def export(input_path, output_path, start_stamp, end_stamp):
 
 @click.command()
 @click.option(
+    "-p",
+    "--path",
+    type=click.Path(exists=True),
+    help="Experiment folder path",
+)
+@click.option(
     "-t",
     "--tag",
-    type=click.Path(exists=True),
+    type=str,
     help="Experiment tag. Path ./tag should exist.",
 )
 @click.option(
@@ -70,7 +76,7 @@ def export(input_path, output_path, start_stamp, end_stamp):
 @click.option("-v", "--verbose", is_flag=True, help="Verbose mode.")
 @click.option("-d", "--dry", is_flag=True, help="Dry run.")
 def process(
-    tag, cam_id, fps, run_id, trailing_frames, led_threshold, verbose: bool, dry: bool
+    path, tag, cam_id, fps, run_id, trailing_frames, led_threshold, verbose: bool, dry: bool
 ):
     """
     Trimming process. Script asks for ROI and trim the video.
@@ -104,10 +110,10 @@ def process(
     # Path Configuration
     os.makedirs(config["PATHS"]["postprocessing_path"].format(tag), exist_ok=True)
     video_path = config["PATHS"]["undistorted_video_path"].format(
-        tag, tag, "{}"
+        path, tag, "{}"
     )  # (cam_id)
     output_path = config["PATHS"]["preprocessed_footage_video_path"].format(
-        tag, tag, "{}", "{}"
+        path, tag, "{}", "{}"
     )  # (cam_id, run_id)
 
     # Select LED regions for all cameras
