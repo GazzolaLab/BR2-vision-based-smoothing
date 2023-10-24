@@ -125,7 +125,7 @@ def undistort_and_rotate(
     for video_path in raw_videos:
         video_path = pathlib.Path(video_path)
         basename = video_path.stem
-        save_path = video_path.parent / config["PATH"][
+        save_path = video_path.parent / config["PATHS"][
             "undistorted_video_path_stem"
         ].format(basename)
         logger.info(f"processing {video_path=} -> {save_path=}")

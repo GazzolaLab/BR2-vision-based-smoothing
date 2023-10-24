@@ -19,7 +19,7 @@ from br2_vision.utility.logging import config_logging, get_script_logger
     "--file",
     type=click.Path(exists=True),
     default=None,
-    help="Video path.",
+    help="Calibration video path (or file).",
     multiple=True,
 )
 @click.option(
@@ -100,7 +100,7 @@ def extract_frames(
                 #    cv2.waitKey(1)
 
                 filename = (
-                    directory / "frame_{:04d}.png".format(frame_count)
+                    directory / "frame_{:05d}.png".format(frame_count)
                 ).as_posix()
                 similarity = cv2.matchTemplate(
                     prev_frames[0], frame, cv2.TM_CCOEFF_NORMED
