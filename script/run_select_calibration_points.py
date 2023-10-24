@@ -1,6 +1,9 @@
 import os
 import sys
 import glob
+import time
+import re
+import pathlib
 from collections import defaultdict
 from random import shuffle
 
@@ -21,11 +24,15 @@ import br2_vision
 from br2_vision.utility.logging import config_logging, get_script_logger
 
 # Label to 3d coordinate
-def label_to_3Dcoord(x_label: int, y_label: int, z_label: int):
+def label_to_3Dcoord(x_label: int, y_label: int, z_label: int, config):
+    dx = float(config["DIMENSION"]["delta_x"])
+    dy = float(config["DIMENSION"]["delta_y"])
+    dz = float(config["DIMENSION"]["delta_z"])
+
     x_label = int(x_label)
     y_label = int(y_label)
     z_label = int(z_label)
-    delta = np.array([0.020, 0.040, 0.040])  # Distance between interval in (xyz)
+    delta = np.array([dx, dy, dz])  # Distance between interval in (xyz)
     id_vec = np.array([x_label, y_label, z_label], dtype=float)
     return id_vec * delta
 
@@ -50,7 +57,7 @@ def scale_image(filepath, scale=1.0):
 
 
 def labeling(
-    frame, tag, save_path_points, save_path_dlt, save_path_image, cam_id, x_id
+    frame, tag, save_path_points, save_path_dlt, save_path_image, cam_id, x_id, config
 ):
     """
 
@@ -60,10 +67,20 @@ def labeling(
     ----------
     frame :
         Image to process
+    tag :
+        Tag for the image
+    save_path_points :
+        Coordinate save path. First check if the previous work exist.
     save_path_dlt :
         DLT save path. First check if the previous work exist.
     save_path_image :
         Final image path for visualizing calibration.
+    cam_id :
+        Camera ID
+    x_id :
+        frame X ID
+    config :
+        Configuration
     """
 
     # Defining mouse event handler
@@ -153,6 +170,22 @@ def labeling(
         key = cv2.waitKey(1) & 0xFF
         if key == 32 or key == 27 or key == 13:  # Exit (13: enter, 32: space, 27: ESC)
             break
+        elif key in [ord("h"), ord("H")]:  # help
+            print("key:{} - help message".format(key))
+            print("""
+- Left Click: Select point
+    - Control-Left Click: Delete point
+- Right Click: Lock point
+    - Control-Right Click: Lock all points
+- Key 'h' or 'H': Show help
+- Key 'D' or 'd': Delete last coordinate
+- Key 'b': Label points
+- Key 'p': Interpolate using planar(2D) DLT (At least 4 locked points are required)
+- Key 'P': Use Harry's corner detection.
+- Key 'o': Use 3D DLT (from other reference frame images)
+- Key 's': Save
+- 'Enter,' 'Space,' 'ESC': Complete, move-on to next frame
+            """)
         elif key == ord("d"):  # Delete last coordinate
             print("key:{} - Delete last item".format(key))
             if len(coords) > 0:
@@ -202,7 +235,7 @@ def labeling(
             for u, v, y_id, z_id, locked in coords:
                 if not locked:
                     continue
-                _, y, z = label_to_3Dcoord(0, y_id, z_id)
+                _, y, z = label_to_3Dcoord(0, y_id, z_id, config)
                 dlt2D.add_reference(u, v, y, z)
             try:
                 dlt2D.finalize()
@@ -224,7 +257,7 @@ def labeling(
                 for z_id in range(zs, ze + 1):
                     if (y_id, z_id) in locked_id:
                         continue
-                    _, y, z = label_to_3Dcoord(0, y_id, z_id)
+                    _, y, z = label_to_3Dcoord(0, y_id, z_id, config)
                     u, v = dlt2D.inverse_map(y, z)
                     if u >= 0 and u < width and v >= 0 and v < height:
                         if key == ord("P"):  # corner detection
@@ -246,8 +279,9 @@ def labeling(
             dlt2D.save()
             print("finished drawing")
         elif key == ord("o"):  # 3d:
+            calibration_ref_point_save_wild = config["PATHS"]["calibration_ref_point_save_wild"]
             reference_point_filenames = glob.glob(
-                CALIBRATION_REF_POINT_SAVE_WILD.format(cam_id)
+                calibration_ref_point_save_wild.format(cam_id)
             )
             if len(reference_point_filenames) < 2:
                 print(
@@ -261,7 +295,7 @@ def labeling(
                 data = np.load(filename)["coords"]
 
                 for u, v, y_id, z_id, _ in data:
-                    x, y, z = label_to_3Dcoord(_x_id, y_id, z_id)
+                    x, y, z = label_to_3Dcoord(_x_id, y_id, z_id, config)
                     _3d_dlt.add_reference(u, v, x, y, z, camera_id=cam_id)
             _3d_dlt.finalize()
 
@@ -280,7 +314,7 @@ def labeling(
                 for z_id in range(zs, ze + 1):
                     if (y_id, z_id) in locked_id:
                         continue
-                    x, y, z = label_to_3Dcoord(x_id, y_id, z_id)
+                    x, y, z = label_to_3Dcoord(x_id, y_id, z_id, config)
                     u, v = _3d_dlt.inverse_map(x, y, z)[cam_id]
                     u = int(u)
                     v = int(v)
@@ -293,6 +327,8 @@ def labeling(
 
     # Presave the result
     np.savez(save_path_points, coords=coords)
+    print(f"{save_path_image=}")
+    print(f"{image.shape=}")
     cv2.imwrite(save_path_image, image)
     cv2.destroyAllWindows()
 
@@ -300,54 +336,93 @@ def labeling(
 
 
 @click.command()
+@click.option(
+    "-f",
+    "--file",
+    type=click.Path(exists=True),
+    default=None,
+    help="Calibration video path (or file).",
+    multiple=True,
+)
+@click.option("-c", "--scale", default=1.0, type=float, help="Image scale factor")
 @click.option("-v", "--verbose", is_flag=True, default=False, help="Verbose")
-@click.option("-d", "--dry", is_flag=True, default=False, help="Dry run")
+@click.option("-d", "--dry", is_flag=True, default=False, help="Dry run: print table of processing frames.")
 @click.option("-S", "--show", is_flag=True, default=False, help="Show frames")
-def select_calibration_points():
+def select_calibration_points(file, scale, verbose, dry, show):
     config = br2_vision.load_config()
     config_logging(verbose)
     logger = get_script_logger(os.path.basename(__file__))
 
     app = QApplication([])
 
-    # Config - Search for all calibration images
-    IMAGE_PATH = CALIBRATION_PATH  # config['PATHS']['calibration_image_collection']
-    calibration_images = glob.glob(
-        os.path.join(IMAGE_PATH, "cam-*-calibration-*[0-9].png")
-    )
-    calibration_images.sort(
-        key=lambda x: (int(x.split("-")[1]), int(x.split("-")[-1].split(".")[0]))
-    )
+    raw_videos = []  # [(cam_id, video_path)]
+    for f in file:
+        if os.path.isdir(f):
+            tag = config["PATHS"]["tag_dlt"]
+            p = config["PATHS"]["undistorted_video_path"].format(f, tag, "*")
+            collections = glob.glob(p, recursive=True)
+            for p in collections:
+                s = re.findall(r'cam\d+', p)[0][3:]
+                assert s.isdigit(), f"Camera id must be a number, and file name must be {tag}-cam{{id}}"
+                raw_videos.append((int(s), p))
+        else:
+            raise NotImplementedError("Only directory is supported")
+
     reference_image_paths = {}  # key: (Camera ID, x-location ID)
-    for path in calibration_images:
-        base = os.path.basename(path)
-        base = base.split(".")[0].split("-")
-        reference_image_paths[(base[1], base[3])] = path
+    for cam_id, video_path in raw_videos:
+        logger.debug("Selecting from video file: {}".format(video_path))
+        video_path = pathlib.Path(video_path)
+        directory = video_path.parent / video_path.stem
+
+        k = directory / f"*.{config['DEFAULT']['processing_image_extension']}"
+        images = glob.glob(k.as_posix())
+        calibration_images = sorted(images)
+
+        if len(images) == 0:
+            raise ValueError(f"No frame extracted for the video: {video_path}")
+
+        for xid, image_path in enumerate(calibration_images):
+            reference_image_paths[(cam_id, xid)] = image_path
+
+    if dry:
+        # Print table
+        for (camera_id, x_id), path in reference_image_paths.items():
+            print(f"{camera_id=}\t{x_id=}\t{path}")
+        return
+
+    # Create directory
+    calibration_path = config["PATHS"]["calibration_path"]
+    os.makedirs(calibration_path, exist_ok=True)
 
     # Label Reference Point
     results = defaultdict(list)
+    calibration_ref_point_save = config["PATHS"]["calibration_ref_point_save"]
+    calibration_dlt_path = config["PATHS"]["calibration_dlt_path"]
+    calibration_view_path = config["PATHS"]["calibration_view_path"]
     for (camera_id, x_id), path in reference_image_paths.items():
-        frame = scale_image(path, scale=1.0)
+        logger.debug(f"Processing camera {camera_id} at xid={x_id}")
+        frame = scale_image(path, scale=scale)
         points = labeling(
             frame=frame,
             tag=path,
-            save_path_points=CALIBRATION_REF_POINT_SAVE.format(camera_id, x_id),
-            save_path_dlt=CALIBRATION_DLT_PATH.format(camera_id, x_id),
-            save_path_image=CALIBRATION_VIEW_PATH.format(camera_id, x_id),
+            save_path_points=calibration_ref_point_save.format(camera_id, x_id),
+            save_path_dlt=calibration_dlt_path.format(camera_id, x_id),
+            save_path_image=calibration_view_path.format(camera_id, x_id),
             cam_id=camera_id,
             x_id=x_id,
+            config=config,
         )
         print("CAM {} Points:".format(camera_id))
 
         # Save the points
         for u, v, y_id, z_id, _ in points:
-            x, y, z = label_to_3Dcoord(x_id, y_id, z_id)
+            x, y, z = label_to_3Dcoord(x_id, y_id, z_id, config)
             u = int(u)
             v = int(v)
             results[camera_id].append((u, v, x, y, z))
 
-    OUTPUT_NAME = CALIBRATION_REF_POINTS_PATH
-    np.savez(OUTPUT_NAME, **results)
+    output_name = config["PATHS"]["calibration_ref_points_path"]
+    np.savez(output_name, **results)
 
 
 if __name__ == "__main__":

@@ -56,7 +56,7 @@ flowchart TD
     trim["trim video intervals by LED"]
 
     collect --> proc1
-    proc1 -->|calibration video| cal1 --> cal2
+    proc1 -->|calibration video| cal1 -->|prune frames| cal2
     proc1 -->|posture video| trim
 ```
 
@@ -107,12 +107,13 @@ Each points have unique label that is used to interpolate the true coordinate.
     - Control-Left Click: Delete point
 - Right Click: Lock point
     - Control-Right Click: Lock all points
+- Key 'h' or 'H': Show help
 - Key 'D' or 'd': Delete last coordinate
 - Key 'b': Label points
 - Key 'p': Interpolate using planar(2D) DLT (At least 4 locked points are required)
 - Key 'P': Use Harry's corner detection.
 - Key 'o': Use 3D DLT (from other reference frame images)
-' Key 's': Save
+- Key 's': Save
 - 'Enter,' 'Space,' 'ESC': Complete
 
 2. Calibration
@@ -201,6 +202,7 @@ Following preprocessing scripts are included.
     - For detail, run `undistort_rotate_video --help`
 - extract_frames_from_video: Save frames from the video as png files. Frames are selected based on their similarity to the previous frames.
     - Useful to extract calibration frames from the calibration video.
+    - User can use roi to select the region of interest, during similarity comparison.
     - Output png file is compressed.
     - For detail, run `extract_frames_from_video --help`
 - trim_video_intervals.py: detect led and trim the video based on the led.
