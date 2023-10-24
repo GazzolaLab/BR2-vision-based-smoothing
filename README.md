@@ -60,11 +60,14 @@ flowchart TD
     smt1["interpolate poses"]
     smt2["run smoothing"]
 
+    C{satisfied?}
+
     collect --> proc1
     proc1 -->|calibration video| cal1 -->|prune frames| cal2 --> cal3
-    proc1 -->|posture video| trim --> opt1 --> opt2
-    opt2 -->|trim trajectory| --> opt1
-    opt2 --> smt1
+    proc1 -->|posture video| trim --> opt1 --> opt2 --> C
+    C -->|no: trim trajectory| opt1
+    C -->|yes| smt1
+    
     cal3 --> smt1
     smt1 --> smt2
 ```
