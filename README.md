@@ -28,15 +28,15 @@ _(The PyQt may not operate in some OS environment)_
 
 ## Publication
 
-Kim, Chang, Shih, Uppalapati, Halder, Krishnan, Mehta and Gazzola <strong>A physics-informed , vision-based method to reconstruct all deformation modes in slender bodies</strong>, IEEE Robotics and Automation Letters (In Review)
-
+Kim, Chang, Shih, Uppalapati, Halder, Krishnan, Mehta and Gazzola <strong>A physics-informed, vision-based method to reconstruct all deformation modes in slender bodies</strong>, IEEE ICRA 2022
 ```
-@article{Kim2021,
-abstract = {This paper is concerned with the problem of esti- mating (interpolating and smoothing) the shape (pose and the six modes of deformation) of a slender flexible body from multiple camera measurements. This problem is important in both biol- ogy, where slender, soft, and elastic structures are ubiquitously encountered across species, and in engineering, particularly in the area of soft robotics. The proposed mathematical formulation for shape estimation is physics-informed, based on the use of the special Cosserat rod theory whose equations encode slender body mechanics in the presence of bending, shearing, twisting and stretching. The approach is used to derive numerical algorithms which are experimentally demonstrated for fiber reinforced and cable-driven soft robot arms. These experimental demonstrations show that the methodology is accurate (<5 mm error, three times less than the arm diameter) and robust to noise and uncertainties. CONTINUUM},
-author = {Kim, Seung Hyun and Chang, Heng-Sheng and Shih, Chia-Hsien and Uppalapati, Naveen Kumar and Halder, Udit},
-file = {:Users/skim0119/Documents/Mendeley Desktop/2021 - Kim et al. - A physics-informed , vision-based method to reconstruct all deformation modes in slender bodies.pdf:pdf},
-title = {{A physics-informed , vision-based method to reconstruct all deformation modes in slender bodies}},
-year = {2021}
+@inproceedings{kim2022smoothing,
+title = "A physics-informed, vision-based method to reconstruct all deformation modes in slender bodies",
+author = "Kim, {Seung Hyun} and Chang, {Heng Sheng} and Shih, {Chia Hsien} and Uppalapati, {Naveen Kumar} and Udit Halder and Girish Krishnan and Mehta, {Prashant G.} and Mattia Gazzola",
+year = "2022",
+doi = "10.1109/ICRA46639.2022.9811909",
+series = "Proceedings - IEEE International Conference on Robotics and Automation",
+booktitle = "2022 IEEE International Conference on Robotics and Automation, ICRA 2022",
 }
 ```
 
@@ -44,6 +44,21 @@ year = {2021}
 
 To process the video data, check out section [(Calibration Steps)](#calibration-steps) for camera calibration and [(Optical Flow: Data Point Tracking)](#optical-flow-data-point-tracking) for the point tracking.
 To process reconstruction (smoothing) algorithm, check out section [(Reconstruction (Smoothing))](#reconstruction-smoothing).
+
+### Typical Workflow
+
+```mermaid
+flowchart TD
+    collect[("Data Collection")]
+    proc1["undistort and rotate all video"]
+    cal1["extract calibration frames"]
+    cal2["select calibration points"]
+    trim["trim video intervals by LED"]
+
+    collect --> proc1
+    proc1 -->|calibration video| cal1 --> cal2
+    proc1 -->|posture video| trim
+```
 
 ### Path Configuration
 
