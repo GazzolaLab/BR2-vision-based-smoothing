@@ -174,12 +174,22 @@ Careful choice of axis is required
 
 - dlt.py
     - Contain all DLT related methods.
+- undistort.py
+    - Contain undistortion related methods.
 
 ### Video Pre-processing
 
 Following preprocessing scripts are included.
 
-- undistort_rotate.py: undistort and rotate video
-- undistort_rotate_calibration.py: undistort and rotate calibration frame 
-- trim_video_intervals.py: detect led and trim video
+- undistort_rotate_video: Rotate and undistort the video, and save it as mp4 with the name appended with `_undistort.mp4`
+    - Calibration file must be included.
+    - For detail, run `undistort_rotate_video --help`
+- extract_frames_from_video: Save frames from the video as png files. Frames are selected based on their similarity to the previous frames.
+    - Useful to extract calibration frames from the calibration video.
+    - Output png file is compressed.
+    - For detail, run `extract_frames_from_video --help`
+- trim_video_intervals.py: detect led and trim the video based on the led.
+    - Input path is specified in `PATHS/undistorted_video_path`
+    - Output path is specified in the config file: `PATHS/preprocessed_footage_video_path`
+    - For detail, run `trim_video_intervals.py --help`
 
