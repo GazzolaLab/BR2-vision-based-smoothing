@@ -11,11 +11,10 @@ from functools import partial
 from tqdm import tqdm
 import psutil
 
-from .undistort import undistort
-
 import click
 
 import br2_vision
+from br2_vision.undistort import undistort
 from br2_vision.utility.logging import config_logging, get_script_logger
 
 
@@ -80,10 +79,10 @@ def process_frame(frame, calibration_file, rotate):
 )
 @click.option(
     "-o",
-    "--override",
+    "--overwrite",
     is_flag=True,
     default=False,
-    help="Override existing file. If False, skip existing file.",
+    help="Overwrite existing file. If False, skip existing file.",
 )
 def undistort_and_rotate(
     file,
@@ -94,7 +93,7 @@ def undistort_and_rotate(
     dry,
     processes,
     chunksize,
-    override,
+    overwrite,
 ):
     """
     Undistort and rotate the video.
@@ -136,7 +135,7 @@ def undistort_and_rotate(
 
         # if save_path axist, remove
         if os.path.exists(save_path):
-            if override:
+            if overwrite:
                 logger.info(f"file exist. overwriting on {save_path}")
                 os.remove(save_path)
             else:
