@@ -15,6 +15,7 @@ undistort_rotate_video = 'script.undistort_rotate_video:undistort_and_rotate'
 extract_frames_from_video = 'script.extract_frames_from_video:extract_frames'
 trim_video_intervals_by_led = 'script.trim_video_intervals_by_led:process'
 select_calibration_points = 'script.run_select_calibration_points:select_calibration_points'
+dlt_calibration = 'script.dlt_calibration:calibrate'
 
 distortion_calibration = 'script.distortion_calibration:calibrate'
 undistort_rotate_frames = 'script.undistort_rotate_frames:undistort_and_rotate_frames'

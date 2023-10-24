@@ -53,11 +53,20 @@ flowchart TD
     proc1["undistort and rotate all video"]
     cal1["extract calibration frames"]
     cal2["select calibration points"]
+    cal3["dlt calibration"]
     trim["trim video intervals by LED"]
+    opt1["select optical flow points"]
+    opt2["run optical flow"]
+    smt1["interpolate poses"]
+    smt2["run smoothing"]
 
     collect --> proc1
-    proc1 -->|calibration video| cal1 -->|prune frames| cal2
-    proc1 -->|posture video| trim
+    proc1 -->|calibration video| cal1 -->|prune frames| cal2 --> cal3
+    proc1 -->|posture video| trim --> opt1 --> opt2
+    opt2 -->|trim trajectory| --> opt1
+    opt2 --> smt1
+    cal3 --> smt1
+    smt1 --> smt2
 ```
 
 ### Path Configuration
@@ -95,7 +104,8 @@ Select calibration point for all calibration frames in the directory.
 Save the points in camera (each) coordinate and lab-coordinate.
 
 ```bash
-python run_select_calibration_points.py
+run_select_calibration_points --help  #  for more information
+run_select_calibration_points -f dlt-calib
 ```
 
 The red mark on reference point indicates 'locked' status.
@@ -119,7 +129,7 @@ Each points have unique label that is used to interpolate the true coordinate.
 2. Calibration
 
 ```bash
-python run_calibration.py
+dlt_calibration
 ```
 
 Read all 2D calibration points and determines the camera parameters.
