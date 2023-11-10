@@ -341,7 +341,7 @@ def labeling(
     "--file",
     type=click.Path(exists=True),
     default=None,
-    help="Calibration video path (or file).",
+    help="Calibration video path.",
     multiple=True,
 )
 @click.option("-c", "--scale", default=1.0, type=float, help="Image scale factor")

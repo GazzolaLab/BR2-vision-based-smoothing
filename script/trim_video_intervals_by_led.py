@@ -70,7 +70,7 @@ def export(input_path, output_path, start_stamp, end_stamp):
 @click.option(
     "--led-threshold",
     type=(int, int, int),
-    default=(70, 65, 150),
+    default=(50, 50, 150),
     help='RGB threshold of the LED: greater value will be considered as "on"',
 )
 @click.option("-v", "--verbose", is_flag=True, help="Verbose mode.")
@@ -108,20 +108,20 @@ def process(
     frame2timestr = lambda frame: str(frame / fps)
 
     # Path Configuration
-    os.makedirs(config["PATHS"]["postprocessing_path"].format(tag), exist_ok=True)
+    os.makedirs(config["PATHS"]["postprocessing_path"].format(path, tag), exist_ok=True)
     video_path = config["PATHS"]["undistorted_video_path"].format(
         path, tag, "{}"
     )  # (cam_id)
     output_path = config["PATHS"]["preprocessed_footage_video_path"].format(
-        path, tag, "{}", "{}"
+        path, tag, tag, "{}", "{}"
     )  # (cam_id, run_id)
 
     # Select LED regions for all cameras
     rois = []
     for i in cam_id:
-        path = video_path.format(i)
-        logger.info(f"Processing camera {i}: {path}")
-        capture = cv2.VideoCapture(path)
+        video_path_ = video_path.format(i)
+        logger.info(f"Processing camera {i}: {video_path_}")
+        capture = cv2.VideoCapture(video_path_)
         ret, frame = capture.read()
         if not ret:
             continue
@@ -141,13 +141,13 @@ def process(
     # Iterate Video and export
     current_state = False
     frame_count = 0
-    total_frame = min(
-        [int(capture.get(cv2.CAP_PROP_FRAME_COUNT)) for capture in captures]
-    )
+    num_frames = [int(capture.get(cv2.CAP_PROP_FRAME_COUNT)) for capture in captures]
+    total_frame = min(num_frames)
     logger.info(f"Total frame: {total_frame}")
     pbar = tqdm(total=total_frame)
     state_list = []
     colors_list = [[] for _ in cam_id]
+    assert total_frame > 0, f"Minimum frame for some video is zero. Check if all the input video exist."
     while frame_count < total_frame:
         states = []
         for i in range(len(cam_id)):
@@ -198,21 +198,23 @@ def process(
     plt.plot(state_list)
     plt.xlabel("Frame")
     plt.ylabel("LED State")
-    plt.savefig(config["PATHS"]["postprocessing_path"].format(tag) + "/led_state.png")
+    plt.savefig(config["PATHS"]["postprocessing_path"].format(path, tag) + "/led_state.png")
     plt.close()
 
     # Plot LED color
     for i in range(len(cam_id)):
+        if rois[i][2] == 0 or rois[i][3] == 0:
+            continue
+
         colors = np.asarray(colors_list[i])
-        print(colors.shape)
-        plt.plot(colors[:, 0], label="R")
-        plt.plot(colors[:, 1], label="G")
-        plt.plot(colors[:, 2], label="B")
+        plt.plot(colors[:, 0], color='blue', label="B")
+        plt.plot(colors[:, 1], color='green', label="G")
+        plt.plot(colors[:, 2], color='red', label="R")
         plt.legend()
         plt.xlabel("Frame")
         plt.ylabel("LED Color")
         plt.savefig(
-            config["PATHS"]["postprocessing_path"].format(tag)
+            config["PATHS"]["postprocessing_path"].format(path, tag)
             + f"/led_color_cam{i}.png"
         )
         plt.close()
