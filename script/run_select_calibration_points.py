@@ -16,7 +16,7 @@ from sklearn.cluster import KMeans
 from br2_vision.dlt import DLT2D, DLT
 from br2_vision.cv2_custom.marking import cv2_draw_label
 
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QInputDialog
+from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QInputDialog
 
 import click
 
@@ -337,8 +337,8 @@ def labeling(
 
 @click.command()
 @click.option(
-    "-f",
-    "--file",
+    "-fp",
+    "--filepath",
     type=click.Path(exists=True),
     default=None,
     help="Calibration video path.",
@@ -348,7 +348,7 @@ def labeling(
 @click.option("-v", "--verbose", is_flag=True, default=False, help="Verbose")
 @click.option("-d", "--dry", is_flag=True, default=False, help="Dry run: print table of processing frames.")
 @click.option("-S", "--show", is_flag=True, default=False, help="Show frames")
-def select_calibration_points(file, scale, verbose, dry, show):
+def select_calibration_points(filepath, scale, verbose, dry, show):
     config = br2_vision.load_config()
     config_logging(verbose)
     logger = get_script_logger(os.path.basename(__file__))
@@ -356,14 +356,14 @@ def select_calibration_points(file, scale, verbose, dry, show):
     app = QApplication([])
 
     raw_videos = []  # [(cam_id, video_path)]
-    for f in file:
+    for f in filepath:
         if os.path.isdir(f):
             tag = config["PATHS"]["tag_dlt"]
             p = config["PATHS"]["undistorted_video_path"].format(f, tag, "*")
             collections = glob.glob(p, recursive=True)
             for p in collections:
                 s = re.findall(r'cam\d+', p)[0][3:]
-                assert s.isdigit(), f"Camera id must be a number, and file name must be {tag}-cam{{id}}"
+                assert s.isdigit(), f"Camera id must be a number, and filepath name must be {tag}-cam{{id}}"
                 raw_videos.append((int(s), p))
         else:
             raise NotImplementedError("Only directory is supported")

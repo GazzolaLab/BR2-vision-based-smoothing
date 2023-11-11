@@ -74,7 +74,7 @@ class DLT:
 
         # Moore-Penrose pseudo-inverse method
         assert Q.shape[0] >= 4, "Least 2 camera-coordinate must be given"
-        xyz = spl.pinv2(Q)@q
+        xyz = spl.pinv(Q)@q
         condition_number = np.linalg.cond(Q)
 
         # Distortion Correction
@@ -105,7 +105,7 @@ class DLT:
                 q = np.asarray(q)
 
                 # Moore-Penrose pseudo-inverse method
-                xyz_corrected_next = spl.pinv2(Q)@q
+                xyz_corrected_next = spl.pinv(Q)@q
                 delta = spl.norm(xyz_corrected_next-xyz_corrected, np.inf)
                 xyz_corrected = xyz_corrected_next
             xyz = xyz_corrected
@@ -302,7 +302,7 @@ class DLT:
                 L.append([0,0,0,0,x,y,z,1,-v*x,-v*y,-v*z])
                 g.append(u)
                 g.append(v)
-            param[:11] = spl.pinv2(L) @ g
+            param[:11] = spl.pinv(L) @ g
 
             # Camera Position (eqn 25)
             A = spl.inv(np.stack([param[0:3], param[4:7], param[8:11]]))
@@ -363,7 +363,7 @@ class DLT:
                         L_ext[2*idx:2*idx+2,:] /= R
                         g_ext[2:idx:2*idx+2] /= R
                     # Calculate difference between iteration
-                    #param_ext_next = spl.pinv2(L_ext) @ g
+                    #param_ext_next = spl.pinv(L_ext) @ g
                     param_ext_next = jacobi_step(L_ext, g, param_ext)
                     delta = spl.norm(param_ext_next - param_ext, np.inf)
                     error = spl.norm(L_ext @ param_ext_next - g)
@@ -522,7 +522,7 @@ class DLT2D:
             L.append([0,0,0,x,y,1,-v*x,-v*y])
             g.append(u)
             g.append(v)
-        return spl.pinv2(L) @ g
+        return spl.pinv(L) @ g
 
     def validity(self):
         """ 
