@@ -86,6 +86,10 @@ def labeling(
     # Defining mouse event handler
     _currently_selected_point_index = -1
 
+    # Number of markers in y-z plane
+    ys, ye = 1, int(config['DIMENSION']['num_calibration_y'])
+    zs, ze = 1, int(config['DIMENSION']['num_calibration_z'])
+
     def onMouse(event, x, y, flags, param):
         """
         If left mouse button is clicked, either create new unlabeled coordinate or
@@ -207,8 +211,8 @@ def labeling(
                         cv2_draw_label(image, u, v, (y, z))
                         cv2.imshow(window_name, image)
                         cv2.waitKey(1)
-                        _y = int(input("Which y-position (vertical): "))
-                        _z = int(input("Which z-position (horizontal): "))
+                        _y = int(input("Which y-position: "))
+                        _z = int(input("Which z-position: "))
                         coords[i][2] = _y
                         coords[i][3] = _z
                 print("Labeling done.")
@@ -227,7 +231,6 @@ def labeling(
 
             # 2d dlt
             dlt2D.clear()
-            ys, ye, zs, ze = 1, 12, 1, 10  # Number of markers in y-z plane
             if ys is None or ye is None or zs is None or ze is None:
                 continue
             _ys, _ye, _zs, _ze = ys, ye, zs, ze  # Save the parameter
@@ -305,7 +308,6 @@ def labeling(
                 if locked
             ]
             locked_id = [(y_id, z_id) for _, _, y_id, z_id, locked in coords if locked]
-            ys, ye, zs, ze = 1, 12, 1, 10
             coords.clear()
             coords.extend(locked_coords)
             width = int(frame.shape[1])
@@ -354,6 +356,7 @@ def select_calibration_points(filepath, scale, verbose, dry, show):
     logger = get_script_logger(os.path.basename(__file__))
 
     app = QApplication([])
+    #breakpoint()
 
     raw_videos = []  # [(cam_id, video_path)]
     for f in filepath:
