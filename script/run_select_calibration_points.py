@@ -23,6 +23,7 @@ import click
 import br2_vision
 from br2_vision.utility.logging import config_logging, get_script_logger
 
+
 # Label to 3d coordinate
 def label_to_3Dcoord(x_label: int, y_label: int, z_label: int, config):
     dx = float(config["DIMENSION"]["delta_x"])
@@ -57,7 +58,15 @@ def scale_image(filepath, scale=1.0):
 
 
 def labeling(
-    frame, tag, save_path_points, save_path_dlt, save_path_image, cam_id, x_id, config
+    frame,
+    tag,
+    save_path_points,
+    save_path_dlt,
+    save_path_image,
+    cam_id,
+    x_id,
+    config,
+    filepath,
 ):
     """
 
@@ -87,8 +96,8 @@ def labeling(
     _currently_selected_point_index = -1
 
     # Number of markers in y-z plane
-    ys, ye = 1, int(config['DIMENSION']['num_calibration_y'])
-    zs, ze = 1, int(config['DIMENSION']['num_calibration_z'])
+    ys, ye = 1, int(config["DIMENSION"]["num_calibration_y"])
+    zs, ze = 1, int(config["DIMENSION"]["num_calibration_z"])
 
     def onMouse(event, x, y, flags, param):
         """
@@ -176,7 +185,8 @@ def labeling(
             break
         elif key in [ord("h"), ord("H")]:  # help
             print("key:{} - help message".format(key))
-            print("""
+            print(
+                """
 - Left Click: Select point
     - Control-Left Click: Delete point
 - Right Click: Lock point
@@ -189,7 +199,8 @@ def labeling(
 - Key 'o': Use 3D DLT (from other reference frame images)
 - Key 's': Save
 - 'Enter,' 'Space,' 'ESC': Complete, move-on to next frame
-            """)
+            """
+            )
         elif key == ord("d"):  # Delete last coordinate
             print("key:{} - Delete last item".format(key))
             if len(coords) > 0:
@@ -282,7 +293,9 @@ def labeling(
             dlt2D.save()
             print("finished drawing")
         elif key == ord("o"):  # 3d:
-            calibration_ref_point_save_wild = config["PATHS"]["calibration_ref_point_save_wild"]
+            calibration_ref_point_save_wild = os.path.join(
+                filepath, config["PATHS"]["calibration_ref_point_save_wild"]
+            )
             reference_point_filenames = glob.glob(
                 calibration_ref_point_save_wild.format(cam_id)
             )
@@ -343,12 +356,18 @@ def labeling(
     "--filepath",
     type=click.Path(exists=True),
     default=None,
-    help="Calibration video path.",
-    multiple=True,
+    help="Path with collection of calibration video.",
+    # multiple=True,
 )
 @click.option("-c", "--scale", default=1.0, type=float, help="Image scale factor")
 @click.option("-v", "--verbose", is_flag=True, default=False, help="Verbose")
-@click.option("-d", "--dry", is_flag=True, default=False, help="Dry run: print table of processing frames.")
+@click.option(
+    "-d",
+    "--dry",
+    is_flag=True,
+    default=False,
+    help="Dry run: print table of processing frames.",
+)
 @click.option("-S", "--show", is_flag=True, default=False, help="Show frames")
 def select_calibration_points(filepath, scale, verbose, dry, show):
     config = br2_vision.load_config()
@@ -356,20 +375,21 @@ def select_calibration_points(filepath, scale, verbose, dry, show):
     logger = get_script_logger(os.path.basename(__file__))
 
     app = QApplication([])
-    #breakpoint()
 
     raw_videos = []  # [(cam_id, video_path)]
-    for f in filepath:
-        if os.path.isdir(f):
-            tag = config["PATHS"]["tag_dlt"]
-            p = config["PATHS"]["undistorted_video_path"].format(f, tag, "*")
-            collections = glob.glob(p, recursive=True)
-            for p in collections:
-                s = re.findall(r'cam\d+', p)[0][3:]
-                assert s.isdigit(), f"Camera id must be a number, and filepath name must be {tag}-cam{{id}}"
-                raw_videos.append((int(s), p))
-        else:
-            raise NotImplementedError("Only directory is supported")
+    # for f in filepath:
+    if os.path.isdir(filepath):
+        tag = config["PATHS"]["tag_dlt"]
+        p = config["PATHS"]["undistorted_video_path"].format(filepath, tag, "*")
+        collections = glob.glob(p, recursive=True)
+        for p in collections:
+            s = re.findall(r"cam\d+", p)[0][3:]
+            assert (
+                s.isdigit()
+            ), f"Camera id must be a number, and filepath name must be {tag}-cam{{id}}"
+            raw_videos.append((int(s), p))
+    else:
+        raise NotImplementedError("Only directory is supported")
 
     reference_image_paths = {}  # key: (Camera ID, x-location ID)
     for cam_id, video_path in raw_videos:
@@ -394,14 +414,20 @@ def select_calibration_points(filepath, scale, verbose, dry, show):
         return
 
     # Create directory
-    calibration_path = config["PATHS"]["calibration_path"]
+    calibration_path = os.path.join(filepath, config["PATHS"]["calibration_path"])
     os.makedirs(calibration_path, exist_ok=True)
 
     # Label Reference Point
     results = defaultdict(list)
-    calibration_ref_point_save = config["PATHS"]["calibration_ref_point_save"]
-    calibration_dlt_path = config["PATHS"]["calibration_dlt_path"]
-    calibration_view_path = config["PATHS"]["calibration_view_path"]
+    calibration_ref_point_save = os.path.join(
+        filepath, config["PATHS"]["calibration_ref_point_save"]
+    )
+    calibration_dlt_path = os.path.join(
+        filepath, config["PATHS"]["calibration_dlt_path"]
+    )
+    calibration_view_path = os.path.join(
+        filepath, config["PATHS"]["calibration_view_path"]
+    )
     for (camera_id, x_id), path in reference_image_paths.items():
         logger.debug(f"Processing camera {camera_id} at xid={x_id}")
         frame = scale_image(path, scale=scale)
@@ -414,6 +440,7 @@ def select_calibration_points(filepath, scale, verbose, dry, show):
             cam_id=camera_id,
             x_id=x_id,
             config=config,
+            filepath=filepath,
         )
         print("CAM {} Points:".format(camera_id))
 
@@ -424,7 +451,7 @@ def select_calibration_points(filepath, scale, verbose, dry, show):
             v = int(v)
             results[camera_id].append((u, v, x, y, z))
 
-    output_name = config["PATHS"]["calibration_ref_points_path"]
+    output_name = os.path.join(filepath, config["PATHS"]["calibration_ref_points_path"])
     np.savez(output_name, **results)
 
 
