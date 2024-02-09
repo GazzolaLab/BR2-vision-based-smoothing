@@ -92,31 +92,27 @@ def process(
     config = br2_vision.load_config()
     config_logging(verbose)
     logger = get_script_logger(os.path.basename(__file__))
-    path = config["PATHS"]["data_dir"]
 
     # Utility lambdas
     frame2timestr = lambda frame: str(frame / fps)
 
     # Path Configuration
-    os.makedirs(config["PATHS"]["postprocessing_path"].format(path, tag), exist_ok=True)
-    video_path = config["PATHS"]["undistorted_video_path"].format(
-        tag, "{}"
-    )  # (cam_id)
-    output_path = config["PATHS"]["preprocessed_footage_video_path"].format(
-        path, tag, tag, "{}", "{}"
-    )  # (cam_id, run_id)
+    os.makedirs(config["PATHS"]["postprocessing_path"].format(tag), exist_ok=True)
+    video_path = config["PATHS"]["undistorted_video_path"]  # (tag, cam_id)
+    output_path = config["PATHS"]["footage_video_path"]  # (tag, cam_id, run_id)
 
     # Select LED regions for all cameras
     run_id = 0
     for cid in cam_id:
         for _ss, _to in zip(ss, to):
-            video_path_ = video_path.format(cid)
+            video_path_ = video_path.format(tag, cid)
+            output_path_ = output_path.format(tag, cid, run_id)
             logger.info(f"Processing camera {cid}: {video_path_}, {_ss} to {_to}")
             if dry:
                 continue
             export(
                 input_path=video_path_,
-                output_path=output_path.format(cid, run_id),
+                output_path=output_path_,
                 start_stamp=_ss,
                 end_stamp=_to,
             )

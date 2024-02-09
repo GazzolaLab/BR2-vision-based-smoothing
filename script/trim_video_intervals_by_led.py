@@ -38,12 +38,6 @@ def export(input_path, output_path, start_stamp, end_stamp):
 
 @click.command()
 @click.option(
-    "-p",
-    "--path",
-    type=click.Path(exists=True),
-    help="Experiment folder path",
-)
-@click.option(
     "-t",
     "--tag",
     type=str,
@@ -76,7 +70,7 @@ def export(input_path, output_path, start_stamp, end_stamp):
 @click.option("-v", "--verbose", is_flag=True, help="Verbose mode.")
 @click.option("-d", "--dry", is_flag=True, help="Dry run.")
 def process(
-    path, tag, cam_id, fps, run_id, trailing_frames, led_threshold, verbose: bool, dry: bool
+    tag, cam_id, fps, run_id, trailing_frames, led_threshold, verbose: bool, dry: bool
 ):
     """
     Trimming process. Script asks for ROI and trim the video.
@@ -108,12 +102,11 @@ def process(
     frame2timestr = lambda frame: str(frame / fps)
 
     # Path Configuration
-    os.makedirs(config["PATHS"]["postprocessing_path"].format(path, tag), exist_ok=True)
-    video_path = config["PATHS"]["undistorted_video_path"].format(
-        path, tag, "{}"
-    )  # (cam_id)
-    output_path = config["PATHS"]["preprocessed_footage_video_path"].format(
-        path, tag, tag, "{}", "{}"
+    working_dir = config["PATHS"]["postprocessing_path"].format(tag)
+    os.makedirs(working_dir, exist_ok=True)
+    video_path = config["PATHS"]["undistorted_video_path"].format(tag, "{}")  # (cam_id)
+    output_path = config["PATHS"]["footage_video_path"].format(
+        tag, "{}", "{}"
     )  # (cam_id, run_id)
 
     # Select LED regions for all cameras
@@ -198,7 +191,7 @@ def process(
     plt.plot(state_list)
     plt.xlabel("Frame")
     plt.ylabel("LED State")
-    plt.savefig(config["PATHS"]["postprocessing_path"].format(path, tag) + "/led_state.png")
+    plt.savefig(working_dir + "/led_state.png")
     plt.close()
 
     # Plot LED color
@@ -213,10 +206,7 @@ def process(
         plt.legend()
         plt.xlabel("Frame")
         plt.ylabel("LED Color")
-        plt.savefig(
-            config["PATHS"]["postprocessing_path"].format(path, tag)
-            + f"/led_color_cam{i}.png"
-        )
+        plt.savefig(working_dir + f"/led_color_cam{i}.png")
         plt.close()
 
 
