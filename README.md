@@ -18,9 +18,7 @@ pip install .
 
 ## Requirements
 
-All the tools are developed using Python3.9 and openCV.
-The open-source package numpy/numba is used to process the data.
-The remaining dependencies are listed in [requirements.txt](requirements.txt) file.
+All the tools are developed using Python3.9 and openCV. We recommend installing dependencies using `poetry`.
 To visualize the data, we used `ffmpeg` tool to render video.
 
 - [PyElastica](https://github.com/GazzolaLab/PyElastica)
