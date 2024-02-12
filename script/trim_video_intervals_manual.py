@@ -98,7 +98,7 @@ def process(
 
     # Path Configuration
     os.makedirs(config["PATHS"]["postprocessing_path"].format(tag), exist_ok=True)
-    video_path = config["PATHS"]["undistorted_video_path"]  # (tag, cam_id)
+    video_path = config["PATHS"]["preprocessed_video_path"]  # (tag, cam_id)
     output_path = config["PATHS"]["footage_video_path"]  # (tag, cam_id, run_id)
 
     # Select LED regions for all cameras

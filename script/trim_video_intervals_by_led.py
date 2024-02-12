@@ -104,7 +104,7 @@ def process(
     # Path Configuration
     working_dir = config["PATHS"]["postprocessing_path"].format(tag)
     os.makedirs(working_dir, exist_ok=True)
-    video_path = config["PATHS"]["undistorted_video_path"].format(tag, "{}")  # (cam_id)
+    video_path = config["PATHS"]["preprocessed_video_path"].format(tag, "{}")  # (cam_id)
     output_path = config["PATHS"]["footage_video_path"].format(
         tag, "{}", "{}"
     )  # (cam_id, run_id)
@@ -121,7 +121,7 @@ def process(
         else:
             logger.info(f"Processing camera {i}: frame shape {frame.shape}")
         r = cv2.selectROI("select roi", frame)
-        logger.info(f"ROI is selected: {r}")
+        logger.info(f"ROI cam-{i} is selected: {r}")
         rois.append(r)
         capture.release()
     cv2.waitKey(500)  # Ensure all windows close
