@@ -9,17 +9,18 @@ import os, sys
 
 from rod_tools import sigma_to_shear
 
+
 class Algorithm(object):
     def __init__(self, rod, algo_config):
-        
+
         self.rod = rod
         self.config = algo_config
 
-        '''
+        """
         make a copy of the required info of the rod 
         so that it will not affect the values of the original copy
-        '''
-        
+        """
+
         self.n_elems = rod.n_elems
         self.reference_length = np.sum(rod.rest_lengths)
 
@@ -27,8 +28,8 @@ class Algorithm(object):
         self.ds = self.dl / self.reference_length
         self.s = np.insert(np.cumsum(self.ds), 0, 0)
         self.s_position = self.s.copy()
-        self.s_director = (self.s[:-1] + self.s[1:])/2
-        self.s_shear = (self.s[:-1] + self.s[1:])/2
+        self.s_director = (self.s[:-1] + self.s[1:]) / 2
+        self.s_shear = (self.s[:-1] + self.s[1:]) / 2
         self.s_kappa = self.s[1:-1]
 
         self.position = rod.position_collection.copy()
@@ -46,7 +47,7 @@ class Algorithm(object):
         self.bend_matrix = rod.bend_matrix.copy()
 
         self.internal_force = np.zeros((3, self.n_elems))
-        self.internal_couple = np.zeros((3, self.n_elems-1))
+        self.internal_couple = np.zeros((3, self.n_elems - 1))
 
     def run(self, plot_flag=False):
         raise NotImplementedError

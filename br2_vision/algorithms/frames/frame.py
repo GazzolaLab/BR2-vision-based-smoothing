@@ -6,6 +6,7 @@ Created on Jan. 08, 2021
 import os, sys, shutil
 import matplotlib.pyplot as plt
 
+
 class Frame(object):
     def __init__(self, figure_name, folder_name=None, fig_dict=None):
         self.figure_name = figure_name
@@ -14,12 +15,14 @@ class Frame(object):
         self.fig_dict = fig_dict
         self.check_folder()
 
-    def check_folder(self,):
+    def check_folder(
+        self,
+    ):
         if not (self.folder_name is None):
             if os.path.exists(self.folder_name):
-                print('Clean up files in: {}/'.format(self.folder_name))
+                print("Clean up files in: {}/".format(self.folder_name))
                 shutil.rmtree(self.folder_name)
-            print('Create the directory: {}/'.format(self.folder_name))
+            print("Create the directory: {}/".format(self.folder_name))
             os.mkdir(self.folder_name)
 
     def reset(self):
@@ -31,8 +34,7 @@ class Frame(object):
         else:
             frame_count = self.frame_count if frame_count is None else frame_count
             self.fig.savefig(
-                self.folder_name + "/" +
-                self.figure_name.format(frame_count)
+                self.folder_name + "/" + self.figure_name.format(frame_count)
             )
             self.frame_count += 1
         if show:
@@ -41,7 +43,7 @@ class Frame(object):
             plt.close(self.fig)
 
     def movie(self, frame_rate, movie_name):
-        print("Create movie:", movie_name+".mov")
+        print("Create movie:", movie_name + ".mov")
         cmd = "ffmpeg -r {}".format(frame_rate)
         figure_name = self.figure_name.replace("{:", "%")
         figure_name = figure_name.replace("}", "")
