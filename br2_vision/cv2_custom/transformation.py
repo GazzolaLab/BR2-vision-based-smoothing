@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 
+
 def scale_image(frame, scale=1.0, interpolation=cv2.INTER_AREA):
     # Extract Control Frame
     width = int(frame.shape[1] * scale)
