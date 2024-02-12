@@ -22,6 +22,7 @@ distortion_calibration = 'script.distortion_calibration:calibrate'
 undistort_rotate_frames = 'script.undistort_rotate_frames:undistort_and_rotate_frames'
 
 sync_video = 'script.sync_video:process'
+crop_video = 'script.crop_video:process'
 
 [tool.poetry.dependencies]
 python = "^3.9,<3.11"
