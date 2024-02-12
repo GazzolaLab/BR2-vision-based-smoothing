@@ -55,7 +55,7 @@ flowchart TD
     cal2["select calibration points"]
     cal3["dlt calibration"]
     trim["trim video intervals by LED"]
-    opt1["select optical flow points"]
+    opt1["set optical flow inquiry"]
     opt2["run optical flow"]
     smt1["interpolate poses"]
     smt2["run smoothing"]
