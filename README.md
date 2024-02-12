@@ -49,6 +49,8 @@ To process reconstruction (smoothing) algorithm, check out section [(Reconstruct
 flowchart TD
     collect[("Data Collection")]
     proc1["undistort and rotate all video"]
+    proc2["sync_video"]
+    proc3["crop_video"]
     cal1["extract calibration frames"]
     cal2["select calibration points"]
     cal3["dlt calibration"]
@@ -60,9 +62,9 @@ flowchart TD
 
     C{satisfied?}
 
-    collect --> proc1
-    proc1 -->|calibration video| cal1 -->|prune frames| cal2 --> cal3
-    proc1 -->|posture video| trim --> opt1 --> opt2 --> C
+    collect --> proc1 --> proc2 --> proc3
+    proc3 -->|calibration video| cal1 -->|prune frames| cal2 --> cal3
+    proc3 -->|posture video| trim --> opt1 --> opt2 --> C
     C -->|no: trim trajectory| opt1
     C -->|yes| smt1
     
