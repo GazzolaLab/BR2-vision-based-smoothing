@@ -50,7 +50,7 @@ flowchart TD
     collect[("Data Collection")]
     proc1["undistort and rotate all video"]
     proc2["sync_video"]
-    proc3["crop_video"]
+    proc3["crop_video (should be done on all video)"]
     cal1["extract calibration frames"]
     cal2["select calibration points"]
     cal3["dlt calibration"]
@@ -62,7 +62,7 @@ flowchart TD
 
     C{satisfied?}
 
-    collect --> proc1 --> proc2 --> proc3
+    collect --> proc1 --> proc2 -->|can be skipped| proc3
     proc3 -->|calibration video| cal1 -->|prune frames| cal2 --> cal3
     proc3 -->|posture video| trim --> opt1 --> opt2 --> C
     C -->|no: trim trajectory| opt1
