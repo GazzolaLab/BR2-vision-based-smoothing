@@ -1,4 +1,4 @@
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 
 import os, sys
 import yaml
@@ -29,10 +29,11 @@ class MarkerPositions(DataclassYamlSaveLoadMixin):
     Mixin - DataclassYamlSaveLoadMixin provides `from_yaml` and `to_yaml` methods to load and save.
     """
 
-    origin: Tuple[float, float, float] = (0., 0., 0.)
-    marker_direction: Tuple[float, float, float] = (0., 1., 0.)
     marker_center_offset: List[float]
     marker_positions: Dict[str, Tuple[float, float, float]]
+
+    origin: Tuple[float, float, float] = (0., 0., 0.)
+    marker_direction: Tuple[float, float, float] = (0., 1., 0.)
 
     @property
     def dtype(self):
@@ -43,7 +44,7 @@ class MarkerPositions(DataclassYamlSaveLoadMixin):
             ('origin', float),
             ('marker_direction', float),
             ('marker_center_offset', float),
-            ('marker_positions', float, (3,))
+            ('marker_positions', float, (3,)),
             ('tags', 'S50')
         ]
 
