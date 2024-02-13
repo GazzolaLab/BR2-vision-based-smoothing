@@ -10,7 +10,7 @@ class DataclassYamlSaveLoadMixin:
         Load current dataclass from a yaml file.
         """
         with open(file_path, "r") as file:
-            data_dict = yaml.safe_load(file)
+            data_dict = yaml.load(file, Loader=yaml.Loader)
         return cls(**data_dict)
 
     def to_yaml(self, file_path: str):
@@ -19,4 +19,4 @@ class DataclassYamlSaveLoadMixin:
         """
         data_dict = dataclasses.asdict(self, dict_factory=OrderedDict)
         with open(file_path, "w") as file:
-            yaml.dump(self, file)
+            yaml.dump(data_dict, file)
