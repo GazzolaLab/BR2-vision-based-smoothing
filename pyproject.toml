@@ -19,7 +19,6 @@ select_calibration_points = 'script.run_select_calibration_points:select_calibra
 dlt_calibration = 'script.dlt_calibration:calibrate'
 
 distortion_calibration = 'script.distortion_calibration:calibrate'
-undistort_rotate_frames = 'script.undistort_rotate_frames:undistort_and_rotate_frames'
 
 set_optical_flow_inquiry = 'script.add_initial_flow_point:main'
 
