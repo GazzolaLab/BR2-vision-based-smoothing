@@ -35,12 +35,7 @@ def process_frame(frame, calibration_file, rotate):
 
 @click.command()
 @click.option(
-    "-f",
-    "--file",
-    type=click.Path(exists=True),
-    default=None,
-    help="Video path.",
-    multiple=True,
+    "-cam", "--cam-id", type=int, help="Camera index given in file.", multiple=True
 )
 @click.option(
     "-r",
@@ -85,7 +80,7 @@ def process_frame(frame, calibration_file, rotate):
     help="Overwrite existing file. If False, skip existing file.",
 )
 def undistort_and_rotate(
-    file,
+    cam_id,
     rotate,
     output_fps,
     calibration_file,
@@ -98,7 +93,6 @@ def undistort_and_rotate(
     """
     Undistort and rotate the video.
     """
-    assert file is not None, "You must specify (only one of) a folder or a file."
 
     config = br2_vision.load_config()
     config_logging(verbose)
@@ -111,27 +105,9 @@ def undistort_and_rotate(
     else:
         cv2_rotation = None
 
-    raw_videos = []
-    for f in file:
-        if os.path.isdir(f):
-            collections = glob.glob(
-                f"{f}/*.{config['DEFAULT']['processing_video_extension']}",
-                recursive=True,
-            )
-            raw_videos.extend(collections)
-        else:
-            raw_videos.append(f)
-
-    for video_path in raw_videos:
-        video_path = pathlib.Path(video_path)
-        basename = video_path.stem
-        save_path = video_path.parent / config["PATHS"][
-            "undistorted_video_path_stem"
-        ].format(basename)
-        logger.info(f"processing {video_path=} -> {save_path=}")
-
-        save_path = save_path.as_posix()
-        video_path = video_path.as_posix()
+    for cid in cam_id:
+        video_path = config["PATHS"]["raw_video_path"].format(cid)
+        save_path = config["PATHS"]["undistorted_video_path"].format(cid)
 
         # if save_path axist, remove
         if os.path.exists(save_path):
