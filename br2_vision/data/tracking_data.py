@@ -15,21 +15,21 @@ class FlowQueue(NamedTuple):
     camera: int
 
     dtype = [
-        ('tag', 'S50'),
-        ('point', int, (2,)),
-        ('start_frame', int),
-        ('end_frame', int),
-        ('camera', int)
+        ("tag", "S50"),
+        ("point", int, (2,)),
+        ("start_frame", int),
+        ("end_frame", int),
+        ("camera", int),
     ]
 
 
 # string_names = ['Paul', 'John', 'Anna']
 # float_heights = [5.9, 5.7,  6.1]
 # int_ages = [27, 31, 33]
-# numpy_data = [ np.array([5.4, 6.7, 8.8]), 
+# numpy_data = [ np.array([5.4, 6.7, 8.8]),
 #                np.array([3.1, 58.4, 66.4]),
-#                np.array([4.7, 5.1, 4.2])  ] 
-# 
+#                np.array([4.7, 5.1, 4.2])  ]
+#
 # # Create empty record array with 3 rows
 # ds_dtype = [('name','S50'), ('height',float), ('ages',int), ('numpy_data', float, (3,) ) ]
 # ds_arr = np.recarray((3,),dtype=ds_dtype)
@@ -38,7 +38,7 @@ class FlowQueue(NamedTuple):
 # ds_arr['height'] = np.asarray(float_heights)
 # ds_arr['ages'] = np.asarray(int_ages)
 # ds_arr['numpy_data'] = np.asarray(numpy_data)
-# 
+#
 # with h5py.File('SO_59483094.h5', 'w') as h5f:
 # # load data to dataset my_ds1 using recarray
 #     dset = h5f.create_dataset('my_ds1', data=ds_arr, maxshape=(None) )
@@ -51,7 +51,6 @@ class FlowQueue(NamedTuple):
 
 # Tracking data:
 class TrackingData:
-
     def __init__(self, path, marker_positions: MarkerPositions):
         self.queues: List[FlowQueue] = []
         self.path = path
@@ -65,9 +64,9 @@ class TrackingData:
     def load(cls, path):
         assert os.path.exists(path), "File does not exist."
         marker_positions = MarkerPositions.from_h5(path)
-        with h5py.File(path, 'r') as h5f:
+        with h5py.File(path, "r") as h5f:
             # Load queues
-            dset = h5f['queue']
+            dset = h5f["queue"]
             queues = dset[...]
 
         c = cls(path, marker_positions=marker_positions)
@@ -78,7 +77,7 @@ class TrackingData:
         """
         Data Structure:
         """
-        with h5py.File(self.path, 'w') as h5f:
+        with h5py.File(self.path, "w") as h5f:
             dset = h5f.create_dataset("queues", (0,), dtype=FlowQueue.dtype)
         self.marker_positions.to_h5(self.path)
 
@@ -93,8 +92,8 @@ class TrackingData:
         """
         Save queue on the existing file
         """
-        with h5py.File(self.path, 'a') as h5f:
-            dset = h5f['queues']
+        with h5py.File(self.path, "a") as h5f:
+            dset = h5f["queues"]
             dset.resize((len(self.queues),))
             dset[...] = self.queues
 

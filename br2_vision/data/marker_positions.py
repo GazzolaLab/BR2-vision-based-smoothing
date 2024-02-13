@@ -48,7 +48,9 @@ class MarkerPositions(DataclassYamlSaveLoadMixin):
         Convert marker_center_offset to list and marker_positions to dictionary.
         """
         self.marker_center_offset = [float(val) for val in self.marker_center_offset]
-        self.marker_positions = {str(key): tuple(val) for key, val in self.marker_positions.items()}
+        self.marker_positions = {
+            str(key): tuple(val) for key, val in self.marker_positions.items()
+        }
 
     @property
     def tags(self):
@@ -77,7 +79,13 @@ class MarkerPositions(DataclassYamlSaveLoadMixin):
         """
         Get the transformation matrix.
         """
-        return np.stack([self.normal_direction, np.cross(self.marker_direction, self.normal_direction), self.marker_direction]).T
+        return np.stack(
+            [
+                self.normal_direction,
+                np.cross(self.marker_direction, self.normal_direction),
+                self.marker_direction,
+            ]
+        ).T
 
     def get_position(self, zidx: int, tag: str) -> np.ndarray:
         """
@@ -103,7 +111,10 @@ class MarkerPositions(DataclassYamlSaveLoadMixin):
                 normal_direction=tuple(grp.attrs["normal_direction"]),
                 marker_center_offset=list(grp["marker_center_offset"][()]),
                 marker_positions=dict(
-                    zip(grp.attrs["tags"].astype(str), [tuple(val) for val in grp["marker_positions"][()]])
+                    zip(
+                        grp.attrs["tags"].astype(str),
+                        [tuple(val) for val in grp["marker_positions"][()]],
+                    )
                 ),
             )
         return _cls

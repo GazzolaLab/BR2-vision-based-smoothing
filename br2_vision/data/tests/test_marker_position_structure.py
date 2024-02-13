@@ -9,12 +9,11 @@ from br2_vision.data import MarkerPositions
 
 
 class TestVariables:
-    center_offset = [1., 2., 3.]
-    marker_positions = {'A': (0., 0., 1.), 'B': (1., 0., 0.)}
+    center_offset = [1.0, 2.0, 3.0]
+    marker_positions = {"A": (0.0, 0.0, 1.0), "B": (1.0, 0.0, 0.0)}
 
 
 class TestMarkerPositions(TestVariables):
-
     @pytest.fixture(scope="session")
     def mock_marker_position(self):
         mp = MarkerPositions(
@@ -32,10 +31,9 @@ class TestMarkerPositions(TestVariables):
 
     def test_marker_position_creation_from_yaml(self, mock_marker_position):
         assert mock_marker_position.marker_center_offset == self.center_offset
-        assert mock_marker_position.marker_positions['A'] == self.marker_positions['A'] 
-        assert mock_marker_position.marker_positions['B'] == self.marker_positions['B']
+        assert mock_marker_position.marker_positions["A"] == self.marker_positions["A"]
+        assert mock_marker_position.marker_positions["B"] == self.marker_positions["B"]
 
-        
     def test_init(self):
         mp = MarkerPositions(
             marker_center_offset=self.center_offset,
@@ -75,20 +73,22 @@ class TestMarkerPositions(TestVariables):
         assert mp2.marker_positions == self.marker_positions
 
     def test_get_total_count(self, mock_marker_position):
-        assert mock_marker_position.get_total_count() == len(mock_marker_position) * len(mock_marker_position.marker_center_offset)
+        assert mock_marker_position.get_total_count() == len(
+            mock_marker_position
+        ) * len(mock_marker_position.marker_center_offset)
 
     def test_get_count_per_ring(self, mock_marker_position):
-        assert mock_marker_position.get_count_per_ring() == len(mock_marker_position.marker_center_offset)
+        assert mock_marker_position.get_count_per_ring() == len(
+            mock_marker_position.marker_center_offset
+        )
 
-    @pytest.mark.parametrize("zid, tag", [(0, "A"), (0, "A"), (1,"B"), (2,"B")])
+    @pytest.mark.parametrize("zid, tag", [(0, "A"), (0, "A"), (1, "B"), (2, "B")])
     def test_get_position(self, mock_marker_position, zid, tag):
         z_level = np.cumsum(self.center_offset)
-        Q = np.array([[0, 1, 0],
-                      [0, 0, 1],
-                      [1, 0, 0]]).astype(np.float_)
+        Q = np.array([[0, 1, 0], [0, 0, 1], [1, 0, 0]]).astype(np.float_)
         np.testing.assert_allclose(Q, mock_marker_position.Q)
 
-        expected_value = z_level[zid] * Q[:,2] + Q@self.marker_positions[tag]
+        expected_value = z_level[zid] * Q[:, 2] + Q @ self.marker_positions[tag]
         return_value = mock_marker_position.get_position(zid, tag)
         np.testing.assert_allclose(return_value, expected_value)
 
@@ -99,7 +99,5 @@ class TestMarkerPositions(TestVariables):
             marker_direction=(1.0, 0.0, 0.0),
             normal_direction=(0.0, 1.0, 0.0),
         )
-        Q_expected = np.array([[0, 0, 1],
-                               [1, 0, 0],
-                               [0, 1, 0]]).astype(np.float_)
+        Q_expected = np.array([[0, 0, 1], [1, 0, 0], [0, 1, 0]]).astype(np.float_)
         np.testing.assert_allclose(mp.Q, Q_expected)
