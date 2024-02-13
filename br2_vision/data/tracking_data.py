@@ -1,5 +1,26 @@
+from typing import NamedTuple, Tuple, List
+
+import os
 import numpy as np
 import h5py
+
+from .marker_positions import MarkerPositions
+
+
+class FlowQueue(NamedTuple):
+    tag: str
+    point: Tuple[int, int]
+    start_frame: int
+    end_frame: int
+    camera: int
+
+    dtype = [
+        ('tag', 'S50'),
+        ('point', int, (2,)),
+        ('start_frame', int),
+        ('end_frame', int),
+        ('camera', int)
+    ]
 
 
 # string_names = ['Paul', 'John', 'Anna']
@@ -29,3 +50,63 @@ import h5py
 #     dset['numpy_data',0:3] = np.asarray(numpy_data)
 
 # Tracking data:
+class TrackingData:
+
+    def __init__(self, path, marker_positions: MarkerPositions):
+        self.queues: List[FlowQueue] = []
+        self.path = path
+        self.marker_positions = marker_positions
+
+    @classmethod
+    def initialize(cls, path, marker_positions):
+        return cls(path, marker_positions)
+
+    @classmethod
+    def load(cls, path):
+        assert os.path.exists(path), "File does not exist."
+        marker_positions = MarkerPositions.from_h5(path)
+        with h5py.File(path, 'r') as h5f:
+            # Load queues
+            dset = h5f['queue']
+            queues = dset[...]
+
+        c = cls(path, marker_positions=marker_positions)
+        c.queues = queues
+        return c
+
+    def create_template(self):
+        """
+        Data Structure:
+        """
+        with h5py.File(self.path, 'w') as h5f:
+            dset = h5f.create_dataset("queues", (0,), dtype=FlowQueue.dtype)
+        self.marker_positions.to_h5(self.path)
+
+    def __enter__(self):
+        """
+        If file at self.path does not exist, create one.
+        """
+        if not os.path.exists(self.path):
+            self.create_template()
+
+    def __exit__(self):
+        """
+        Save queue on the existing file
+        """
+        with h5py.File(self.path, 'a') as h5f:
+            dset = h5f['queues']
+            dset.resize((len(self.queues),))
+            dset[...] = self.queues
+
+    def append(self, value):
+        self.queues.append(value)
+
+    def get_flow_queues(self, camera=None, start_frame=None):
+        ret = []
+        for queue in self.queues:
+            if camera is not None and queue.camera != camera:
+                continue
+            if start_frame is not None and queue.start_frame < start_frame:
+                continue
+            ret.append(queue)
+        return ret

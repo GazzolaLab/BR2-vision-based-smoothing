@@ -32,27 +32,37 @@ class MarkerPositions(DataclassYamlSaveLoadMixin):
     marker_center_offset: List[float]
     marker_positions: Dict[str, Tuple[float, float, float]]
 
-    origin: Tuple[float, float, float] = (0., 0., 0.)
-    marker_direction: Tuple[float, float, float] = (0., 1., 0.)
+    origin: Tuple[float, float, float] = (0.0, 0.0, 0.0)
+    marker_direction: Tuple[float, float, float] = (0.0, 1.0, 0.0)
 
-    @property
-    def dtype(self):
-        """
-        dtype compatible for h5py
-        """
-        return [
-            ('origin', float),
-            ('marker_direction', float),
-            ('marker_center_offset', float),
-            ('marker_positions', float, (3,)),
-            ('tags', 'S50')
-        ]
+    dtype = [
+        ("origin", float),
+        ("marker_direction", float),
+        ("marker_center_offset", float),
+        ("marker_positions", float, (3,)),
+        ("tags", "S50"),
+    ]
 
     @property
     def tags(self):
         return self.marker_positions.keys()
 
+    def get_total_count(self):
+        """
+        Get the total number of markers.
+        """
+        return len(self.marker_positions) * len(self.marker_center_offset)
+
+    def get_count_per_plane(self):
+        """
+        Get the number of markers per plane.
+        """
+        return len(self.marker_center_offset)
+
     def __len__(self):
+        """
+        Get the number of plane.
+        """
         return len(self.marker_center_location)
 
     def get_position(self, zidx: int, tag: str):
@@ -60,3 +70,18 @@ class MarkerPositions(DataclassYamlSaveLoadMixin):
         Get the absolute position of a marker.
         """
         raise NotImplementedError
+
+    def from_h5(self, path):
+        """
+        Load marker positions from h5 file.
+        """
+        with h5py.File(path, "r") as h5f:
+            dset = h5f["marker_positions"]
+            return dset[...]
+
+    def to_h5(self, path):
+        """
+        Save marker positions to h5 file.
+        """
+        with h5py.File(path, "w") as h5f:
+            dset = h5f.create_dataset("marker_positions", (0,), dtype=MarkerPositions.dtype, data=self)
