@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "br2-vision-based-smoothing"
-version = "0.2.1"
+version = "0.2.2"
 description = "Video tracking and strain reconstruction algorithm for soft-arm project."
 authors = ["Seung Hyun Kim <skim449@illinois.edu>"]
 license = "MIT"
