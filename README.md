@@ -16,6 +16,14 @@ cd BR2-vision-based-smoothing
 pip install .
 ```
 
+### Unit-Tests
+
+```bash
+cd BR2-vision-based-smoothing
+# <optional> activate virtual environment
+pytest
+```
+
 ## Requirements
 
 All the tools are developed using Python3.9 and openCV. We recommend installing dependencies using `poetry`.
