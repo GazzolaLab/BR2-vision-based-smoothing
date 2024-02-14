@@ -81,18 +81,19 @@ def process(cam_id, skip_synch: bool, roi, verbose: bool, dry: bool):
     output_path = config["PATHS"]["cropped_video_path"]
 
     # Select roi for each video
+    rois = {}
     if roi is None:
-        rois = []
-        for i in cam_id:
-            assert os.path.exists(video_path.format(i))
-            _input_path = video_path.format(i)
+        for cid in cam_id:
+            assert os.path.exists(video_path.format(cid))
+            _input_path = video_path.format(cid)
 
             r = select_roi(_input_path)
             if r is None:
-                logger.error(f"Error selecting roi for camera {i}")
-            rois.append(r)
+                logger.error(f"Error selecting roi for camera {cid}")
+            rois[cid] = r
     else:
-        rois = [roi for _ in cam_id]
+        for cid in cam_id:
+            rois[cid] = roi
 
     # Crop video
     for i in tqdm(cam_id):
