@@ -22,7 +22,7 @@ import click
 
 import br2_vision
 from br2_vision.utility.logging import config_logging, get_script_logger
-from br2_vision.cv2_custom.utils import select_roi
+from br2_vision.cv2_custom.select import select_roi
 
 
 def crop_video(
@@ -60,7 +60,7 @@ def crop_video(
     "-skip-synch", is_flag=True, type=bool, help="Skip synchronization step. Use raw."
 )
 @click.option(
-    "-roi", type=(int, int, int, int), optional=True, help="Region of interest for cropping. (x,y,width,height). Used for all cameras."
+    "-roi", type=(int, int, int, int), help="Region of interest for cropping. (x,y,width,height). Used for all cameras."
 )
 @click.option("-v", "--verbose", is_flag=True, help="Verbose mode.")
 @click.option("-d", "--dry", is_flag=True, help="Dry run.")
@@ -74,7 +74,7 @@ def process(cam_id, skip_synch: bool, roi, verbose: bool, dry: bool):
 
     # Path Configuration
     video_path = (
-        config["PATHS"]["raw_video_path"]
+        config["PATHS"]["undistorted_video_path"]
         if skip_synch
         else config["PATHS"]["synchronized_video_path"]
     )
