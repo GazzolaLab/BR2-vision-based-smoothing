@@ -91,7 +91,7 @@ def process(cam_id, scale, skip_synch: bool, roi, verbose: bool, dry: bool):
             r = select_roi(_input_path, scale)
             if r is None:
                 logger.error(f"Error selecting roi for camera {cid}")
-            logger.info(f"Selecting roi {r} for camera {i}")
+            logger.info(f"Selecting roi {r} for camera {cid}")
             rois[cid] = r
     else:
         for cid in cam_id:
