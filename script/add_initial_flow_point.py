@@ -4,16 +4,15 @@ import pathlib
 import cv2
 import matplotlib.pyplot as plt
 
-from cv2_custom.marking import cv2_draw_label
-from cv2_custom.transformation import scale_image
-
-#from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QInputDialog
+from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QInputDialog
 
 import click
 
 import br2_vision
 from br2_vision.utility.logging import config_logging, get_script_logger
 from br2_vision.data import MarkerPositions, TrackingData, FlowQueue
+from br2_vision.cv2_custom.marking import cv2_draw_label
+from br2_vision.cv2_custom.transformation import scale_image
 
 def zoomed_inquiry(current_frame, uv, scale=5.0, disp_h=80, disp_w=80):
     x, y = uv
@@ -155,10 +154,10 @@ def frame_label(frame, points, tags):
     "-r", "--run-id", type=int, help="Specify run index. Initial points are saved for all specified run-ids.", multiple=True
 )
 @click.option(
-    "-ss", "--start-frame", type=int, help="Start frame.", default=0
+    "-ss", "--start-frame", type=int, help="Start frame.", default=0, show_default=True
 )
 @click.option(
-    "-es", "--end-frame", type=int, help="End frame.", default=-1
+    "-es", "--end-frame", type=int, help="End frame.", default=-1, show_default=True
 )
 @click.option("-v", "--verbose", is_flag=True, help="Verbose mode.")
 @click.option("-d", "--dry", is_flag=True, help="Dry run.")
@@ -172,7 +171,7 @@ def main(tag, cam_id, run_id, start_frame, end_frame, verbose, dry):
         sys.exit(1)
 
     marker_positions = MarkerPositions.from_yaml(config["PATHS"]["marker_positions"])
-    keys = marker_positions.keys()
+    keys = marker_positions.tags
 
     # Set Colors
     _N = 100
@@ -180,14 +179,17 @@ def main(tag, cam_id, run_id, start_frame, end_frame, verbose, dry):
     color = np.random.randint(0, 235, (100, 3)).astype(int)
 
     # Path
+    app = QApplication(sys.argv)
     for cid in cam_id:
-        video_path = config["PATHS"]["footage_video"].format(tag, cam_id, run_id[0])
+
+        video_path = config["PATHS"]["footage_video_path"].format(tag, cid, run_id[0])
+        assert os.path.exists(video_path), f"Video not found: {video_path}."
         initial_point_file = config["PATHS"]["tracing_data_path"]
 
         video_name = os.path.basename(video_path)
 
         # Capture Video
-        cap = cv2.VideoCapture(os.path.join(path, video_name))
+        cap = cv2.VideoCapture(video_path)
         video_length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         if start_frame == -1:
             start_frame = video_length - 1
@@ -199,7 +201,6 @@ def main(tag, cam_id, run_id, start_frame, end_frame, verbose, dry):
 
         assert start_frame < video_length
 
-        # app = QApplication(sys.argv)
         tags = []
         points = []
 
@@ -240,7 +241,8 @@ def main(tag, cam_id, run_id, start_frame, end_frame, verbose, dry):
         for rid in run_id:
             with TrackingData.initialize(path=initial_point_file.format(tag, rid), marker_positions=marker_positions) as dataset:
                 for tag, point in zip(tags, points):
-                    flow_queue = FlowQueue(tag, point, start_frame, end_frame, cid)
+                    point = tuple(point)
+                    flow_queue = FlowQueue(point, start_frame, end_frame, cid)
                     dataset.append(flow_queue)
 
     visualize(initial_piont_file, tag, cam_id, run_id, config)
