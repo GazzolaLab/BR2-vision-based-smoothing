@@ -98,14 +98,14 @@ def process(
 
     # Path Configuration
     os.makedirs(config["PATHS"]["postprocessing_path"].format(tag), exist_ok=True)
-    video_path = config["PATHS"]["preprocessed_video_path"]  # (tag, cam_id)
+    video_path = config["PATHS"]["preprocessed_video_path"]  # (cam_id)
     output_path = config["PATHS"]["footage_video_path"]  # (tag, cam_id, run_id)
 
     # Select LED regions for all cameras
     run_id = 0
     for cid in cam_id:
         for _ss, _to in zip(ss, to):
-            video_path_ = video_path.format(tag, cid)
+            video_path_ = video_path.format(cid)
             output_path_ = output_path.format(tag, cid, run_id)
             logger.info(f"Processing camera {cid}: {video_path_}, {_ss} to {_to}")
             if dry:
