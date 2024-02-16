@@ -57,7 +57,7 @@ To process reconstruction (smoothing) algorithm, check out section [(Reconstruct
 ```mermaid
 flowchart LR
     collect[("Data Collection")]
-    preproc{{"Preprocess </br> - synchronize </br> - undistort </br> - rotate </br> - crop </br> - trim"}}
+    preproc{{"Preprocess </br> - undistort </br> - rotate </br> - synchronize </br> - crop </br> - trim"}}
     dltcal{{"DLT Calibration"}}
     oflow{{"Optical Flow"}}
     dlt{{"DLT - 3D poses"}}
