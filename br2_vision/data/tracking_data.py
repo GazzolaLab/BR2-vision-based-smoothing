@@ -1,60 +1,55 @@
-from typing import NamedTuple, Tuple, List
+from typing import Tuple, List
 
 import os
+from dataclasses import dataclass
 import numpy as np
 import h5py
+
+
+from br2_vision.utility.logging import get_script_logger
 
 from .marker_positions import MarkerPositions
 
 
-class FlowQueue(NamedTuple):
-    tag: str
+@dataclass
+class FlowQueue:
     point: Tuple[int, int]
     start_frame: int
     end_frame: int
     camera: int
+    z_index: str
+    label: str
+    done: bool = False
 
     dtype = [
-        ("tag", "S50"),
-        ("point", int, (2,)),
-        ("start_frame", int),
-        ("end_frame", int),
-        ("camera", int),
+        ("point", "i8", (2,)),
+        ("start_frame", "<i8"),
+        ("end_frame", "<i8"),
+        ("camera", "<i8"),
+        ("z_index", "S10"),
+        ("label", "S10"),
+        ("done", "?"),
     ]
 
+    def __array__(self, dtype=None) -> np.ndarray:
+        val = np.recarray((1,), dtype=self.dtype)
+        val.point = self.point
+        val.start_frame = self.start_frame
+        val.end_frame = self.end_frame
+        val.camera = self.camera
+        val.z_index = self.z_index
+        val.label = self.label
+        val.done = self.done
+        return val
 
-# string_names = ['Paul', 'John', 'Anna']
-# float_heights = [5.9, 5.7,  6.1]
-# int_ages = [27, 31, 33]
-# numpy_data = [ np.array([5.4, 6.7, 8.8]),
-#                np.array([3.1, 58.4, 66.4]),
-#                np.array([4.7, 5.1, 4.2])  ]
-#
-# # Create empty record array with 3 rows
-# ds_dtype = [('name','S50'), ('height',float), ('ages',int), ('numpy_data', float, (3,) ) ]
-# ds_arr = np.recarray((3,),dtype=ds_dtype)
-# # load list data to record array by field name
-# ds_arr['name'] = np.asarray(string_names)
-# ds_arr['height'] = np.asarray(float_heights)
-# ds_arr['ages'] = np.asarray(int_ages)
-# ds_arr['numpy_data'] = np.asarray(numpy_data)
-#
-# with h5py.File('SO_59483094.h5', 'w') as h5f:
-# # load data to dataset my_ds1 using recarray
-#     dset = h5f.create_dataset('my_ds1', data=ds_arr, maxshape=(None) )
-# # load data to dataset my_ds2 by lists/field names
-#     dset = h5f.create_dataset('my_ds2', dtype=ds_dtype, shape=(100,), maxshape=(None) )
-#     dset['name',0:3] = np.asarray(string_names)
-#     dset['height',0:3] = np.asarray(float_heights)
-#     dset['ages',0:3] = np.asarray(int_ages)
-#     dset['numpy_data',0:3] = np.asarray(numpy_data)
 
-# Tracking data:
 class TrackingData:
     def __init__(self, path, marker_positions: MarkerPositions):
         self.queues: List[FlowQueue] = []
         self.path = path
         self.marker_positions = marker_positions
+
+        self.logger = get_script_logger(os.path.basename(__file__))
 
     @classmethod
     def initialize(cls, path, marker_positions):
@@ -62,12 +57,12 @@ class TrackingData:
 
     @classmethod
     def load(cls, path):
-        assert os.path.exists(path), "File does not exist."
+        assert os.path.exists(path), f"File does not exist {path}."
         marker_positions = MarkerPositions.from_h5(path)
         with h5py.File(path, "r") as h5f:
             # Load queues
-            dset = h5f["queue"]
-            queues = dset[...]
+            dset = h5f["queues"]
+            queues = [FlowQueue(*vals) for vals in dset[...].tolist()]
 
         c = cls(path, marker_positions=marker_positions)
         c.queues = queues
@@ -78,7 +73,12 @@ class TrackingData:
         Data Structure:
         """
         with h5py.File(self.path, "w") as h5f:
-            dset = h5f.create_dataset("queues", (0,), dtype=FlowQueue.dtype)
+            dset = h5f.create_dataset(
+                "queues",
+                (1,),
+                maxshape=(None,),
+                dtype=FlowQueue.dtype,
+            )
         self.marker_positions.to_h5(self.path)
 
     def __enter__(self):
@@ -87,25 +87,34 @@ class TrackingData:
         """
         if not os.path.exists(self.path):
             self.create_template()
+        return self
 
-    def __exit__(self):
+    def __exit__(self, exception_type, exception_value, exception_traceback):
         """
         Save queue on the existing file
         """
         with h5py.File(self.path, "a") as h5f:
             dset = h5f["queues"]
             dset.resize((len(self.queues),))
-            dset[...] = self.queues
+            for idx, q in enumerate(self.queues):
+                dset[idx] = np.array(q)
 
     def append(self, value):
         self.queues.append(value)
 
-    def get_flow_queues(self, camera=None, start_frame=None):
+    def get_flow_queues(
+        self, camera=None, start_frame=None, force_run_all: bool = False
+    ):
         ret = []
         for queue in self.queues:
+            # Filter
             if camera is not None and queue.camera != camera:
                 continue
             if start_frame is not None and queue.start_frame < start_frame:
+                continue
+
+            # Skip already-done queues
+            if queue.done and not force_run_all:
                 continue
             ret.append(queue)
         return ret

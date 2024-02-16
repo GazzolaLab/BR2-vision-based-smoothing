@@ -48,7 +48,7 @@ class LabelPrompt:
         list_A.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
         list_A.clearSelection()
         if self.selected_A_item:
-            item = list_A.findItems(self.selected_A_item[0], self.MATCH_FLAG)[0]
+            item = list_A.findItems(self.selected_A_item, self.MATCH_FLAG)[0]
             item.setSelected(True)
 
         list_B = QListWidget()
@@ -56,7 +56,7 @@ class LabelPrompt:
         list_B.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
         list_B.clearSelection()
         if self.selected_B_item:
-            item = list_B.findItems(self.selected_B_item[0], self.MATCH_FLAG)[0]
+            item = list_B.findItems(self.selected_B_item, self.MATCH_FLAG)[0]
             item.setSelected(True)
 
         # Create group boxes
@@ -86,12 +86,12 @@ class LabelPrompt:
             self.selected_A_item = [item.text() for item in list_A.selectedItems()][0]
             self.selected_B_item = [item.text() for item in list_B.selectedItems()][0]
             window.close()
-            app.quit()
+            # self.app.quit()
 
         def on_cancel_click():
             self._okay = False
             window.close()
-            app.quit()
+            # self.app.quit()
 
         # Connect button click event
         ok_button.clicked.connect(on_ok_click)

@@ -13,14 +13,30 @@ from br2_vision.utility.logging import config_logging, get_script_logger
 from br2_vision.data import MarkerPositions, TrackingData, FlowQueue
 from br2_vision.cv2_custom.marking import cv2_draw_label
 from br2_vision.cv2_custom.transformation import scale_image
+from br2_vision.qt_custom.label_prompt import LabelPrompt
+
+
+def on_mouse_zoom(event, x, y, flags, param):
+    uv = param["uv"]
+    original_uv = param["original_uv"]
+    if event == cv2.EVENT_LBUTTONDOWN:
+        uv[0] = x
+        uv[1] = y
+    elif event == cv2.EVENT_RBUTTONDOWN:
+        # Return original uv
+        uv[:] = original_uv
+
 
 def zoomed_inquiry(current_frame, uv, scale=5.0, disp_h=80, disp_w=80):
+    """
+    Inquiry for a point in a zoomed-in region of the image.
+    """
     x, y = uv
     x = int(x)
     y = int(y)
 
     # Region of interest display
-    window_name_roi = "roi"
+    window_name_roi = "zoom-prompt"
     cv2.namedWindow(window_name_roi)
     disp_img_roi = current_frame.copy()
     disp_img_roi = cv2.rectangle(
@@ -51,23 +67,15 @@ def zoomed_inquiry(current_frame, uv, scale=5.0, disp_h=80, disp_w=80):
     # Implement mouse event for clicking other point
     original_uv = _uv.copy()
 
-    def onMouse(event, x, y, flags, param):
-        uv = param["uv"]
-        original_uv = param["original_uv"]
-        if event == cv2.EVENT_LBUTTONDOWN:
-            uv[0] = x
-            uv[1] = y
-        elif event == cv2.EVENT_RBUTTONDOWN:
-            # Return original uv
-            uv[:] = original_uv
-
     # Inquiry Loop
     inquiry_on = True
     window_name = "select reappeared point"
     cv2.namedWindow(window_name)
     cv2.setMouseCallback(
-        window_name, onMouse, param={"uv": _uv, "original_uv": original_uv}
+        window_name, on_mouse_zoom, param={"uv": _uv, "original_uv": original_uv}
     )
+    print("zoomed-in inquiry")
+    print("d: cancel, a: accept, h: help")
     while inquiry_on:
         disp_img = scaled_img.copy()
 
@@ -83,6 +91,8 @@ def zoomed_inquiry(current_frame, uv, scale=5.0, disp_h=80, disp_w=80):
             uv = original_uv
         elif key == ord("a"):  # Accept: accept change
             inquiry_on = False
+        elif key == ord("h"):  # Help
+            print("d: cancel, a: accept, h: help")
         else:
             pass
 
@@ -94,12 +104,15 @@ def zoomed_inquiry(current_frame, uv, scale=5.0, disp_h=80, disp_w=80):
 
     return np.array([x, y], dtype=int)
 
+
 # Mouse Handle
 prev_tag = ""
+
+
 def mouse_event_click_point(event, x, y, flags, param):
     global prev_tag
     points = param["points"]
-    tags = param["tags"]
+    marker_label = param["marker_label"]
     bypass_inquiry = flags & cv2.EVENT_FLAG_CTRLKEY
     if event == cv2.EVENT_LBUTTONDOWN:
         point = np.array([x, y], dtype=np.int32).reshape([1, 2])
@@ -115,30 +128,24 @@ def mouse_event_click_point(event, x, y, flags, param):
     if bypass_inquiry:
         tag = prev_tag
     else:
-        _ok = False
-        while not _ok:
-            tag, _ok = QInputDialog.getText(
-                QWidget(), "Tag", "Input Tag", text=prev_tag
-            )
-    if tag[0] == "R":
-        prev_tag = (
-            tag[0]
-            + str(int(tag.split("-")[0][1:]) + 1)
-            + "-"
-            + str(int(tag.split("-")[1]))
-        )
-    else:
-        prev_tag = tag
-    tags.append(tag)
+        tag = param["prompt"]()
+        if tag is None:
+            print("canceled")
+            return
+    prev_tag = tag
+    marker_label.append(tag)
     print("added: ")
     print(point, tag)
 
+
 # Draw
-def frame_label(frame, points, tags):
+# TODO: move to cv2_custom
+def frame_label(frame, points, marker_label):
     for inx in range(len(points)):
         point = tuple(points[inx][0])
-        tag = tags[inx]
+        tag = marker_label[inx]
         cv2_draw_label(frame, int(point[0]), int(point[1]), tag, fontScale=0.8)
+
 
 @click.command()
 @click.option(
@@ -151,7 +158,11 @@ def frame_label(frame, points, tags):
     "-c", "--cam-id", type=int, help="Camera index given in file.", multiple=True
 )
 @click.option(
-    "-r", "--run-id", type=int, help="Specify run index. Initial points are saved for all specified run-ids.", multiple=True
+    "-r",
+    "--run-id",
+    type=int,
+    help="Specify run index. Initial points are saved for all specified run-ids.",
+    multiple=True,
 )
 @click.option(
     "-ss", "--start-frame", type=int, help="Start frame.", default=0, show_default=True
@@ -162,6 +173,8 @@ def frame_label(frame, points, tags):
 @click.option("-v", "--verbose", is_flag=True, help="Verbose mode.")
 @click.option("-d", "--dry", is_flag=True, help="Dry run.")
 def main(tag, cam_id, run_id, start_frame, end_frame, verbose, dry):
+    app = QApplication(sys.argv)  # Initialize Q application
+
     config = br2_vision.load_config()
     config_logging(verbose)
     logger = get_script_logger(os.path.basename(__file__))
@@ -173,13 +186,21 @@ def main(tag, cam_id, run_id, start_frame, end_frame, verbose, dry):
     marker_positions = MarkerPositions.from_yaml(config["PATHS"]["marker_positions"])
     keys = marker_positions.tags
 
+    # Set prompt
+    prompt = LabelPrompt(
+        app,
+        list(map(str, range(len(marker_positions)))),
+        keys,
+        "cross-section index",
+        "label tag",
+    )
+
     # Set Colors
     _N = 100
     np.random.seed(100)
     color = np.random.randint(0, 235, (100, 3)).astype(int)
 
     # Path
-    app = QApplication(sys.argv)
     for cid in cam_id:
 
         video_path = config["PATHS"]["footage_video_path"].format(tag, cid, run_id[0])
@@ -201,7 +222,7 @@ def main(tag, cam_id, run_id, start_frame, end_frame, verbose, dry):
 
         assert start_frame < video_length
 
-        tags = []
+        marker_label = []
         points = []
 
         # First-layer Selection
@@ -209,13 +230,18 @@ def main(tag, cam_id, run_id, start_frame, end_frame, verbose, dry):
         cv2.setMouseCallback(
             video_name,
             mouse_event_click_point,
-            param={"frame": curr_frame, "points": points, "tags": tags},
+            param={
+                "frame": curr_frame,
+                "points": points,
+                "marker_label": marker_label,
+                "prompt": prompt,
+            },
         )
         while True:
             disp_img = curr_frame.copy()
 
             if len(points) > 0:
-                frame_label(disp_img, points, tags)
+                frame_label(disp_img, points, marker_label)
 
             cv2.imshow(video_name, disp_img)
             key = cv2.waitKey(1) & 0xFF
@@ -225,45 +251,57 @@ def main(tag, cam_id, run_id, start_frame, end_frame, verbose, dry):
                 break
             elif key == ord("d"):
                 if len(points) > 0:
+                    print(f"deleted: {points[-1]} -> {marker_label[-1]}")
                     points.pop(-1)
-                    tags.pop(-1)
-                    print("deleted")
-            elif key == ord("p"):
+                    marker_label.pop(-1)
+            elif key == ord("h"):
                 print("check")
                 print(points)
-                print(tags)
-                print('')
+                print(marker_label)
+                print("")
                 print("c: complete")
                 print("d: delete last point")
         cv2.destroyAllWindows()
 
-        # Load existing points and tags
+        # Load existing points and marker_label
         for rid in run_id:
-            with TrackingData.initialize(path=initial_point_file.format(tag, rid), marker_positions=marker_positions) as dataset:
-                for tag, point in zip(tags, points):
-                    point = tuple(point)
-                    flow_queue = FlowQueue(point, start_frame, end_frame, cid)
+            with TrackingData.initialize(
+                path=initial_point_file.format(tag, rid),
+                marker_positions=marker_positions,
+            ) as dataset:
+                for label, point in zip(marker_label, points):
+                    point = tuple(point.ravel().tolist())
+                    flow_queue = FlowQueue(
+                        point, start_frame, end_frame, cid, label[0], label[1]
+                    )
                     dataset.append(flow_queue)
 
-    visualize(initial_piont_file, tag, cam_id, run_id, config)
+    visualize(tag, cam_id, run_id, config)
 
-def visualize(data_path, tag, cam_id, run_id, config, frame=0):
-    data_path = config["PATHS"]["tracing_data_path"]
+    app.quit()  # Quit Q application
+
+
+def visualize(tag, cam_id, run_id, config, frame=0):
+    initial_point_file = config["PATHS"]["tracing_data_path"]
     working_dir = pathlib.Path(config["PATHS"]["postprocessing_path"].format(tag))
 
     initial_points_dir = working_dir / "initial_points"
     initial_points_dir.mkdir(parents=True, exist_ok=True)
-    
+
     for rid in run_id:
-        with TrackingData.load(path=data_path.format(tag, rid)) as dataset:
+        with TrackingData.load(path=initial_point_file.format(tag, rid)) as dataset:
             for cid in cam_id:
                 plt.figure()
                 flow_queues = dataset.get_flow_queues(camera=cid, start_frame=frame)
                 points = np.array([queue.point for queue in flow_queues])  # (N, 2)
                 plt.scatter(points[:, 0], points[:, 1])
-                plt.title(f'frame {frame}')
-                plt.savefig(initial_points_dir / f"initial_points_cam{cid}_run{rid}_frame{frame}.png")
-                plt.close('all')
+                plt.title(f"frame {frame}")
+                plt.savefig(
+                    initial_points_dir
+                    / f"initial_points_cam{cid}_run{rid}_frame{frame}.png"
+                )
+                plt.close("all")
+
 
 if __name__ == "__main__":
     main()
