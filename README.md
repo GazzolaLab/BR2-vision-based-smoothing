@@ -121,7 +121,7 @@ flowchart TD
         
         opt1 --> opt2 --> C{satisfied?}
         C -->|no: trim trajectory| opt1
-        C -->|yes| D("save")
+        C -->|yes| D(("save"))
     end
     collect --> Optical-Flow --> T
 ```
