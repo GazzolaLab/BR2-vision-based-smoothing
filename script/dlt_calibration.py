@@ -47,11 +47,14 @@ def calibrate(verbose):
     dlt = DLT(calibration_path=config["PATHS"]["calibration_path"])
     for camera_id, points in data.items():
         camera_id = int(camera_id)
-        dlt.add_camera(camera_id, calibration_type=11)  # TODO: enable more calibration types
+        dlt.add_camera(
+            camera_id, calibration_type=11
+        )  # TODO: enable more calibration types
         for point in points:  # point : (u,v,x,y,z)
             dlt.add_reference(*point, camera_id=camera_id)
     dlt.finalize(verbose=verbose)
     dlt.save()
+
 
 if __name__ == "__main__":
     calibrate()

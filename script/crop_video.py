@@ -61,7 +61,10 @@ def crop_video(
     "-skip-synch", is_flag=True, type=bool, help="Skip synchronization step. Use raw."
 )
 @click.option(
-    "-roi", type=(int, int, int, int), help="Region of interest for cropping. (x,y,width,height). Used for all cameras.", default=None
+    "-roi",
+    type=(int, int, int, int),
+    help="Region of interest for cropping. (x,y,width,height). Used for all cameras.",
+    default=None,
 )
 @click.option("-v", "--verbose", is_flag=True, help="Verbose mode.")
 @click.option("-d", "--dry", is_flag=True, help="Dry run.")

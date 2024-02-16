@@ -16,13 +16,13 @@ from br2_vision.utility.logging import config_logging, get_script_logger
 
 
 def export(input_path, output_path, start_stamp, end_stamp):
-    command = ['ffmpeg', '-y']
-    command.extend(['-i', input_path])
-    command.extend(['-ss', start_stamp])
-    command.extend(['-to', end_stamp])
+    command = ["ffmpeg", "-y"]
+    command.extend(["-i", input_path])
+    command.extend(["-ss", start_stamp])
+    command.extend(["-to", end_stamp])
     command.extend([output_path])
-    command = ' '.join(command)
-    print('running : ', command)
+    command = " ".join(command)
+    print("running : ", command)
 
     sts = subprocess.Popen(command, shell=True).wait()
     return sts
@@ -42,12 +42,8 @@ def export(input_path, output_path, start_stamp, end_stamp):
 @click.option(
     "-c", "--cam-id", type=int, help="Camera index given in file.", multiple=True
 )
-@click.option(
-    "-ss", type=str, help="Start stamp", multiple=True
-)
-@click.option(
-    "-to", type=str, help="End stamp", multiple=True
-)
+@click.option("-ss", type=str, help="Start stamp", multiple=True)
+@click.option("-to", type=str, help="End stamp", multiple=True)
 @click.option(
     "-f",
     "--fps",
@@ -64,9 +60,7 @@ def export(input_path, output_path, start_stamp, end_stamp):
 )
 @click.option("-v", "--verbose", is_flag=True, help="Verbose mode.")
 @click.option("-d", "--dry", is_flag=True, help="Dry run.")
-def process(
-    tag, cam_id, ss, to, fps, trailing_frames, verbose: bool, dry: bool
-):
+def process(tag, cam_id, ss, to, fps, trailing_frames, verbose: bool, dry: bool):
     """
     Trimming video given start and end stamps.
 

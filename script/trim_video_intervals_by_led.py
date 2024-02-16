@@ -104,7 +104,9 @@ def process(
     # Path Configuration
     working_dir = config["PATHS"]["postprocessing_path"].format(tag)
     os.makedirs(working_dir, exist_ok=True)
-    video_path = config["PATHS"]["preprocessed_video_path"].format(tag, "{}")  # (cam_id)
+    video_path = config["PATHS"]["preprocessed_video_path"].format(
+        tag, "{}"
+    )  # (cam_id)
     output_path = config["PATHS"]["footage_video_path"].format(
         tag, "{}", "{}"
     )  # (cam_id, run_id)
@@ -140,7 +142,9 @@ def process(
     pbar = tqdm(total=total_frame)
     state_list = []
     colors_list = [[] for _ in cam_id]
-    assert total_frame > 0, f"Minimum frame for some video is zero. Check if all the input video exist."
+    assert (
+        total_frame > 0
+    ), f"Minimum frame for some video is zero. Check if all the input video exist."
     while frame_count < total_frame:
         states = []
         for i in range(len(cam_id)):
@@ -200,9 +204,9 @@ def process(
             continue
 
         colors = np.asarray(colors_list[i])
-        plt.plot(colors[:, 0], color='blue', label="B")
-        plt.plot(colors[:, 1], color='green', label="G")
-        plt.plot(colors[:, 2], color='red', label="R")
+        plt.plot(colors[:, 0], color="blue", label="B")
+        plt.plot(colors[:, 1], color="green", label="G")
+        plt.plot(colors[:, 2], color="red", label="R")
         plt.legend()
         plt.xlabel("Frame")
         plt.ylabel("LED Color")

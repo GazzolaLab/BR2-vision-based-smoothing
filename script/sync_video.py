@@ -16,13 +16,13 @@ import br2_vision
 from br2_vision.utility.logging import config_logging, get_script_logger
 
 
-def extract_audio_wav(input_path:str, output_path:str):
-    command = ['ffmpeg', '-y']
-    command.extend(['-i', input_path])
-    command.extend(['-c:a:0', 'pcm_s16le'])
+def extract_audio_wav(input_path: str, output_path: str):
+    command = ["ffmpeg", "-y"]
+    command.extend(["-i", input_path])
+    command.extend(["-c:a:0", "pcm_s16le"])
     command.extend([output_path])
-    command = ' '.join(command)
-    print('running : ', command)
+    command = " ".join(command)
+    print("running : ", command)
 
     sts = subprocess.Popen(command, shell=True).wait()
     return sts
@@ -34,9 +34,7 @@ def extract_audio_wav(input_path:str, output_path:str):
 )
 @click.option("-v", "--verbose", is_flag=True, help="Verbose mode.")
 @click.option("-d", "--dry", is_flag=True, help="Dry run.")
-def process(
-    cam_id, verbose: bool, dry: bool
-):
+def process(cam_id, verbose: bool, dry: bool):
     """
     Synchronize video
 
@@ -62,10 +60,7 @@ def process(
 
     for i in tqdm(cam_id):
         assert os.path.exists(video_path.format(i))
-        extract_audio_wav(
-            video_path.format(i), audio_path.format(i))
-
-    
+        extract_audio_wav(video_path.format(i), audio_path.format(i))
 
 
 if __name__ == "__main__":
