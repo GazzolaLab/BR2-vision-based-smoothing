@@ -53,30 +53,90 @@ To process reconstruction (smoothing) algorithm, check out section [(Reconstruct
 
 ### Typical Workflow
 
+
+```mermaid
+flowchart LR
+    collect[("Data Collection")]
+    preproc{{"Preprocess </br> - synchronize </br> - undistort </br> - rotate </br> - crop </br> - trim"}}
+    dltcal{{"DLT Calibration"}}
+    oflow{{"Optical Flow"}}
+    dlt{{"DLT - 3D poses"}}
+    smth{{"Smoothing"}}
+
+    collect --> preproc --> dltcal --> dlt --> smth
+    preproc --> oflow --> dlt
+```
+
+#### Preprocessing Video
+
+> Order matters
+
+Anything inside the box can be run as a `cli` command.
+```mermaid
+flowchart LR
+a("command") ==> b["$command --help"]
+```
+
 ```mermaid
 flowchart TD
     collect[("Data Collection")]
-    proc1["undistort and rotate all video"]
-    proc2["sync_video"]
-    proc3["crop_video (should be done on all video)"]
-    cal1["extract calibration frames"]
-    cal2["select calibration points"]
-    cal3["dlt calibration"]
-    trim["trim video intervals by LED"]
-    opt1["set optical flow inquiry"]
-    opt2["run optical flow"]
+    subgraph Preprocess
+        proc1("undistort and rotate all video")
+        proc2("sync video")
+        proc3("crop video")
+        trim("trim video intervals by LED <br> trim video intervals manual")
+        proc1 --> proc2 --> proc3 --> trim
+    end
+    out1[("Experiment Footage")]
+    out2[("DLT Calibration Footage")]
+
+    collect --> Preprocess --> out1
+    Preprocess --> out2
+```
+
+#### DLT Calibration
+
+```mermaid
+flowchart TD
+    collect[("DLT Calibration Footage")]
+    DLT[("dlt-parameters (npz)")]
+    subgraph DLT-Calibration
+        cal1("extract calibration frames")
+        cal2("select calibration points")
+        cal3("dlt calibration")
+        cal1 -->|static frames| cal2 --> cal3
+    end
+    collect --> DLT-Calibration --> DLT
+```
+
+#### Optical Flow
+
+```mermaid
+flowchart TD
+    collect[("Experiment Footage")]
+    T[("tracking data (h5)")]
+    subgraph Optical-Flow
+        opt1("set optical flow inquiry")
+        opt2("run optical flow")
+        
+        opt1 --> opt2 --> C{satisfied?}
+        C -->|no: trim trajectory| opt1
+        C -->|yes| D("save")
+    end
+    collect --> Optical-Flow --> T
+```
+
+#### Smoothing
+
+```mermaid
+flowchart TD
+    T[("tracking data (h5)")]
+    DLT[("dlt-parameters (npz)")]
     smt1["interpolate poses"]
     smt2["run smoothing"]
-
-    C{satisfied?}
-
-    collect --> proc1 --> proc2 -->|can be skipped| proc3
-    proc3 -->|calibration video| cal1 -->|prune frames| cal2 --> cal3
-    proc3 -->|posture video| trim --> opt1 --> opt2 --> C
-    C -->|no: trim trajectory| opt1
-    C -->|yes| smt1
     
-    cal3 --> smt1
+    T --> smt1
+    DLT --> smt1
     smt1 --> smt2
 ```
 
