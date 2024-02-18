@@ -1,5 +1,6 @@
 import cv2
 
+
 def get_video_frame_count(video_path):
     """
     Return frame-count of the video

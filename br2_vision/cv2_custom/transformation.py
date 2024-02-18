@@ -9,6 +9,7 @@ def scale_image(frame, scale=1.0, interpolation=cv2.INTER_AREA):
     frame = cv2.resize(frame, (width, height), interpolation=interpolation)
     return frame
 
+
 def flat_color(frame):
     """
     Convert color image to flat image (gray)
