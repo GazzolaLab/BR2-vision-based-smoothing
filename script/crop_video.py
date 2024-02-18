@@ -22,7 +22,7 @@ import click
 
 import br2_vision
 from br2_vision.utility.logging import config_logging, get_script_logger
-from br2_vision.cv2_custom.select import select_roi
+from br2_vision.cv2_custom.select_region import select_roi
 
 
 def crop_video(
