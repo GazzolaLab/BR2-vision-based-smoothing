@@ -215,7 +215,7 @@ def main(tag, cam_id, run_id, start_frame, end_frame, verbose, dry):
         if start_frame == -1:
             start_frame = video_length - 1
         if end_frame == -1:
-            end_frame = video_length - 1
+            end_frame = video_length
         if start_frame > 0:
             cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
         ret, curr_frame = cap.read()

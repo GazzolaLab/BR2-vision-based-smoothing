@@ -1,4 +1,6 @@
+from typing import List
 import os, sys
+
 # import tensorflow as tf
 
 import cv2
@@ -21,47 +23,55 @@ import click
     help="Experiment tag. Path ./tag should exist.",
 )
 @click.option(
-    "-c", "--cam-id", type=int, help="Camera index given in file.", multiple=True
+    "-r",
+    "--run-id",
+    type=int,
+    help="Specify run index. Initial points are saved for all specified run-ids.",
+    multiple=True,
 )
 @click.option(
-    "-r", "--run-id", type=int, help="Specify run index. Initial points are saved for all specified run-ids.", multiple=True
+    "--force-run-all",
+    is_flag=True,
+    type=bool,
+    help="Ignore the pre-run data, and re-run optical flow on all flow-queues.",
+    default=False,
 )
 @click.option("-v", "--verbose", is_flag=True, help="Verbose mode.")
 @click.option("-d", "--dry", is_flag=True, help="Dry run.")
-def main(tag, cam_id, run_id, verbose, dry):
+def main(tag, run_id, force_run_all, verbose, dry):
     config = br2_vision.load_config()
     config_logging(verbose)
     logger = get_script_logger(os.path.basename(__file__))
 
-    import argparse
+    # Run optical flow for each run-id
+    for rid in run_id:
+        datapath = config["PATHS"]["tracing_data_path"].format(tag, rid)
+        with TrackingData.load(path=datapath) as dataset:
+            for cid in dataset.iter_cameras():
+                queues: List[FlowQueue] = dataset.get_flow_queues(
+                    camera=cid, force_run_all=force_run_all
+                )
 
-    # Argument Parsing
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--runid", type=int, default=1)
-    parser.add_argument("--camid", type=int, default=1)
-    args = parser.parse_args()
+                video_path = config["PATHS"]["footage_video_path"].format(tag, cid, rid)
 
-    # Configuration: experiment setup
-    RUNID = args.runid
-    CAMID = args.camid
+                optical_flow = CameraOpticalFlow(
+                    video_path=video_path,
+                    flow_queues=queues,
+                    dataset=dataset,
+                )
+                optical_flow.run(debug=dry)
 
+                if verbose:
+                    all_queues = dataset.get_flow_queues(camera=cid, force_run_all=True)
+                    tracking_overlay_video_path = config["PATHS"][
+                        "footage_video_path_with_trace"
+                    ].format(tag, cid, rid)
+                    optical_flow.render_tracking_video(
+                        tracking_overlay_video_path, all_queues
+                    )
 
+            cv2.destroyAllWindows()
 
-    # Initialization
-    optical_flow = CameraOpticalFlow(
-        camera_id=CAMID,
-        data_path=TRACKING_FILE.format(CAMID, RUNID),
-        video_path=PREPROCESSED_FOOTAGE_VIDEO_PATH.format(CAMID, RUNID),
-        debug=True,
-    )
-    while not optical_flow.inquiry_empty():
-        optical_flow.next_inquiry()
-    optical_flow.save_data()
-    optical_flow.save_tracking_video(
-        PREPROCESSED_TRACKING_VIDEO_PATH.format(CAMID, RUNID), draw_label=None
-    )
-
-    cv2.destroyAllWindows()
 
 if __name__ == "__main__":
     main()

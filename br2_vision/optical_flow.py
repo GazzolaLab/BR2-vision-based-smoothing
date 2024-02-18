@@ -1,16 +1,19 @@
+from typing import List, Tuple, Dict
 import os, sys
 
 import numpy as np
 import matplotlib.pyplot as plt
-#from collections import defaultdict
+
+# from collections import defaultdict
 
 from tqdm import tqdm
 from itertools import combinations
 
 import cv2
-#from dlt import DLT
-#from cv2_custom.transformation import scale_image
-#from cv2_custom.marking import cv2_draw_label
+
+# from dlt import DLT
+# from cv2_custom.transformation import scale_image
+# from cv2_custom.marking import cv2_draw_label
 
 import br2_vision
 from br2_vision.utility.logging import config_logging, get_script_logger
@@ -18,15 +21,16 @@ from br2_vision.data import MarkerPositions, TrackingData, FlowQueue
 from br2_vision.cv2_custom.extract_info import get_video_frame_count
 from br2_vision.cv2_custom.transformation import flat_color
 
-#from sklearn.linear_model import LinearRegression
-#from scipy.spatial.distance import directed_hausdorff
-#from scipy.signal import savgol_filter as sgfilter
+# from sklearn.linear_model import LinearRegression
+# from scipy.spatial.distance import directed_hausdorff
+# from scipy.signal import savgol_filter as sgfilter
 
 # Optical Flow and Point Detection Module
 class CameraOpticalFlow:
     """
     Optical Flow and Point Detection Module
     """
+
     # Configuration: Corner detection
     # parameters for ShiTomasi corner detection
     _feature_params = dict(maxCorners=100, qualityLevel=0.3, minDistance=7, blockSize=7)
@@ -47,7 +51,7 @@ class CameraOpticalFlow:
     # Configuration: Color scheme
     _color = np.random.randint(0, 235, (100, 3)).astype(int)  # 100 points for now
 
-    def __init__(self, video_path, flow_queues:FlowQueue, dataset: TrackingData, debug=False):
+    def __init__(self, video_path, flow_queues: List[FlowQueue], dataset: TrackingData):
         self.video_path = video_path
 
         self.flow_queues = flow_queues
@@ -58,14 +62,45 @@ class CameraOpticalFlow:
         """
         Get the number of frames in the video
         """
-        if self._num_frames is None:
+        if not hasattr(self, "_num_frames"):
             self._num_frames = get_video_frame_count(self.video_path)
         return self._num_frames
 
-    def run(self):
-        for queue in self.flow_queues:
-            data_collection = self.next_inquiry(queue)
-            self.dataset.save_flow_trajectory(data_collection, queue, self.num_frames)
+    def run(self, debug=False):
+        """
+        Group queues to inquiry
+        Inquiry: collection of queues with same start_frame
+        """
+
+        # Group queues
+        indices = list(range(len(self.flow_queues)))
+        while indices:
+            inquiry = [indices[0]]
+            start_frame = self.flow_queues[inquiry[0]].start_frame
+            end_frame = self.flow_queues[inquiry[0]].end_frame
+            for i in indices:
+                q = self.flow_queues[i]
+                if q.start_frame == start_frame and q.end_frame == end_frame:
+                    inquiry.append(i)
+            indices = [i for i in indices if i not in inquiry]
+            if debug:
+                print(f"Start: {start_frame}, End: {end_frame}, Inquiry: {inquiry}")
+                for i in inquiry:
+                    print("  ", self.flow_queues[i])
+                continue
+
+            # Run inquiry
+            data_collection, _ = self.next_inquiry(inquiry, start_frame, end_frame)
+
+            # Save
+            for i in inquiry:
+                q = self.flow_queues[i]
+                data = data_collection[i]
+                self.dataset.save_pixel_flow_trajectory(data, q, self.num_frames)
+
+        # DEBUG
+        # check if all queue.done
+        assert all([q.done for q in self.flow_queues])
 
     def get_points_in_order(self, keys):
         points = []
@@ -151,7 +186,7 @@ class CameraOpticalFlow:
         cv2.waitKey(0)
         # cv2.destroyAllWindows()
 
-    def render_tracking_video(self, save_path):
+    def render_tracking_video(self, save_path, queues=None):
         """save_tracking_video
 
         Parameters
@@ -161,18 +196,26 @@ class CameraOpticalFlow:
         """
         print("Saving tracing video ...")
 
+        if queues is None:
+            queues = self.flow_queues
+
         cap = cv2.VideoCapture(self.video_path)
         frame_width = int(cap.get(4))
         frame_height = int(cap.get(3))
         writer = cv2.VideoWriter(
             save_path, cv2.VideoWriter_fourcc(*"mp4v"), 60, (frame_height, frame_width)
         )
+        video_length = self.num_frames
 
         # Create a mask image for drawing purposes
         ret, old_frame = cap.read()
         mask = np.zeros_like(old_frame)
 
-        video_length = self.num_frames
+        data_collection = np.zeros((len(queues), video_length, 2), dtype=np.int_) - 1
+        for qid, q in enumerate(queues):
+            _data = self.dataset.load_pixel_flow_trajectory(q, full_trajectory=True)
+            data_collection[qid, :, :] = _data
+
         for num_frame in tqdm(range(video_length), miniters=10):
             # while cap.isOpened():
             ret, frame = cap.read()
@@ -180,10 +223,10 @@ class CameraOpticalFlow:
                 break
 
             # draw the tracks
-            good_new = self.points[num_frame + 1, :, :]
-            good_old = self.points[num_frame, :, :]
-            for i, (new, old) in enumerate(zip(good_new, good_old)):
-                tag = self.tags[i]
+            good_new = data_collection[:, num_frame + 1, :]
+            good_old = data_collection[:, num_frame, :]
+            for qid, (new, old) in enumerate(zip(good_new, good_old)):
+                tag = queues[qid].get_tag()
                 a, b = new.ravel()
                 a = int(a)
                 b = int(b)
@@ -193,10 +236,10 @@ class CameraOpticalFlow:
                 if (a <= 5 and b <= 5) or (c <= 5 and d <= 5):
                     continue
                 mask = cv2.line(
-                    mask, (a, b), (c, d), CameraOpticalFlow._color[i].tolist(), 2
+                    mask, (a, b), (c, d), CameraOpticalFlow._color[qid].tolist(), 2
                 )
                 frame = cv2.circle(
-                    frame, (a, b), 11, CameraOpticalFlow._color[i].tolist(), -1
+                    frame, (a, b), 11, CameraOpticalFlow._color[qid].tolist(), -1
                 )
                 cv2.putText(
                     frame,
@@ -211,37 +254,14 @@ class CameraOpticalFlow:
             img = cv2.add(frame, mask)
             writer.write(img)
         cap.release()
-        cv2.destroyAllWindows()
+        # cv2.destroyAllWindows()
         writer.release()
 
-    def crop_roi(self, image, uv, scale=1.0, disp_h=80, disp_w=80):
-        x, y = uv.ravel()
-        x = int(x)
-        y = int(y)
-
-        # Region of interest display
-        padded_img = cv2.copyMakeBorder(
-            image,
-            disp_h // 2,
-            disp_h // 2,
-            disp_w // 2,
-            disp_w // 2,
-            cv2.BORDER_CONSTANT,
-            value=[0, 0, 0],
-        )
-        cropped_img = padded_img[y : y + disp_h, x : x + disp_w]
-        return cropped_img
-
-    def next_inquiry(self, debug=False):
-        if len(self.inquiries) == 0:  # Check if any inquiries left
-            print("No inquiry left")
-            return
-
-        tags, stime, etime = self.inquiries.pop(0)
-        self.history.append((tags, stime, etime))
-        if stime >= self.num_frames
-            print("start frame greater than total video frame")
-            return
+    def next_inquiry(self, inquiry, stime, etime, debug=False):
+        num_queue = len(inquiry)
+        # initialize data_collection: -1
+        data_length = etime - stime
+        data_collection = np.zeros((num_queue, data_length, 2), dtype=np.int_) - 1
 
         # Forward Flow
         # Load video
@@ -249,23 +269,21 @@ class CameraOpticalFlow:
         assert cap.isOpened(), "Video is not properly opened: {}".format(
             self.video_path
         )
+        cap.set(cv2.CAP_PROP_POS_FRAMES, stime)  # Jump frame
 
-        # Read frames
-        cap.set(cv2.CAP_PROP_POS_FRAMES, stime)
+        # Read first frames
         ret, frame = cap.read()
         old_gray = flat_color(frame)
 
-        # Tag
-        tag_order = []
-        for tag in tags:
-            tag_order.append(self.tags.index(tag))
-        tag_order = np.array(tag_order, dtype=int)
-        self.points[stime + 1 : etime, tag_order, :] = 0.0
-        p0 = self.points[stime, tag_order, :].reshape([-1, 1, 2])
+        # Set initial points
+        for idx, qi in enumerate(inquiry):
+            point = self.flow_queues[qi].point  # (x, y)
+            data_collection[idx, 0, :] = point
+        p0 = data_collection[:, 0, :].reshape(-1, 1, 2).astype(np.float32)
 
         errors = []
-        status = np.ones(p0.shape[:2], dtype=bool)
-        for num_frame in tqdm(range(etime - stime)):
+        status = None
+        for num_frame in tqdm(range(data_length - 1)):
             ret, frame = cap.read()
             if not ret:
                 break
@@ -274,25 +292,27 @@ class CameraOpticalFlow:
             # sharpen_kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
             # frame_gray = cv2.filter2D(frame_gray, -1, sharpen_kernel)
 
-            # calculate optical flow
+            # Calculate optical flow
             p1, new_status, err = cv2.calcOpticalFlowPyrLK(
                 old_gray, frame_gray, p0, None, **CameraOpticalFlow._lk_params
-            )
-            status = np.logical_and(status, new_status)
+            )  # p1: (n, 1, 2), new_status: (n, 1), err: (n, 1)
+            if status is None:
+                status = new_status[:, 0].astype(np.bool_)
+            else:
+                status = np.logical_and(status, new_status[:, 0])
             if np.all(~status):
                 # If all points are lost, stop the flow
                 break
-            err[~status[:, 0]] = np.nan
+
+            # Record
+            err[~status] = np.nan
             errors.append(err)
+            data_collection[status, num_frame + 1, :] = p1[status, 0, :].astype(np.int_)
 
-            tracking_tag_order = tag_order[status[:, 0]]
-            self.points[stime + num_frame + 1, tracking_tag_order, :] = p1[
-                status[:, 0], 0, :
-            ]
-
-            # Now update the previous frame and previous points
+            # Update the previous frame and previous points
             old_gray = frame_gray.copy()
             p0 = p1.reshape(-1, 1, 2)
 
         cap.release()
-        cv2.destroyAllWindows()
+        # cv2.destroyAllWindows()
+        return data_collection, errors

@@ -42,6 +42,14 @@ class FlowQueue:
         val.done = self.done
         return val
 
+    def h5_directory(self):
+        return f"/trajectory/camera_{self.camera}/z_{self.z_index}/label_{self.label}"
+
+    def get_tag(self):
+        z_index = self.z_index.decode("utf-8")
+        label = self.label.decode("utf-8")
+        return f"z{z_index}-{label}"
+
 
 class TrackingData:
     def __init__(self, path, marker_positions: MarkerPositions):
@@ -50,6 +58,62 @@ class TrackingData:
         self.marker_positions = marker_positions
 
         self.logger = get_script_logger(os.path.basename(__file__))
+
+    @property
+    def all_done(self):
+        return all([q.done for q in self.queues])
+
+    def iter_cameras(self):
+        # Get unique camera id
+        cameras = set([q.camera for q in self.queues])
+        # return sorted list
+        return sorted(cameras)
+
+    def save_pixel_flow_trajectory(
+        self, data: np.ndarray, flow_queue: FlowQueue, size: int, prefix="xy"
+    ):
+        """
+        Save trajectory in h5 file
+        - Create (if doesn't exist) directory: /trajectory/camera_{cid}/z_{z_index}/label_{label}
+        - Save data in the directory
+        """
+        # Create directory
+        with h5py.File(self.path, "a") as h5f:
+            # Check if directory exists
+            directory = flow_queue.h5_directory()
+            grp = h5f.require_group(directory)
+            if prefix in grp:
+                dset = grp[prefix]
+                assert (
+                    dset.shape[0] == size
+                ), f"Data shape mismatch: {dset.shape[0]} != {size}"
+            else:
+                # initialize dataset with nan
+                shape = (size, 2)
+                dset = grp.create_dataset(
+                    prefix,
+                    shape,
+                    dtype=np.int_,
+                    data=np.full(shape, -1, dtype=np.int_),
+                )
+                dset.attrs["unit"] = "pixel"
+            dset[flow_queue.start_frame : flow_queue.end_frame] = data
+        flow_queue.done = True
+
+    def load_pixel_flow_trajectory(
+        self, flow_queue: FlowQueue, prefix="xy", full_trajectory=False
+    ):
+        """
+        Load trajectory from h5 file
+        """
+        with h5py.File(self.path, "r") as h5f:
+            directory = flow_queue.h5_directory()
+            grp = h5f[directory]
+            dset = grp[prefix]
+            if full_trajectory:
+                return np.array(dset)
+            else:
+                return dset[flow_queue.start_frame : flow_queue.end_frame]
 
     @classmethod
     def initialize(cls, path, marker_positions):
