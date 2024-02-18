@@ -50,12 +50,6 @@ def process_frame(frame, calibration_file, rotate):
     default=60,
     help="Output video FPS. Try to match the original video settings.",
 )
-@click.option(
-    "-c",
-    "--calibration-file",
-    type=click.Path(exists=True),
-    help="Path to the calibration file",
-)
 @click.option("-v", "--verbose", is_flag=True, default=False, help="Verbose")
 @click.option("-d", "--dry", is_flag=True, default=False, help="Dry run")
 @click.option(
@@ -83,7 +77,6 @@ def undistort_and_rotate(
     cam_id,
     rotate,
     output_fps,
-    calibration_file,
     verbose,
     dry,
     processes,
@@ -99,6 +92,9 @@ def undistort_and_rotate(
     logger = get_script_logger(os.path.basename(__file__))
 
     logger.info(f"using {processes=} processes")
+
+    calibration_file = config["PATHS"]["fisheye_configuration"]
+    os.path.exists(calibration_file), f"calibration file not found: {calibration_file}"
 
     if rotate is not None:
         cv2_rotation = getattr(cv2, rotate, None)
