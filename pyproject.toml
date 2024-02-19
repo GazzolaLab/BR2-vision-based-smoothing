@@ -26,6 +26,8 @@ run_optical_flow = 'script.run_optical_flow:main'
 sync_video = 'script.sync_video:process'
 crop_video = 'script.crop_video:process'
 
+edit_optical_flow = 'script.interactive_cutout_trajectory:launch'
+
 [tool.poetry.dependencies]
 python = "^3.9,<3.11"
 pytest = "^7.4.0"
@@ -40,7 +42,10 @@ click = "^8.1.7"
 psutil = "^5.9.6"
 pyyaml = "^6.0.1"
 pyqt6 = "^6.6.1"
-dash = "^2.15.0"
+dash = {extras = ["diskcache"], version = "^2.15.0"}
+diskcache = "^5.6.3"
+dash-bootstrap-components = "^1.5.0"
+pandas = "^2.2.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"

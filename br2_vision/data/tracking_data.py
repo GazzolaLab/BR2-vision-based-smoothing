@@ -70,7 +70,7 @@ class TrackingData:
         return sorted(cameras)
 
     def save_pixel_flow_trajectory(
-        self, data: np.ndarray, flow_queue: FlowQueue, size: int, prefix="xy"
+        self, data: np.ndarray, flow_queue: FlowQueue, size: int, prefix="xy", full_trajectory=False
     ):
         """
         Save trajectory in h5 file
@@ -97,7 +97,11 @@ class TrackingData:
                     data=np.full(shape, -1, dtype=np.int_),
                 )
                 dset.attrs["unit"] = "pixel"
-            dset[flow_queue.start_frame : flow_queue.end_frame] = data
+
+            if full_trajectory:
+                dset[...] = data
+            else:
+                dset[flow_queue.start_frame : flow_queue.end_frame] = data
         flow_queue.done = True
 
     def load_pixel_flow_trajectory(
@@ -111,9 +115,28 @@ class TrackingData:
             grp = h5f[directory]
             dset = grp[prefix]
             if full_trajectory:
-                return np.array(dset)
+                return np.array(dset, dtype=np.int_)
             else:
                 return dset[flow_queue.start_frame : flow_queue.end_frame]
+
+    def trim_trajectory(
+            self, tag: str, frame:int, prefix="xy", reverse=False,
+    ):
+        # find queue with matching tag
+        for q in self.queues:
+            if q.get_tag() == tag:
+                break
+        
+        # set end-frame to be the frame
+        q.end_frame = frame
+
+        # load trajectory
+        trajectory = self.load_pixel_flow_trajectory(q, prefix=prefix, full_trajectory=True)
+        if reverse:
+            trajectory[:frame] = -1
+        else:
+            trajectory[frame:] = -1
+        self.save_pixel_flow_trajectory(trajectory, q, len(trajectory), prefix=prefix, full_trajectory=True)
 
     @classmethod
     def initialize(cls, path, marker_positions):
