@@ -262,7 +262,6 @@ def launch(tag, run_id, verbose, dry):
     datapath = config["PATHS"]["tracing_data_path"].format(tag, run_id)
     with TrackingData.load(path=datapath) as dataset:
         num_cameras = len(dataset.iter_cameras())
-        num_cameras = 3
         set_tabs(num_cameras)
 
     if not dry:
