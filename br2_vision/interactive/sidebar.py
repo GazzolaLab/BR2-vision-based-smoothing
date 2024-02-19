@@ -5,7 +5,17 @@ import numpy as np
 from datetime import datetime, timedelta
 
 import dash_bootstrap_components as dbc
-from dash import Dash, dcc, html, Input, Output, State, callback, callback_context, dash_table
+from dash import (
+    Dash,
+    dcc,
+    html,
+    Input,
+    Output,
+    State,
+    callback,
+    callback_context,
+    dash_table,
+)
 
 BANNER_STYLE = {
     "height": "3rem",
@@ -34,14 +44,13 @@ CONTENT_STYLE = {
     "padding": "1rem 1rem",
 }
 
+
 def get_sidebar():
     sidebar = html.Div(
         [
-            html.H5("Filter", style={"text-align":"center"}),
+            html.H5("Filter", style={"text-align": "center"}),
             html.Hr(),
-            html.P(
-                "(TODO): Filter by:", className="lead"
-            ),
+            html.P("(TODO): Filter by:", className="lead"),
             html.P("label"),
             html.P("zid"),
         ],
