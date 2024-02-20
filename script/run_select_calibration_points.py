@@ -366,14 +366,14 @@ def select_calibration_points(scale, verbose, dry, show):
     app = QApplication([])
 
     raw_videos = []  # [(cam_id, video_path)]
-    p = config["PATHS"]["calibration_video"].format("*")
-    collections = glob.glob(p, recursive=True)
-    for p in collections:
-        s = re.findall(r"cam\d+", p)[0][3:]
+    calibration_video_wild = config["PATHS"]["calibration_video"].format("*")
+    collections = glob.glob(calibration_video_wild, recursive=True)
+    for path in collections:
+        s = re.findall(r"cam\d+", path)[0][3:]
         assert (
             s.isdigit()
         ), f"Camera id must be a number, and filepath name must be cam{{id}}.MOV"
-        raw_videos.append((int(s), p))
+        raw_videos.append((int(s), path))
 
     reference_image_paths = {}  # key: (Camera ID, x-location ID)
     for cam_id, video_path in raw_videos:
