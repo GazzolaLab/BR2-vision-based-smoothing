@@ -12,21 +12,22 @@ packages = [
 
 [tool.poetry.scripts]
 undistort_rotate_video = 'script.undistort_rotate_video:undistort_and_rotate'
-extract_frames_from_video = 'script.extract_frames_from_video:extract_frames'
+sync_video = 'script.sync_video:process'
+crop_video = 'script.crop_video:process'
 trim_video_intervals_by_led = 'script.trim_video_intervals_by_led:process'
 trim_video_intervals_manual = 'script.trim_video_intervals_manual:process'
+
 select_calibration_points = 'script.run_select_calibration_points:select_calibration_points'
+extract_frames_from_video = 'script.extract_frames_from_video:extract_frames'
 dlt_calibration = 'script.dlt_calibration:calibrate'
 
 distortion_calibration = 'script.distortion_calibration:calibrate'
 
 set_optical_flow_inquiry = 'script.add_initial_flow_point:main'
 run_optical_flow = 'script.run_optical_flow:main'
-
-sync_video = 'script.sync_video:process'
-crop_video = 'script.crop_video:process'
-
 edit_optical_flow = 'script.interactive_cutout_trajectory:launch'
+
+interpolate_poses = 'script.process_dlt:main'
 
 [tool.poetry.dependencies]
 python = "^3.9,<3.11"
@@ -46,6 +47,7 @@ dash = {extras = ["diskcache"], version = "^2.15.0"}
 diskcache = "^5.6.3"
 dash-bootstrap-components = "^1.5.0"
 pandas = "^2.2.0"
+h5py = "^3.10.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"
