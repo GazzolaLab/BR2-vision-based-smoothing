@@ -22,7 +22,6 @@ from br2_vision.utility.logging import config_logging, get_script_logger
     help="Skip every n frames. (default: 30)",
 )
 @click.option(
-    "-c",
     "--compression",
     type=int,
     default=6,
