@@ -48,9 +48,9 @@ def prompt_dialog_integer(title: str, prompt: str):
 
 
 # CV2 Script
-def scale_image(filepath, scale=1.0):
+def scale_image(image_path, scale=1.0):
     # Extract Control Frame
-    frame = cv2.imread(filepath)
+    frame = cv2.imread(image_path)
     width = int(frame.shape[1] * scale)
     height = int(frame.shape[0] * scale)
     frame = cv2.resize(frame, (width, height), interpolation=cv2.INTER_AREA)

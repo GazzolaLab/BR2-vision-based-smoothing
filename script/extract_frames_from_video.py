@@ -15,14 +15,6 @@ from br2_vision.utility.logging import config_logging, get_script_logger
 
 @click.command()
 @click.option(
-    "-f",
-    "--file",
-    type=click.Path(exists=True),
-    default=None,
-    help="Calibration video path (or file).",
-    multiple=True,
-)
-@click.option(
     "-s",
     "--skip-frame",
     type=int,
@@ -41,7 +33,7 @@ from br2_vision.utility.logging import config_logging, get_script_logger
 @click.option("-d", "--dry", is_flag=True, default=False, help="Dry run")
 @click.option("-S", "--show", is_flag=True, default=False, help="Show frames")
 def extract_frames(
-    file, skip_frame, compression, use_roi: bool, verbose: bool, dry: bool, show: bool
+    skip_frame, compression, use_roi: bool, verbose: bool, dry: bool, show: bool
 ):
     """
     Perform:
@@ -52,19 +44,17 @@ def extract_frames(
     config_logging(verbose)
     logger = get_script_logger(os.path.basename(__file__))
 
-    #
-    raw_videos = []
-    for f in file:
-        if os.path.isdir(f):
-            collections = glob.glob(
-                f"{f}/*.{config['DEFAULT']['processing_video_extension']}",
-                recursive=True,
-            )
-            raw_videos.extend(collections)
-        else:
-            raw_videos.append(f)
+    raw_videos = []  # [(cam_id, video_path)]
+    p = config["PATHS"]["calibration_video"].format("*")
+    collections = glob.glob(p, recursive=True)
+    for p in collections:
+        s = re.findall(r"cam\d+", p)[0][3:]
+        assert (
+            s.isdigit()
+        ), f"Camera id must be a number, and filepath name must be cam{{id}}.MOV"
+        raw_videos.append((int(s), p))
 
-    for video_path in raw_videos:
+    for cid, video_path in raw_videos:
         logger.info("Extracting frames from video file: {}".format(video_path))
         stime = time.time()
         if dry:
