@@ -5,10 +5,27 @@ from utility.convert_coordinate import get_center_and_normal
 
 from config import *
 
+import br2_vision
+from br2_vision.dlt import DLT
+from br2_vision.utility.logging import config_logging, get_script_logger
 
-def main(runid, n_ring):
+import click
+
+@click.command()
+@click.option(
+    "-t",
+    "--tag",
+    type=str,
+    help="Experiment tag. Path ./tag should exist.",
+)
+@click.option("-r", "--run_id", required=True, type=int, help="Run ID")
+def main(tag, runid, n_ring):
+    config = br2_vision.load_config()
+    config_logging(verbose)
+    logger = get_script_logger(os.path.basename(__file__))
     # Read DLT Point Data
-    output_file_path = PREPROCESSED_POSITION_PATH.format(runid)
+
+    file_path = config["PATHS"]["position_data_path"].format(tag, run_id)
     data = np.load(file_path)
 
     position_collection = data["position"]
@@ -40,7 +57,7 @@ def main(runid, n_ring):
     data["cross_section_center_position"] = cross_section_center_position
     data["cross_section_director"] = cross_section_director
     np.savez(
-        output_file_path,
+        file_path,
         **data,
     )
 

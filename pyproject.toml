@@ -27,7 +27,7 @@ set_optical_flow_inquiry = 'script.add_initial_flow_point:main'
 run_optical_flow = 'script.run_optical_flow:main'
 edit_optical_flow = 'script.interactive_cutout_trajectory:launch'
 
-interpolate_poses = 'script.process_dlt:main'
+interpolate_poses = 'script.process_dlt:process_dlt'
 
 [tool.poetry.dependencies]
 python = "^3.9,<3.11"

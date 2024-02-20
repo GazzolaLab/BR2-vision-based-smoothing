@@ -6,8 +6,6 @@ from itertools import product, combinations
 
 from collections import defaultdict
 
-from dlt import DLT
-
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d.axes3d as p3
@@ -16,28 +14,56 @@ import matplotlib.cm as cm
 
 from utility.convert_coordinate import three_ring_xyz_converter
 
-from config import *
+import br2_vision
+from br2_vision.dlt import DLT
+from br2_vision.utility.logging import config_logging, get_script_logger
+
+import click
 
 # CONFIGURATION
 EXCLUDE_TAGS = []
 color_scheme = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
 
-def process_dlt(runid, num_camera, fps=60, **kwargs):
+@click.command()
+@click.option(
+    "-t",
+    "--tag",
+    type=str,
+    help="Experiment tag. Path ./tag should exist.",
+)
+@click.option("-r", "--run_id", required=True, type=int, help="Run ID")
+@click.option("-f", "--fps", default=60, type=int, help="FPS of the video")
+def process_dlt(tag, run_id, fps):
+    config = br2_vision.load_config()
+    config_logging(verbose)
+    logger = get_script_logger(os.path.basename(__file__))
+
     # Output Path - Default path is the data directory
-    output_points_path = PREPROCESSED_POSITION_PATH.format(runid)
+    # TODO: move data into tracing_data_path
+    output_points_path = config["PATHS"]["position_data_path"].format(tag, run_id)
 
     # Read Calibration Parameters
-    dlt = DLT(calibration_path=CALIBRATION_PATH)
+    dlt = DLT(calibration_path=config["PATHS"]["calibration_path"])
     dlt.load()
+
+    tracing_data_path = config["PATHS"]["tracing_data_path"].format(tag, run_id)
+    assert os.path.exists(tracing_data_path), "Tracing data does not exist."
+    dataset = TrackingData.load(path=tracing_data_path)
+    marker_positions = dataset.marker_positions
+
+    n_ring = len(marker_positions)
+    ring_space = marker_positions.marker_center_offset
 
     # Read Data Points
     timelength = None
     txyz = []
     points, tags = [], []
     tags_count = defaultdict(int)
-    for camid in range(1, num_camera + 1):
-        points_path = TRACKING_FILE.format(camid, runid)
+    for cam_id in dataset.iter_cameras():
+        #calibration_ref_point_save = config["PATHS"]["calibration_ref_point_save"].format(cam_id, run_id)
+        #save_path_points=calibration_ref_point_save.format(camera_id, x_id),
+        points_path = TRACKING_FILE.format(cam_id, run_id) # tracing_data_path
         points_data = np.load(points_path, allow_pickle=True)
         points.append(points_data["points"])
         tags.append(points_data["tags"])
@@ -64,18 +90,18 @@ def process_dlt(runid, num_camera, fps=60, **kwargs):
             observing_camera_count.append(count)
         result_tags.append(tag)
         point_collections_for_tag = {}
-        for camid, (camera_tag, camera_points) in enumerate(zip(tags, points)):
-            camid += 1
+        for cam_id, (camera_tag, camera_points) in enumerate(zip(tags, points)):
+            cam_id += 1
             if tag not in camera_tag:
                 continue
             point_index = camera_tag.tolist().index(tag)
-            point_collections_for_tag[camid] = camera_points[:timelength, point_index]
+            point_collections_for_tag[cam_id] = camera_points[:timelength, point_index]
         txyz = []
         conds = []
         for time in range(timelength):
             uvs = {}
-            for camid, p in point_collections_for_tag.items():
-                uvs[camid] = p[time]
+            for cam_id, p in point_collections_for_tag.items():
+                uvs[cam_id] = p[time]
             _xyz, cond = dlt.map(uvs)
             txyz.append(_xyz)
             conds.append(cond)
@@ -96,7 +122,7 @@ def process_dlt(runid, num_camera, fps=60, **kwargs):
     initial_sim_space = np.empty_like(initial_dlt_space)
     for idx, tag in enumerate(result_tags):
         initial_sim_space[idx, :] = three_ring_xyz_converter(
-            tag, kwargs.get("n_ring"), kwargs.get("ring_space")
+            tag, n_ring, kwargs.get("ring_space")
         )
     reg = LinearRegression(fit_intercept=True, normalize=False).fit(
         initial_dlt_space, initial_sim_space
@@ -126,6 +152,7 @@ def process_dlt(runid, num_camera, fps=60, **kwargs):
     print("Points saved at - {}".format(output_points_path))
     print("")
 
+    plot path_activity = config["PATHS"]["plot_working_box"].format(tag, run_id)
     fig = plt.figure(1, figsize=(10, 8))
     ax = plt.axes(projection="3d")
     ax.set_xlabel("x")
@@ -146,28 +173,11 @@ def process_dlt(runid, num_camera, fps=60, **kwargs):
         if np.sum(np.abs(s - e)) >= 0.2:
             ax.plot3D(*zip(s, e), color="b")
     ax.view_init(elev=-90, azim=-70)
-
+    fig.savefig(plot_path_activity)
     # plt.show()
 
     return
 
 
 if __name__ == "__main__":
-    for runid in range(1, 2):
-        process_dlt(
-            runid=runid,
-            num_camera=5,
-            fps=60,
-            n_ring=9,
-            ring_space=[
-                0.0465,
-                0.04125,
-                0.038,
-                0.0355,
-                0.0350,
-                0.0485,
-                0.030,
-                0.0320,
-                0.0345,
-            ],
-        )
+    process_dlt()
