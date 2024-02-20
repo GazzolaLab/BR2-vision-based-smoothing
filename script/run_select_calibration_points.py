@@ -380,7 +380,7 @@ def select_calibration_points(filepath, scale, verbose, dry, show):
     # for f in filepath:
     if os.path.isdir(filepath):
         tag = config["PATHS"]["tag_dlt"]
-        p = config["PATHS"]["undistorted_video_path"].format(filepath, tag, "*")
+        p = config["PATHS"]["rename_undistorted_video_path"].format("*")
         collections = glob.glob(p, recursive=True)
         for p in collections:
             s = re.findall(r"cam\d+", p)[0][3:]
