@@ -16,32 +16,56 @@ optional:
 
 import sys
 import os, sys
+import re
+import glob
 import numpy as np
+from collections import defaultdict
 
 import br2_vision
-from br2_vision.dlt import DLT
+from br2_vision.dlt import DLT, label_to_3Dcoord
 from br2_vision.utility.logging import config_logging, get_script_logger
 
+import click
 
+
+@click.command()
 @click.option("-v", "--verbose", is_flag=True, default=False, help="Verbose")
 def calibrate(verbose):
     config = br2_vision.load_config()
     config_logging(verbose)
     logger = get_script_logger(os.path.basename(__file__))
 
-    # Configuration
+    # Collect reference points
+    calibration_ref_point_save = config["PATHS"][
+        "calibration_ref_point_save"
+    ]  # (camera-id, x-id)
 
-    reference_point_filenames = config["PATHS"]["calibration_ref_points_path"]
-    logger.debug(reference_point_filenames)
+    # extract camera-id and x-id
+    data = defaultdict(list)
+    all_saves = glob.glob(calibration_ref_point_save.format("*", "*"))
+    logger.debug(all_saves)
+    for save in all_saves:
+        expression = calibration_ref_point_save.format(r"(\d+)", r"(\d+)")
+        camera_id, x_id = re.findall(expression, save)[0]
+        camera_id = int(camera_id)
+        x_id = int(x_id)
 
-    # Read Configuration Points
-    data = np.load(reference_point_filenames, allow_pickle=True)
+        save_path_points = calibration_ref_point_save.format(camera_id, x_id)
+        points = np.load(save_path_points)["coords"]
+
+        for u, v, y_id, z_id, _ in points:
+            x, y, z = label_to_3Dcoord(x_id, y_id, z_id, config)
+            u = int(u)
+            v = int(v)
+            data[str(camera_id)].append((u, v, x, y, z))
+
+    output_name = config["PATHS"]["calibration_ref_points_path"]
+    np.savez(output_name, **data)  # For debugging purpose.
 
     # Print datapoints
     for k, v in data.items():
         logger.debug(f"{k=}")
-        logger.debug(f"{v.shape=}")
-        logger.debug(f"{v=}")
+        logger.debug(f"{np.array(v).shape=}")
 
     # DLT calibration
     dlt = DLT(calibration_path=config["PATHS"]["calibration_path"])

@@ -15,6 +15,19 @@ import scipy.linalg as spl
 DLT module
 """
 
+# Label to 3d coordinate
+def label_to_3Dcoord(x_label: int, y_label: int, z_label: int, config):
+    dx = float(config["DIMENSION"]["delta_x"])
+    dy = float(config["DIMENSION"]["delta_y"])
+    dz = float(config["DIMENSION"]["delta_z"])
+
+    x_label = int(x_label)
+    y_label = int(y_label)
+    z_label = int(z_label)
+    delta = np.array([dx, dy, dz])  # Distance between interval in (xyz)
+    id_vec = np.array([x_label, y_label, z_label], dtype=float)
+    return id_vec * delta
+
 
 class DLT:
     """
@@ -42,8 +55,11 @@ class DLT:
         self.distortion_correction_threshold = 1e-4  # 0.1 mm distortion allowance
 
         self.calibration_path = calibration_path
-        if calibration_path is not None:
-            os.makedirs(self.calibration_path, exist_ok=True)
+        assert os.path.exists(
+            self.calibration_path
+        ), "Calibration path does not exist: {}".format(self.calibration_path)
+        # if calibration_path is not None:
+        #    os.makedirs(self.calibration_path, exist_ok=True)
 
     def map(self, uvs, distortion_correction=False, return_error=False):
         """
@@ -263,11 +279,12 @@ class DLT:
             json_dict[k] = camera.info
         with open(save_path_information, "w") as file:
             json.dump(json_dict, file)
+        print(f"Save camera information : {save_path_information}")
 
         # Save camera parameters in NPZ
         save_dictionary = {str(k): np.array(v) for k, v in self.camera_param.items()}
         np.savez(save_path_parameters, **save_dictionary)
-        print("Save completed")
+        print(f"Save camera parameters : {save_path_parameters}")
         return 1
 
     def load(self):

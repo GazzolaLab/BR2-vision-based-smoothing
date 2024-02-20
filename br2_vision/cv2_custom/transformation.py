@@ -10,6 +10,12 @@ def scale_image(frame, scale=1.0, interpolation=cv2.INTER_AREA):
     return frame
 
 
+def scale_image_from_path(image_path, scale=1.0):
+    # Extract Control Frame
+    frame = cv2.imread(image_path)
+    return scale_image(frame, scale)
+
+
 def flat_color(frame):
     """
     Convert color image to flat image (gray)

@@ -4,7 +4,6 @@ import glob
 import time
 import re
 import pathlib
-from collections import defaultdict
 from random import shuffle
 
 import numpy as np
@@ -13,8 +12,9 @@ import cv2
 from sklearn import linear_model as lm
 from sklearn.cluster import KMeans
 
-from br2_vision.dlt import DLT2D, DLT
+from br2_vision.dlt import DLT2D, DLT, label_to_3Dcoord
 from br2_vision.cv2_custom.marking import cv2_draw_label
+from br2_vision.cv2_custom.transformation import scale_image_from_path
 
 from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QInputDialog
 
@@ -24,20 +24,6 @@ import br2_vision
 from br2_vision.utility.logging import config_logging, get_script_logger
 
 
-# Label to 3d coordinate
-def label_to_3Dcoord(x_label: int, y_label: int, z_label: int, config):
-    dx = float(config["DIMENSION"]["delta_x"])
-    dy = float(config["DIMENSION"]["delta_y"])
-    dz = float(config["DIMENSION"]["delta_z"])
-
-    x_label = int(x_label)
-    y_label = int(y_label)
-    z_label = int(z_label)
-    delta = np.array([dx, dy, dz])  # Distance between interval in (xyz)
-    id_vec = np.array([x_label, y_label, z_label], dtype=float)
-    return id_vec * delta
-
-
 # PyQt5 Script
 def prompt_dialog_integer(title: str, prompt: str):
     num, ok = QInputDialog.getInt(QWidget(), title, prompt)
@@ -45,16 +31,6 @@ def prompt_dialog_integer(title: str, prompt: str):
         return num
     else:
         return None
-
-
-# CV2 Script
-def scale_image(image_path, scale=1.0):
-    # Extract Control Frame
-    frame = cv2.imread(image_path)
-    width = int(frame.shape[1] * scale)
-    height = int(frame.shape[0] * scale)
-    frame = cv2.resize(frame, (width, height), interpolation=cv2.INTER_AREA)
-    return frame
 
 
 def labeling(
@@ -292,7 +268,9 @@ def labeling(
             dlt2D.save()
             print("finished drawing")
         elif key == ord("o"):  # 3d:
-            calibration_ref_point_save_wild = config["PATHS"]["calibration_ref_point_save_wild"]
+            calibration_ref_point_save_wild = config["PATHS"][
+                "calibration_ref_point_save_wild"
+            ]
             reference_point_filenames = glob.glob(
                 calibration_ref_point_save_wild.format(cam_id)
             )
@@ -402,13 +380,12 @@ def select_calibration_points(scale, verbose, dry, show):
     os.makedirs(calibration_path, exist_ok=True)
 
     # Label Reference Point
-    results = defaultdict(list)
     calibration_ref_point_save = config["PATHS"]["calibration_ref_point_save"]
     calibration_dlt_path = config["PATHS"]["calibration_dlt_path"]
     calibration_view_path = config["PATHS"]["calibration_view_path"]
     for (camera_id, x_id), path in reference_image_paths.items():
         logger.debug(f"Processing camera {camera_id} at xid={x_id}")
-        frame = scale_image(path, scale=scale)
+        frame = scale_image_from_path(path, scale=scale)
         points = labeling(
             frame=frame,
             tag=path,
@@ -420,16 +397,7 @@ def select_calibration_points(scale, verbose, dry, show):
             config=config,
         )
         print("CAM {} Points:".format(camera_id))
-
-        # Save the points
-        for u, v, y_id, z_id, _ in points:
-            x, y, z = label_to_3Dcoord(x_id, y_id, z_id, config)
-            u = int(u)
-            v = int(v)
-            results[camera_id].append((u, v, x, y, z))
-
-    output_name = config["PATHS"]["calibration_ref_points_path"]
-    np.savez(output_name, **results)
+        print(points)
 
 
 if __name__ == "__main__":
