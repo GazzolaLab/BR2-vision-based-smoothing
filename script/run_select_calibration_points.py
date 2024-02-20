@@ -48,9 +48,9 @@ def prompt_dialog_integer(title: str, prompt: str):
 
 
 # CV2 Script
-def scale_image(filepath, scale=1.0):
+def scale_image(image_path, scale=1.0):
     # Extract Control Frame
-    frame = cv2.imread(filepath)
+    frame = cv2.imread(image_path)
     width = int(frame.shape[1] * scale)
     height = int(frame.shape[0] * scale)
     frame = cv2.resize(frame, (width, height), interpolation=cv2.INTER_AREA)
@@ -66,7 +66,6 @@ def labeling(
     cam_id,
     x_id,
     config,
-    filepath,
 ):
     """
 
@@ -293,9 +292,7 @@ def labeling(
             dlt2D.save()
             print("finished drawing")
         elif key == ord("o"):  # 3d:
-            calibration_ref_point_save_wild = os.path.join(
-                filepath, config["PATHS"]["calibration_ref_point_save_wild"]
-            )
+            calibration_ref_point_save_wild = config["PATHS"]["calibration_ref_point_save_wild"]
             reference_point_filenames = glob.glob(
                 calibration_ref_point_save_wild.format(cam_id)
             )
@@ -351,14 +348,6 @@ def labeling(
 
 
 @click.command()
-@click.option(
-    "-fp",
-    "--filepath",
-    type=click.Path(exists=True),
-    default=None,
-    help="Path with collection of calibration video.",
-    # multiple=True,
-)
 @click.option("-c", "--scale", default=1.0, type=float, help="Image scale factor")
 @click.option("-v", "--verbose", is_flag=True, default=False, help="Verbose")
 @click.option(
@@ -369,7 +358,7 @@ def labeling(
     help="Dry run: print table of processing frames.",
 )
 @click.option("-S", "--show", is_flag=True, default=False, help="Show frames")
-def select_calibration_points(filepath, scale, verbose, dry, show):
+def select_calibration_points(scale, verbose, dry, show):
     config = br2_vision.load_config()
     config_logging(verbose)
     logger = get_script_logger(os.path.basename(__file__))
@@ -377,19 +366,14 @@ def select_calibration_points(filepath, scale, verbose, dry, show):
     app = QApplication([])
 
     raw_videos = []  # [(cam_id, video_path)]
-    # for f in filepath:
-    if os.path.isdir(filepath):
-        tag = config["PATHS"]["tag_dlt"]
-        p = config["PATHS"]["rename_undistorted_video_path"].format("*")
-        collections = glob.glob(p, recursive=True)
-        for p in collections:
-            s = re.findall(r"cam\d+", p)[0][3:]
-            assert (
-                s.isdigit()
-            ), f"Camera id must be a number, and filepath name must be {tag}-cam{{id}}"
-            raw_videos.append((int(s), p))
-    else:
-        raise NotImplementedError("Only directory is supported")
+    p = config["PATHS"]["calibration_video"].format("*")
+    collections = glob.glob(p, recursive=True)
+    for p in collections:
+        s = re.findall(r"cam\d+", p)[0][3:]
+        assert (
+            s.isdigit()
+        ), f"Camera id must be a number, and filepath name must be cam{{id}}.MOV"
+        raw_videos.append((int(s), p))
 
     reference_image_paths = {}  # key: (Camera ID, x-location ID)
     for cam_id, video_path in raw_videos:
@@ -414,20 +398,14 @@ def select_calibration_points(filepath, scale, verbose, dry, show):
         return
 
     # Create directory
-    calibration_path = os.path.join(filepath, config["PATHS"]["calibration_path"])
+    calibration_path = config["PATHS"]["calibration_path"]
     os.makedirs(calibration_path, exist_ok=True)
 
     # Label Reference Point
     results = defaultdict(list)
-    calibration_ref_point_save = os.path.join(
-        filepath, config["PATHS"]["calibration_ref_point_save"]
-    )
-    calibration_dlt_path = os.path.join(
-        filepath, config["PATHS"]["calibration_dlt_path"]
-    )
-    calibration_view_path = os.path.join(
-        filepath, config["PATHS"]["calibration_view_path"]
-    )
+    calibration_ref_point_save = config["PATHS"]["calibration_ref_point_save"]
+    calibration_dlt_path = config["PATHS"]["calibration_dlt_path"]
+    calibration_view_path = config["PATHS"]["calibration_view_path"]
     for (camera_id, x_id), path in reference_image_paths.items():
         logger.debug(f"Processing camera {camera_id} at xid={x_id}")
         frame = scale_image(path, scale=scale)
@@ -440,7 +418,6 @@ def select_calibration_points(filepath, scale, verbose, dry, show):
             cam_id=camera_id,
             x_id=x_id,
             config=config,
-            filepath=filepath,
         )
         print("CAM {} Points:".format(camera_id))
 
@@ -451,7 +428,7 @@ def select_calibration_points(filepath, scale, verbose, dry, show):
             v = int(v)
             results[camera_id].append((u, v, x, y, z))
 
-    output_name = os.path.join(filepath, config["PATHS"]["calibration_ref_points_path"])
+    output_name = config["PATHS"]["calibration_ref_points_path"]
     np.savez(output_name, **results)
 
 
