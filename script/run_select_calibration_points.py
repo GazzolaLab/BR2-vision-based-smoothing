@@ -353,7 +353,7 @@ def select_calibration_points(scale, verbose, dry, show):
         ), f"Camera id must be a number, and filepath name must be cam{{id}}.MOV"
         raw_videos.append((int(s), path))
 
-    reference_image_paths = {}  # key: (Camera ID, x-location ID)
+    reference_image_paths = []  # (Camera ID, x-location ID, image path)
     for cam_id, video_path in raw_videos:
         logger.debug("Selecting from video file: {}".format(video_path))
         video_path = pathlib.Path(video_path)
@@ -361,17 +361,17 @@ def select_calibration_points(scale, verbose, dry, show):
 
         k = directory / f"*.{config['DEFAULT']['processing_image_extension']}"
         images = glob.glob(k.as_posix())
-        calibration_images = sorted(images)
 
         if len(images) == 0:
             raise ValueError(f"No frame extracted for the video: {video_path}")
 
-        for xid, image_path in enumerate(calibration_images):
-            reference_image_paths[(cam_id, xid)] = image_path
+        for xid, image_path in enumerate(images):
+            reference_image_paths.append((cam_id, xid, image_path))
+    reference_image_paths = sorted(reference_image_paths)
 
     if dry:
         # Print table
-        for (camera_id, x_id), path in reference_image_paths.items():
+        for camera_id, x_id, path in reference_image_paths:
             print(f"{camera_id=}\t{x_id=}\t{path}")
         return
 
@@ -383,8 +383,8 @@ def select_calibration_points(scale, verbose, dry, show):
     calibration_ref_point_save = config["PATHS"]["calibration_ref_point_save"]
     calibration_dlt_path = config["PATHS"]["calibration_dlt_path"]
     calibration_view_path = config["PATHS"]["calibration_view_path"]
-    for (camera_id, x_id), path in reference_image_paths.items():
-        logger.debug(f"Processing camera {camera_id} at xid={x_id}")
+    for camera_id, x_id, path in reference_image_paths:
+        logger.info(f"Processing camera {camera_id} at xid={x_id}")
         frame = scale_image_from_path(path, scale=scale)
         points = labeling(
             frame=frame,
