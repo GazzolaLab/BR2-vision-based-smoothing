@@ -279,7 +279,7 @@ def labeling(
                     "At least 2 frames must be calibrated before using 3d inverse-dlt"
                 )
                 continue
-            _3d_dlt = DLT()
+            _3d_dlt = DLT(calibration_path=config["PATHS"]["calibration_path"])
             _3d_dlt.add_camera(cam_id, calibration_type=11)
             for filename in reference_point_filenames:
                 _x_id = int(filename.split("-")[-2])
@@ -361,6 +361,7 @@ def select_calibration_points(scale, verbose, dry, show):
 
         k = directory / f"*.{config['DEFAULT']['processing_image_extension']}"
         images = glob.glob(k.as_posix())
+        images = sorted(images)
 
         if len(images) == 0:
             raise ValueError(f"No frame extracted for the video: {video_path}")
@@ -384,7 +385,7 @@ def select_calibration_points(scale, verbose, dry, show):
     calibration_dlt_path = config["PATHS"]["calibration_dlt_path"]
     calibration_view_path = config["PATHS"]["calibration_view_path"]
     for camera_id, x_id, path in reference_image_paths:
-        logger.info(f"Processing camera {camera_id} at xid={x_id}")
+        logger.info(f"Processing camera {camera_id} at xid={x_id}: {path}")
         frame = scale_image_from_path(path, scale=scale)
         points = labeling(
             frame=frame,
