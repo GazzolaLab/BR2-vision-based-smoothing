@@ -9,6 +9,7 @@ __pycache__/
 
 # Big Files
 
+data
 cache
 *.mp4
 *.pickle
