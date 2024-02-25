@@ -41,12 +41,7 @@ def extract_video_with_framemark(input_path: str, output_path: str):
 @click.option("-d", "--dry", is_flag=True, help="Dry run.")
 def process(filepath, output, verbose: bool, dry: bool):
     """
-    Imprint frame number and time on the video
-
-    Parameters
-    ----------
-    path: str
-        Video path
+    Overlay frame number and time on the video
     """
     assert os.path.exists(filepath)
     extract_video_with_framemark(filepath, output)
