@@ -326,7 +326,7 @@ def labeling(
 
 
 @click.command()
-@click.option("-c", "--scale", default=1.0, type=float, help="Image scale factor")
+@click.option("-s", "--scale", default=1.0, type=float, help="Image scale factor")
 @click.option("-v", "--verbose", is_flag=True, default=False, help="Verbose")
 @click.option(
     "-d",
