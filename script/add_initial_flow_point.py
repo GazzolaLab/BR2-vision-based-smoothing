@@ -178,6 +178,7 @@ def main(tag, cam_id, run_id, start_frame, end_frame, verbose, dry):
     config = br2_vision.load_config()
     config_logging(verbose)
     logger = get_script_logger(os.path.basename(__file__))
+    scale = config["DIMENSION"]["scale_video"]
 
     if len(run_id) > 1 and start_frame != 0:
         logger.error("Start frame is only supported for single run_id.")
@@ -219,6 +220,7 @@ def main(tag, cam_id, run_id, start_frame, end_frame, verbose, dry):
         if start_frame > 0:
             cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
         ret, curr_frame = cap.read()
+        curr_frame = scale_image(curr_frame, scale)
 
         assert start_frame < video_length
 
