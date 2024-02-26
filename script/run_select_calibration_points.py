@@ -339,7 +339,7 @@ def select_calibration_points(verbose, dry, show):
     config = br2_vision.load_config()
     config_logging(verbose)
     logger = get_script_logger(os.path.basename(__file__))
-    scale = config["DIMENSION"]["scale_video"]
+    scale = float(config["DIMENSION"]["scale_video"])
 
     app = QApplication([])
 

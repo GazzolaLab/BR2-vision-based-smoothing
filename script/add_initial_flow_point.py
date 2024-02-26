@@ -178,7 +178,7 @@ def main(tag, cam_id, run_id, start_frame, end_frame, verbose, dry):
     config = br2_vision.load_config()
     config_logging(verbose)
     logger = get_script_logger(os.path.basename(__file__))
-    scale = config["DIMENSION"]["scale_video"]
+    scale = float(config["DIMENSION"]["scale_video"])
 
     if len(run_id) > 1 and start_frame != 0:
         logger.error("Start frame is only supported for single run_id.")
