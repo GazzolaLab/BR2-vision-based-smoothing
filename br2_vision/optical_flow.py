@@ -12,14 +12,13 @@ from itertools import combinations
 import cv2
 
 # from dlt import DLT
-# from cv2_custom.transformation import scale_image
 # from cv2_custom.marking import cv2_draw_label
 
 import br2_vision
 from br2_vision.utility.logging import config_logging, get_script_logger
 from br2_vision.data import MarkerPositions, TrackingData, FlowQueue
 from br2_vision.cv2_custom.extract_info import get_video_frame_count
-from br2_vision.cv2_custom.transformation import flat_color
+from br2_vision.cv2_custom.transformation import flat_color, scale_image
 
 # from sklearn.linear_model import LinearRegression
 # from scipy.spatial.distance import directed_hausdorff
@@ -51,11 +50,13 @@ class CameraOpticalFlow:
     # Configuration: Color scheme
     _color = np.random.randint(0, 235, (100, 3)).astype(int)  # 100 points for now
 
-    def __init__(self, video_path, flow_queues: List[FlowQueue], dataset: TrackingData):
+    def __init__(self, video_path, flow_queues: List[FlowQueue], dataset: TrackingData, scale:float=1.0):
         self.video_path = video_path
 
         self.flow_queues = flow_queues
         self.dataset = dataset
+
+        self.scale = scale
 
     @property
     def num_frames(self):
@@ -221,6 +222,7 @@ class CameraOpticalFlow:
             ret, frame = cap.read()
             if not ret:
                 break
+            frame = scale_image(frame, self.scale)
 
             # draw the tracks
             good_new = data_collection[:, num_frame + 1, :]
@@ -273,6 +275,7 @@ class CameraOpticalFlow:
 
         # Read first frames
         ret, frame = cap.read()
+        frame = scale_image(frame, self.scale)
         old_gray = flat_color(frame)
 
         # Set initial points
@@ -287,6 +290,7 @@ class CameraOpticalFlow:
             ret, frame = cap.read()
             if not ret:
                 break
+            frame = scale_image(frame, self.scale)
             frame_gray = flat_color(frame)
             # Preprocess (sharpen)
             # sharpen_kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])

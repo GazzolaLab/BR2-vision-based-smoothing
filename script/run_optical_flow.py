@@ -42,6 +42,7 @@ def main(tag, run_id, force_run_all, verbose, dry):
     config = br2_vision.load_config()
     config_logging(verbose)
     logger = get_script_logger(os.path.basename(__file__))
+    scale = float(config["DIMENSION"]["scale_video"])
 
     # Run optical flow for each run-id
     for rid in run_id:
@@ -58,17 +59,17 @@ def main(tag, run_id, force_run_all, verbose, dry):
                     video_path=video_path,
                     flow_queues=queues,
                     dataset=dataset,
+                    scale=scale,
                 )
                 optical_flow.run(debug=dry)
 
-                if verbose:
-                    all_queues = dataset.get_flow_queues(camera=cid, force_run_all=True)
-                    tracking_overlay_video_path = config["PATHS"][
-                        "footage_video_path_with_trace"
-                    ].format(tag, cid, rid)
-                    optical_flow.render_tracking_video(
-                        tracking_overlay_video_path, all_queues
-                    )
+                all_queues = dataset.get_flow_queues(camera=cid, force_run_all=True)
+                tracking_overlay_video_path = config["PATHS"][
+                    "footage_video_path_with_trace"
+                ].format(tag, cid, rid)
+                optical_flow.render_tracking_video(
+                    tracking_overlay_video_path, all_queues
+                )
 
             cv2.destroyAllWindows()
 
