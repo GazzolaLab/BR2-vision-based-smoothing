@@ -154,7 +154,7 @@ class TrackingData:
     @classmethod
     def initialize(cls, path, marker_positions):
         if os.path.exists(path):
-            return TrackingData.load(path)
+            return cls.load(path)
         return cls(path, marker_positions)
 
     @classmethod

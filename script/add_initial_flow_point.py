@@ -113,6 +113,7 @@ def mouse_event_click_point(event, x, y, flags, param):
     global prev_tag
     points = param["points"]
     marker_label = param["marker_label"]
+    old_marker_label = param["old_marker_label"]
     bypass_inquiry = flags & cv2.EVENT_FLAG_CTRLKEY
     if event == cv2.EVENT_LBUTTONDOWN:
         point = np.array([x, y], dtype=np.int32).reshape([1, 2])
@@ -122,7 +123,6 @@ def mouse_event_click_point(event, x, y, flags, param):
         point = uv.astype(np.int32)
     else:
         return
-    points.append(point)
 
     # Ask for a tag in a separate window
     if bypass_inquiry:
@@ -133,11 +133,16 @@ def mouse_event_click_point(event, x, y, flags, param):
             print("canceled")
             return
     prev_tag = tag
-    marker_label.append(tag)
-    print("added: ")
-    print(point, tag)
 
-    param["display_func"]()
+    if tag in old_marker_label:
+        print(f"tag {tag} already exist.")
+    else:
+        points.append(point)
+        marker_label.append(tag)
+        print("added: ")
+        print(point, tag)
+
+        param["display_func"]()
 
 
 # Draw
@@ -216,10 +221,10 @@ def main(tag, cam_id, run_id, start_frame, end_frame, verbose, dry):
     for cid in cam_id:
         video_path = config["PATHS"]["footage_video_path"].format(tag, cid, run_id[0])
         assert os.path.exists(video_path), f"Video not found: {video_path}."
-        initial_point_file = config["PATHS"]["tracing_data_path"]
+        initial_point_file = config["PATHS"]["tracing_data_path"].format(tag, run_id[0])
 
-        with TrackingData.load(
-            path=initial_point_file.format(tag, run_id[0])
+        with TrackingData.initialize(
+            path=initial_point_file, marker_positions=marker_positions
         ) as dataset:
             flow_queues = dataset.get_flow_queues(camera=cid, start_frame=start_frame)
             old_points = [queue.point for queue in flow_queues]  # (N, 2)
@@ -268,20 +273,14 @@ def main(tag, cam_id, run_id, start_frame, end_frame, verbose, dry):
                 "frame": curr_frame,
                 "points": points,
                 "marker_label": marker_label,
+                "old_marker_label": old_marker_label,
                 "prompt": prompt,
                 "display_func": display,
             },
         )
         while True:
             display()
-            # disp_img = curr_frame.copy()
-            #
-            #            if len(old_points) > 0:
-            #                frame_label(disp_img, old_points, old_marker_label, font_color=(0,255,0))
-            #            if len(points) > 0:
-            #                frame_label(disp_img, points, marker_label)
-            #
-            #            cv2.imshow(video_name, disp_img)
+
             key = cv2.waitKey(1) & 0xFF
 
             if key == ord("c"):
@@ -305,10 +304,12 @@ def main(tag, cam_id, run_id, start_frame, end_frame, verbose, dry):
         # Load existing points and marker_label, and append
         # TODO: Maybe use loaded queue from the beginning
         for rid in run_id:
+            initial_point_file = config["PATHS"]["tracing_data_path"].format(tag, rid)
             with TrackingData.initialize(
-                path=initial_point_file.format(tag, rid),
+                path=initial_point_file,
                 marker_positions=marker_positions,
             ) as dataset:
+                # print(f"{len(dataset.get_flow_queues(camera=cid))=}")
                 for label, point in zip(marker_label, points):
                     point = tuple(point.ravel().tolist())
                     flow_queue = FlowQueue(
@@ -333,6 +334,8 @@ def visualize(tag, cam_id, run_id, config, frame=0):
             for cid in cam_id:
                 plt.figure()
                 flow_queues = dataset.get_flow_queues(camera=cid, start_frame=frame)
+                if len(flow_queues) == 0:
+                    continue
                 points = np.array([queue.point for queue in flow_queues])  # (N, 2)
                 plt.scatter(points[:, 0], points[:, 1])
                 plt.title(f"frame {frame}")
