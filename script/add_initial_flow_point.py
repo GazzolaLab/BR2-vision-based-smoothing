@@ -119,7 +119,7 @@ def mouse_event_click_point(event, x, y, flags, param):
     elif event == cv2.EVENT_RBUTTONDOWN:
         # Second zoom-layer selection
         uv = zoomed_inquiry(param["frame"], np.array([x, y]))
-        point = uv.astype(np.int32).reshape([1, 2])
+        point = uv.astype(np.int32)
     else:
         return
     points.append(point)
@@ -137,14 +137,25 @@ def mouse_event_click_point(event, x, y, flags, param):
     print("added: ")
     print(point, tag)
 
+    param["display_func"]()
+
 
 # Draw
 # TODO: move to cv2_custom
-def frame_label(frame, points, marker_label):
-    for inx in range(len(points)):
-        point = tuple(points[inx][0])
-        tag = marker_label[inx]
-        cv2_draw_label(frame, int(point[0]), int(point[1]), tag, fontScale=0.8)
+def frame_label(
+    frame, points, marker_label, font_scale=0.4, font_color=(255, 255, 255)
+):
+    for idx in range(len(points)):
+        point = tuple(points[idx])
+        tag = marker_label[idx]
+        cv2_draw_label(
+            frame,
+            int(point[0]),
+            int(point[1]),
+            tag,
+            fontScale=font_scale,
+            fontColor=font_color,
+        )
 
 
 @click.command()
@@ -203,10 +214,18 @@ def main(tag, cam_id, run_id, start_frame, end_frame, verbose, dry):
 
     # Path
     for cid in cam_id:
-
         video_path = config["PATHS"]["footage_video_path"].format(tag, cid, run_id[0])
         assert os.path.exists(video_path), f"Video not found: {video_path}."
         initial_point_file = config["PATHS"]["tracing_data_path"]
+
+        with TrackingData.load(
+            path=initial_point_file.format(tag, run_id[0])
+        ) as dataset:
+            flow_queues = dataset.get_flow_queues(camera=cid, start_frame=start_frame)
+            old_points = [queue.point for queue in flow_queues]  # (N, 2)
+            old_marker_label = [
+                (queue.z_index, queue.label) for queue in flow_queues
+            ]  # (N, 2)
 
         video_name = os.path.basename(video_path)
 
@@ -227,6 +246,19 @@ def main(tag, cam_id, run_id, start_frame, end_frame, verbose, dry):
         marker_label = []
         points = []
 
+        # TODO: refactor
+        def display():
+            disp_img = curr_frame.copy()
+
+            if len(old_points) > 0:
+                frame_label(
+                    disp_img, old_points, old_marker_label, font_color=(0, 255, 0)
+                )
+            if len(points) > 0:
+                frame_label(disp_img, points, marker_label)
+
+            cv2.imshow(video_name, disp_img)
+
         # First-layer Selection
         cv2.namedWindow(video_name)
         cv2.setMouseCallback(
@@ -237,15 +269,19 @@ def main(tag, cam_id, run_id, start_frame, end_frame, verbose, dry):
                 "points": points,
                 "marker_label": marker_label,
                 "prompt": prompt,
+                "display_func": display,
             },
         )
         while True:
-            disp_img = curr_frame.copy()
-
-            if len(points) > 0:
-                frame_label(disp_img, points, marker_label)
-
-            cv2.imshow(video_name, disp_img)
+            display()
+            # disp_img = curr_frame.copy()
+            #
+            #            if len(old_points) > 0:
+            #                frame_label(disp_img, old_points, old_marker_label, font_color=(0,255,0))
+            #            if len(points) > 0:
+            #                frame_label(disp_img, points, marker_label)
+            #
+            #            cv2.imshow(video_name, disp_img)
             key = cv2.waitKey(1) & 0xFF
 
             if key == ord("c"):
@@ -258,6 +294,7 @@ def main(tag, cam_id, run_id, start_frame, end_frame, verbose, dry):
                     marker_label.pop(-1)
             elif key == ord("h"):
                 print("check")
+                print(f"preloaded markers: {points=}, {marker_label=}")
                 print(points)
                 print(marker_label)
                 print("")
@@ -265,7 +302,8 @@ def main(tag, cam_id, run_id, start_frame, end_frame, verbose, dry):
                 print("d: delete last point")
         cv2.destroyAllWindows()
 
-        # Load existing points and marker_label
+        # Load existing points and marker_label, and append
+        # TODO: Maybe use loaded queue from the beginning
         for rid in run_id:
             with TrackingData.initialize(
                 path=initial_point_file.format(tag, rid),

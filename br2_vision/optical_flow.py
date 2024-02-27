@@ -24,6 +24,7 @@ from br2_vision.cv2_custom.transformation import flat_color, scale_image
 # from scipy.spatial.distance import directed_hausdorff
 # from scipy.signal import savgol_filter as sgfilter
 
+
 # Optical Flow and Point Detection Module
 class CameraOpticalFlow:
     """
@@ -50,7 +51,13 @@ class CameraOpticalFlow:
     # Configuration: Color scheme
     _color = np.random.randint(0, 235, (100, 3)).astype(int)  # 100 points for now
 
-    def __init__(self, video_path, flow_queues: List[FlowQueue], dataset: TrackingData, scale:float=1.0):
+    def __init__(
+        self,
+        video_path,
+        flow_queues: List[FlowQueue],
+        dataset: TrackingData,
+        scale: float = 1.0,
+    ):
         self.video_path = video_path
 
         self.flow_queues = flow_queues
@@ -201,16 +208,17 @@ class CameraOpticalFlow:
             queues = self.flow_queues
 
         cap = cv2.VideoCapture(self.video_path)
-        frame_width = int(cap.get(4))
-        frame_height = int(cap.get(3))
+        # Create a mask image for drawing purposes
+        ret, old_frame = cap.read()
+        old_frame = scale_image(old_frame, self.scale)
+        mask = np.zeros_like(old_frame)
+
+        frame_width = int(old_frame.shape[0])
+        frame_height = int(old_frame.shape[1])
         writer = cv2.VideoWriter(
             save_path, cv2.VideoWriter_fourcc(*"mp4v"), 60, (frame_height, frame_width)
         )
         video_length = self.num_frames
-
-        # Create a mask image for drawing purposes
-        ret, old_frame = cap.read()
-        mask = np.zeros_like(old_frame)
 
         data_collection = np.zeros((len(queues), video_length, 2), dtype=np.int_) - 1
         for qid, q in enumerate(queues):

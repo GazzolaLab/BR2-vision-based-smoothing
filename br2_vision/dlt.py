@@ -15,6 +15,7 @@ import scipy.linalg as spl
 DLT module
 """
 
+
 # Label to 3d coordinate
 def label_to_3Dcoord(x_label: int, y_label: int, z_label: int, config):
     dx = float(config["DIMENSION"]["delta_x"])
@@ -117,25 +118,25 @@ class DLT:
                     u0, v0 = self.camera[k].info["camera position"]
                     # Distortion correction
                     xi, eta = u - u0, v - v0
-                    r_sqr = xi ** 2 + eta ** 2  # eqn 12
+                    r_sqr = xi**2 + eta**2  # eqn 12
                     du = (
                         xi
                         * (
                             param[11] * r_sqr
-                            + param[12] * r_sqr ** 2
-                            + param[13] * r_sqr ** 3
+                            + param[12] * r_sqr**2
+                            + param[13] * r_sqr**3
                         )
-                        + param[14] * (r_sqr + 2 * xi ** 2)
+                        + param[14] * (r_sqr + 2 * xi**2)
                         + param[15] * xi * eta
                     )
                     dv = (
                         eta
                         * (
                             param[11] * r_sqr
-                            + param[12] * r_sqr ** 2
-                            + param[13] * r_sqr ** 3
+                            + param[12] * r_sqr**2
+                            + param[13] * r_sqr**3
                         )
-                        + param[15] * (r_sqr + 2 * eta ** 2)
+                        + param[15] * (r_sqr + 2 * eta**2)
                         + param[14] * xi * eta
                     )
                     u = u - du
@@ -407,7 +408,7 @@ class DLT:
                 # Precompute xi, eta, and r^2
                 for idx, (u, v, x, y, z) in enumerate(self.references):
                     xi, eta = u - u0, v - v0
-                    r_sqr = xi ** 2 + eta ** 2  # eqn 12
+                    r_sqr = xi**2 + eta**2  # eqn 12
                     self.references[idx].extend([xi, eta, r_sqr])
                 # Iterative method (eqn 16)
                 delta = 1
@@ -431,23 +432,23 @@ class DLT:
                         elif self.type == 14:  # 3rd order OD + decentering distortion
                             L_ext[2 * idx, 11] = xi * R * r_sqr
                             L_ext[2 * idx + 1, 11] = eta * R * r_sqr
-                            L_ext[2 * idx, 12] = (2 * xi ** 2 + r_sqr) * R
+                            L_ext[2 * idx, 12] = (2 * xi**2 + r_sqr) * R
                             L_ext[2 * idx + 1, 12] = xi * eta * R
                             L_ext[2 * idx, 13] = eta * xi * R
-                            L_ext[2 * idx + 1, 13] = (2 * eta ** 2 + r_sqr) * R
+                            L_ext[2 * idx + 1, 13] = (2 * eta**2 + r_sqr) * R
                         elif (
                             self.type == 16
                         ):  # 3rd, 5th, 7th order OD + decentering distortion
                             L_ext[2 * idx, 11] = xi * R * r_sqr
                             L_ext[2 * idx + 1, 11] = eta * R * r_sqr
-                            L_ext[2 * idx, 12] = xi * R * (r_sqr ** 2)
-                            L_ext[2 * idx + 1, 12] = eta * R * (r_sqr ** 2)
-                            L_ext[2 * idx, 13] = xi * R * (r_sqr ** 3)
-                            L_ext[2 * idx + 1, 13] = eta * R * (r_sqr ** 3)
-                            L_ext[2 * idx, 14] = (2 * xi ** 2 + r_sqr) * R
+                            L_ext[2 * idx, 12] = xi * R * (r_sqr**2)
+                            L_ext[2 * idx + 1, 12] = eta * R * (r_sqr**2)
+                            L_ext[2 * idx, 13] = xi * R * (r_sqr**3)
+                            L_ext[2 * idx + 1, 13] = eta * R * (r_sqr**3)
+                            L_ext[2 * idx, 14] = (2 * xi**2 + r_sqr) * R
                             L_ext[2 * idx + 1, 14] = xi * eta * R
                             L_ext[2 * idx, 15] = eta * xi * R
-                            L_ext[2 * idx + 1, 15] = (2 * eta ** 2 + r_sqr) * R
+                            L_ext[2 * idx + 1, 15] = (2 * eta**2 + r_sqr) * R
                         else:
                             raise NotImplementedError(
                                 "Only 11,12,14,16 calibration type is implemented"
@@ -498,7 +499,7 @@ class DLT:
                 eps_v = v - (L[4] * x + L[5] * y + L[6] * z + L[7]) / (
                     L[8] * x + L[9] * y + L[10] * z + 1
                 )
-                ec.append(np.sqrt(eps_u ** 2 + eps_v ** 2))
+                ec.append(np.sqrt(eps_u**2 + eps_v**2))
             self.info["calibration error"] = np.mean(ec)
             return np.mean(ec), ec
 
