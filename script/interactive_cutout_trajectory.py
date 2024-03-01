@@ -104,8 +104,8 @@ def render_content(tab, click):
     cid = get_cid(tab)
 
     if click is not None and last_clicked_data is not None:
-        _cid, click_data = last_clicked_data
-        trim_data(click_data, _cid)
+        _cid, click_data, label = last_clicked_data
+        trim_data(click_data, _cid, label)
 
     # Reset clicked data
     last_clicked_data = None
@@ -151,11 +151,18 @@ def render_camera_data(cid):
     Output("textarea-x", "value"),
     Input("graph-x", "clickData"),
     State("tabs-camera-data", "value"),
+    State("graph-x", "figure"),
 )
-def cb_trim_data_x(click_data, tab):
+def cb_trim_data_x(click_data, tab, figure):
     global last_clicked_data
     cid = get_cid(tab)
-    last_clicked_data = (cid, click_data)
+    if figure is None:
+        return
+    last_clicked_data = (
+        cid,
+        click_data,
+        figure["data"][click_data["points"][0]["curveNumber"]]["name"],
+    )
     return f"Selected data - x (camera {cid}): \n {click_data=}"
 
 
@@ -163,15 +170,22 @@ def cb_trim_data_x(click_data, tab):
     Output("textarea-y", "value"),
     Input("graph-y", "clickData"),
     State("tabs-camera-data", "value"),
+    State("graph-y", "figure"),
 )
-def cb_trim_data_y(click_data, tab):
+def cb_trim_data_y(click_data, tab, figure):
     global last_clicked_data
     cid = get_cid(tab)
-    last_clicked_data = (cid, click_data)
+    if figure is None:
+        return
+    last_clicked_data = (
+        cid,
+        click_data,
+        figure["data"][click_data["points"][0]["curveNumber"]]["name"],
+    )
     return f"Selected data - y (camera {cid}): \n {click_data=}"
 
 
-def trim_data(click_data, cid):
+def trim_data(click_data, cid, q_tag):
     global ctx
     tag = ctx["tag"]
     run_id = ctx["run_id"]
@@ -179,14 +193,12 @@ def trim_data(click_data, cid):
     if click_data is None:
         return
 
-    qid = click_data["points"][0]["curveNumber"]
     frame = click_data["points"][0]["x"]
     y = click_data["points"][0]["y"]
 
     datapath = config["PATHS"]["tracing_data_path"].format(tag, run_id)
     with TrackingData.load(path=datapath) as dataset:
-        queue = dataset.get_flow_queues(camera=cid, force_run_all=True)[qid]
-        dataset.trim_trajectory(queue.get_tag(), frame)
+        dataset.trim_trajectory(q_tag, frame)
 
 
 # ---------------------------- Methods ----------------------------

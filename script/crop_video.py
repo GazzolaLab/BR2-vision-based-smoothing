@@ -56,7 +56,6 @@ def crop_video(
 @click.option(
     "-c", "--cam-id", type=int, help="Camera index given in file.", multiple=True
 )
-@click.option("-s", "--scale", default=0.5, type=float, help="Image scale factor")
 @click.option(
     "-skip-synch", is_flag=True, type=bool, help="Skip synchronization step. Use raw."
 )
@@ -68,7 +67,7 @@ def crop_video(
 )
 @click.option("-v", "--verbose", is_flag=True, help="Verbose mode.")
 @click.option("-d", "--dry", is_flag=True, help="Dry run.")
-def process(cam_id, scale, skip_synch: bool, roi, verbose: bool, dry: bool):
+def process(cam_id, skip_synch: bool, roi, verbose: bool, dry: bool):
     """
     Crop video using ffmpeg.
     """
@@ -91,7 +90,7 @@ def process(cam_id, scale, skip_synch: bool, roi, verbose: bool, dry: bool):
             assert os.path.exists(video_path.format(cid))
             _input_path = video_path.format(cid)
 
-            r = select_roi(_input_path, scale)
+            r = select_roi(_input_path)
             if r is None:
                 logger.error(f"Error selecting roi for camera {cid}")
             logger.info(f"Selecting roi {r} for camera {cid}")

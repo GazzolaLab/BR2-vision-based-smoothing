@@ -9,6 +9,7 @@ __pycache__/
 
 # Big Files
 
+samples*
 data
 cache
 *.mp4

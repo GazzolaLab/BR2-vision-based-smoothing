@@ -89,7 +89,10 @@ def extract_frames(
                 #    cv2.waitKey(1)
 
                 filename = (
-                    directory / "frame_{:05d}.{}".format(frame_count, config['DEFAULT']['processing_image_extension'])
+                    directory
+                    / "frame_{:05d}.{}".format(
+                        frame_count, config["DEFAULT"]["processing_image_extension"]
+                    )
                 ).as_posix()
                 similarity = cv2.matchTemplate(
                     prev_frames[0], frame, cv2.TM_CCOEFF_NORMED

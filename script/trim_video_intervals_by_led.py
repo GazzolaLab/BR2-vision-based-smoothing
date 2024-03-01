@@ -71,9 +71,9 @@ def export(input_path, output_path, start_stamp, end_stamp):
 )
 @click.option(
     "--led-threshold",
-    type=(int, int, int),
-    default=(50, 50, 150),
-    help='RGB threshold of the LED: greater value will be considered as "on"',
+    type=int,
+    default=150,
+    help='Red threshold of the LED: greater value will be considered as "on"',
 )
 @click.option("-v", "--verbose", is_flag=True, help="Verbose mode.")
 @click.option("-d", "--dry", is_flag=True, help="Dry run.")
@@ -99,7 +99,7 @@ def process(
         Run index given in file
     trailing_frames : int
         Number of trailing frames after the LED status is turned off. (default=0)
-    led_threshold : tuple(int,int,int)
+    led_threshold : int
         RGB threshold of the LED: greater value will be considered as 'on'
     """
     config = br2_vision.load_config()
@@ -218,7 +218,7 @@ def process(
         plt.legend()
         plt.xlabel("Frame")
         plt.ylabel("LED Color")
-        plt.savefig(working_dir + f"/led_color_cam{i}.png")
+        plt.savefig(working_dir + f"/led_color_cam{cam_id[i]}.png")
         plt.close()
         plt.axhline(led_threshold, color="red", label="Threshold", linestyle="--")
 

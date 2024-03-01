@@ -326,7 +326,6 @@ def labeling(
 
 
 @click.command()
-@click.option("-c", "--scale", default=1.0, type=float, help="Image scale factor")
 @click.option("-v", "--verbose", is_flag=True, default=False, help="Verbose")
 @click.option(
     "-d",
@@ -336,10 +335,11 @@ def labeling(
     help="Dry run: print table of processing frames.",
 )
 @click.option("-S", "--show", is_flag=True, default=False, help="Show frames")
-def select_calibration_points(scale, verbose, dry, show):
+def select_calibration_points(verbose, dry, show):
     config = br2_vision.load_config()
     config_logging(verbose)
     logger = get_script_logger(os.path.basename(__file__))
+    scale = float(config["DIMENSION"]["scale_video"])
 
     app = QApplication([])
 
