@@ -6,7 +6,22 @@ from utility.convert_coordinate import get_center_and_normal
 from config import *
 
 
-def main(runid, n_ring):
+import click
+
+
+@click.command()
+@click.option(
+    "-t",
+    "--tag",
+    type=str,
+    help="Experiment tag. Path ./tag should exist.",
+)
+@click.option("-r", "--run_id", required=True, type=int, help="Run ID")
+def main(tag, runid, n_ring):
+    config = br2_vision.load_config()
+    config_logging(verbose)
+    logger = get_script_logger(os.path.basename(__file__))
+
     # Read DLT Point Data
     output_file_path = PREPROCESSED_POSITION_PATH.format(runid)
     data = np.load(file_path)
