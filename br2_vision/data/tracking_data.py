@@ -131,25 +131,27 @@ class TrackingData:
         prefix="xy",
         reverse=False,
     ):
+        """
+        Trim trajectory beyond the frame
+        """
+
         # find queue with matching tag
         for q in self.queues:
             if q.get_tag() == tag:
-                break
+                # set end-frame to be the frame
+                q.end_frame = frame
 
-        # set end-frame to be the frame
-        q.end_frame = frame
-
-        # load trajectory
-        trajectory = self.load_pixel_flow_trajectory(
-            q, prefix=prefix, full_trajectory=True
-        )
-        if reverse:
-            trajectory[:frame] = -1
-        else:
-            trajectory[frame:] = -1
-        self.save_pixel_flow_trajectory(
-            trajectory, q, len(trajectory), prefix=prefix, full_trajectory=True
-        )
+                # load trajectory
+                trajectory = self.load_pixel_flow_trajectory(
+                    q, prefix=prefix, full_trajectory=True
+                )
+                if reverse:
+                    trajectory[:frame] = -1
+                else:
+                    trajectory[frame:] = -1
+                self.save_pixel_flow_trajectory(
+                    trajectory, q, len(trajectory), prefix=prefix, full_trajectory=True
+                )
 
     @classmethod
     def initialize(cls, path, marker_positions):
@@ -205,7 +207,7 @@ class TrackingData:
         self.queues.append(value)
 
     def get_flow_queues(
-        self, camera=None, start_frame=None, force_run_all: bool = False
+        self, camera=None, start_frame=None, force_run_all: bool = False, tag=None
     ):
         ret = []
         for queue in self.queues:
@@ -213,6 +215,8 @@ class TrackingData:
             if camera is not None and queue.camera != camera:
                 continue
             if start_frame is not None and queue.start_frame < start_frame:
+                continue
+            if tag is not None and queue.get_tag() != tag:
                 continue
 
             # Skip already-done queues
