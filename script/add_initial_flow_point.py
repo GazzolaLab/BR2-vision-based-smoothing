@@ -226,7 +226,7 @@ def main(tag, cam_id, run_id, start_frame, end_frame, verbose, dry):
         with TrackingData.initialize(
             path=initial_point_file, marker_positions=marker_positions
         ) as dataset:
-            flow_queues = dataset.get_flow_queues(camera=cid, start_frame=start_frame)
+            flow_queues = dataset.get_flow_queues(camera=cid, start_frame=start_frame, force_run_all=True)
             old_points = [queue.point for queue in flow_queues]  # (N, 2)
             old_marker_label = [
                 (queue.z_index, queue.label) for queue in flow_queues
