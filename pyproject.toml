@@ -29,6 +29,8 @@ edit_optical_flow = 'script.interactive_cutout_trajectory:launch'
 
 interpolate_poses = 'script.process_dlt:process_dlt'
 
+overlay_framemark = 'script.overlay_framemark:process'
+
 [tool.poetry.dependencies]
 python = "^3.9,<3.11"
 pytest = "^7.4.0"

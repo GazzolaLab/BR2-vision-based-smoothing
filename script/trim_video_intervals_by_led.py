@@ -208,6 +208,7 @@ def process(
         plt.plot(colors[:, 0], color="blue", label="B")
         plt.plot(colors[:, 1], color="green", label="G")
         plt.plot(colors[:, 2], color="red", label="R")
+        plt.axhline(led_threshold, color="red", label="Threshold", linestyle="--")
         plt.legend()
         plt.xlabel("Frame")
         plt.ylabel("LED Color")
