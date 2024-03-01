@@ -53,7 +53,7 @@ def export(input_path, output_path, start_stamp, end_stamp):
     default=60,
     help="Frames per seconds (default=60). Make sure it matches the orignal framerate of the video.",
 )
-@click.option("-r", "--run-id", type=int, default=1, help="Run index given in file")
+@click.option("-r", "--run-id", type=int, default=0, help="Run index given in file", show_default=True)
 @click.option(
     "-tr",
     "--trailing-frames",
@@ -104,7 +104,7 @@ def process(
     # Path Configuration
     working_dir = config["PATHS"]["postprocessing_path"].format(tag)
     os.makedirs(working_dir, exist_ok=True)
-    video_path = config["PATHS"]["preprocessed_video_path"].format(
+    video_path = config["PATHS"]["experiment_video_path"].format(
         tag, "{}"
     )  # (cam_id)
     output_path = config["PATHS"]["footage_video_path"].format(
