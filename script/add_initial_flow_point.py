@@ -316,6 +316,13 @@ def main(tag, cam_id, run_id, start_frame, end_frame, verbose, dry):
                         point, start_frame, end_frame, cid, label[0], label[1]
                     )
                     dataset.append(flow_queue)
+                if run_id[0] == rid:  # TODO: fix this!!
+                    for label, point in zip(old_marker_label, old_points):
+                        point = tuple(point.ravel().tolist())
+                        flow_queue = FlowQueue(
+                            point, start_frame, end_frame, cid, label[0], label[1]
+                        )
+                        dataset.append(flow_queue)
 
     visualize(tag, cam_id, run_id, config)
 
