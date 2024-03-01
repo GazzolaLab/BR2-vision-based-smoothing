@@ -211,7 +211,7 @@ def process(
         plt.legend()
         plt.xlabel("Frame")
         plt.ylabel("LED Color")
-        plt.savefig(working_dir + f"/led_color_cam{i}.png")
+        plt.savefig(working_dir + f"/led_color_cam{cam_id[i]}.png")
         plt.close()
 
 
