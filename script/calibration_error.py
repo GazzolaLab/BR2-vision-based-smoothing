@@ -72,7 +72,7 @@ e_y = np.array(e_y)
 e_z = np.array(e_z)
 error_vector = np.array(error_vector)
 
-er = np.sqrt(e_z**2 + e_y**2 + e_z**2)
+er = np.sqrt(e_z ** 2 + e_y ** 2 + e_z ** 2)
 print("Reconstruction Error (m): ", er.mean())
 print(sps.describe(er))
 print("Reconstruction Condition: ", np.mean(condition_numbers))
