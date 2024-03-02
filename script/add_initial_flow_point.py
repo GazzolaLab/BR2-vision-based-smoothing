@@ -206,9 +206,10 @@ def main(tag, cam_id, run_id, glob_run_id, start_frame, end_frame, verbose, dry)
     scale = float(config["DIMENSION"]["scale_video"])
 
     if glob_run_id:
-        candidates = glob.glob(config["PATHS"]["footage_video_path"].format(tag, cam_id, "*"))
+        candidates = pathlib.Path(".").glob(config["PATHS"]["footage_video_path"].format(tag, cam_id, "*"))
+        #candidates = glob.glob(config["PATHS"]["footage_video_path"].format(tag, cam_id, "*"))
         pattern = config["PATHS"]["footage_video_path"].format(tag, cam_id, "(\d+)")
-        run_id = sorted([int(re.search(pattern, candidate).group(1)) for candidate in candidates])
+        run_id = sorted([int(re.search(pattern, candidate.as_posix()).group(1)) for candidate in candidates])
 
     if len(run_id) > 1 and start_frame != 0:
         logger.error("Start frame is only supported for single run_id.")
