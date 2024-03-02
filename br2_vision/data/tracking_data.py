@@ -34,7 +34,8 @@ class FlowQueue:
     def __eq__(self, other):
         return all(
             [
-                self.point == other.point,
+                self.point[0] == other.point[0],
+                self.point[1] == other.point[1],
                 self.start_frame == other.start_frame,
                 self.end_frame == other.end_frame,
                 self.camera == other.camera,
