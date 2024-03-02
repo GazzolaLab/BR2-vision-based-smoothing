@@ -250,10 +250,6 @@ def main(tag, cam_id, run_id, glob_run_id, start_frame, end_frame, verbose, dry)
     # Capture Video
     cap = cv2.VideoCapture(video_path)
     video_length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    if start_frame == -1:
-        start_frame = video_length - 1
-    if end_frame == -1:
-        end_frame = video_length
     if start_frame > 0:
         cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
     ret, curr_frame = cap.read()
@@ -317,6 +313,13 @@ def main(tag, cam_id, run_id, glob_run_id, start_frame, end_frame, verbose, dry)
     # Load existing points and marker_label, and append
     # TODO: Maybe use loaded queue from the beginning
     for rid in run_id:
+        video_path = config["PATHS"]["footage_video_path"].format(tag, cam_id, rid)
+        cap = cv2.VideoCapture(video_path)
+        video_length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        cap.release()
+        if end_frame == -1:
+            _end_frame = video_length
+
         initial_point_file = config["PATHS"]["tracing_data_path"].format(tag, rid)
         with TrackingData.initialize(
             path=initial_point_file,
@@ -326,14 +329,14 @@ def main(tag, cam_id, run_id, glob_run_id, start_frame, end_frame, verbose, dry)
             for label, point in zip(marker_label, points):
                 point = tuple(point.ravel().tolist())
                 flow_queue = FlowQueue(
-                    point, start_frame, end_frame, cam_id, label[0], label[1]
+                    point, start_frame, _end_frame, cam_id, label[0], label[1]
                 )
                 dataset.append(flow_queue)
             if run_id[0] == rid:  # TODO: fix this!!
                 for label, point in zip(old_marker_label, old_points):
                     point = tuple(point.ravel().tolist())
                     flow_queue = FlowQueue(
-                        point, start_frame, end_frame, cam_id, label[0], label[1]
+                        point, start_frame, _end_frame, cam_id, label[0], label[1]
                     )
                     dataset.append(flow_queue)
 
