@@ -31,6 +31,18 @@ class FlowQueue:
         ("done", "?"),
     ]
 
+    def __eq__(self, other):
+        return all(
+            [
+                self.point == other.point,
+                self.start_frame == other.start_frame,
+                self.end_frame == other.end_frame,
+                self.camera == other.camera,
+                self.z_index == other.z_index,
+                self.label == other.label,
+            ]
+        )
+
     def __array__(self, dtype=None) -> np.ndarray:
         val = np.recarray((1,), dtype=self.dtype)
         val.point = self.point
@@ -204,7 +216,12 @@ class TrackingData:
                 dset[idx] = np.array(q)
 
     def append(self, value):
-        self.queues.append(value)
+        # if same value is already in the list, replace values
+        if value in self.queues:
+            idx = self.queues.index(value)
+            self.queues[idx] = value
+        else:
+            self.queues.append(value)
 
     def get_flow_queues(
         self, camera=None, start_frame=None, force_run_all: bool = False, tag=None
