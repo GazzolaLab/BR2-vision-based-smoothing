@@ -111,6 +111,10 @@ class FlowQueue:
 
 
 class TrackingData:
+    """
+    Data structure for storing tracking data
+    """
+
     def __init__(self, path, marker_positions: MarkerPositions):
         self.queues: List[FlowQueue] = []
         self.path = path

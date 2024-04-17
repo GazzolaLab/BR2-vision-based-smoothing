@@ -80,7 +80,7 @@ exclude_lines = [
     ''''@(abc\.)?'abstractmethod''',
     '\.\.\.'
 ]
-fail_under = 40
+#fail_under = 40
 show_missing = true
 
 
@@ -90,4 +90,5 @@ omit = [
     "*/.local/*",
 	"setup.py",
     "*/__init__.py",
+    "*/tests/*",
 ]

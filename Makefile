@@ -26,6 +26,7 @@ formatting: codestyle
 .PHONY: test
 test:
 	poetry run pytest -c pyproject.toml --cov=br2_vision
+	coverage html
 
 .PHONY: mypy
 mypy:
