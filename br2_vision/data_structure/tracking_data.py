@@ -7,7 +7,6 @@ import operator
 import numpy as np
 import h5py
 
-
 from br2_vision.utility.logging import get_script_logger
 
 from .marker_positions import MarkerPositions

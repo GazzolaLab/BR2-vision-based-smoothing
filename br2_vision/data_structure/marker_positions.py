@@ -143,7 +143,7 @@ class MarkerPositions(DataclassYamlSaveLoadMixin):
                 grp.attrs["origin"] = self_data["origin"]
                 grp.attrs["marker_direction"] = self_data["marker_direction"]
                 grp.attrs["normal_direction"] = self_data["normal_direction"]
-                grp.attrs["tags"] = np.array(list(self.tags), dtype="U50")
+                grp.attrs["tags"] = list(self.tags)#, dtype="<U1")
 
                 grp.create_dataset(
                     "marker_center_offset",
