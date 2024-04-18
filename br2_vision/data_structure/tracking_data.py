@@ -236,7 +236,13 @@ class TrackingData:
         with h5py.File(path, "r") as h5f:
             # Load queues
             dset = h5f["queues"]
-            queues = [FlowQueue(*vals) for vals in dset[...].tolist()]
+            queues = []
+            for vals in dset[...].tolist():
+                # Convert to FlowQueue datatype
+                vals = list(vals)
+                vals[5] = str(vals[5].decode("utf-8"))
+                fq = FlowQueue(*vals)
+                queues.append(fq)
 
         c = cls(path, marker_positions=marker_positions)
         c.queues = queues
