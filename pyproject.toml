@@ -52,6 +52,7 @@ pandas = "^2.2.0"
 h5py = "^3.10.0"
 coverage = { version = "^7.4.4", extras = ["toml"] }
 pytest-cov = "^5.0.0"
+pytest-mock = "^3.14.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"

@@ -29,6 +29,9 @@ from br2_vision.cv2_custom.transformation import flat_color, scale_image
 class CameraOpticalFlow:
     """
     Optical Flow and Point Detection Module
+
+    Given a video and list of FlowQueue, this module calculates the optical flow
+    and save the trajectory of the points in the dataset.
     """
 
     # Configuration: Corner detection
@@ -76,39 +79,43 @@ class CameraOpticalFlow:
 
     def run(self, debug=False):
         """
-        Group queues to inquiry
-        Inquiry: collection of queues with same start_frame
+        For all queues:
+            Run optical flow from start_frame to end_frame
+            If there are other queue with the same start_frame and end_frame, group them, run together (inquiry)
+        debug mode: dry run
         """
 
         # Group queues
-        indices = list(range(len(self.flow_queues)))
+        indices = [i for i in range(len(self.flow_queues)) if not self.flow_queues[i].done]
         while indices:
-            inquiry = [indices[0]]
-            start_frame = self.flow_queues[inquiry[0]].start_frame
-            end_frame = self.flow_queues[inquiry[0]].end_frame
-            for i in indices:
+            base_index = indices[0]
+            inquiry = [base_index]
+            start_frame = self.flow_queues[base_index].start_frame
+            end_frame = self.flow_queues[base_index].end_frame
+
+            # Collect all queues with same start_frame and end_frame
+            for i in indices[1:]:
                 q = self.flow_queues[i]
                 if q.start_frame == start_frame and q.end_frame == end_frame:
                     inquiry.append(i)
-            indices = [i for i in indices if i not in inquiry]
+            [indices.remove(i) for i in inquiry]
+
             if debug:
-                print(f"Start: {start_frame}, End: {end_frame}, Inquiry: {inquiry}")
+                print(f"Dry Run: Start: {start_frame}, End: {end_frame}, Inquiry: {inquiry}")
                 for i in inquiry:
                     print("  ", self.flow_queues[i])
                 continue
 
             # Run inquiry
             data_collection, _ = self.next_inquiry(inquiry, start_frame, end_frame)
+            # TODO: collect errors and save as well
 
             # Save
             for i in inquiry:
                 q = self.flow_queues[i]
                 data = data_collection[i]
                 self.dataset.save_pixel_flow_trajectory(data, q, self.num_frames)
-
-        # DEBUG
-        # check if all queue.done
-        assert all([q.done for q in self.flow_queues])
+                q.done = True
 
     def get_points_in_order(self, keys):
         points = []
