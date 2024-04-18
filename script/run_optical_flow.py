@@ -9,7 +9,7 @@ import numpy as np
 
 import br2_vision
 from br2_vision.utility.logging import config_logging, get_script_logger
-from br2_vision.data import MarkerPositions, TrackingData, FlowQueue
+from br2_vision.data_structure import MarkerPositions, TrackingData, FlowQueue
 from br2_vision.optical_flow import CameraOpticalFlow
 
 import click

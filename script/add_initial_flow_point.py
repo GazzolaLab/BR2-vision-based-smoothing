@@ -12,7 +12,7 @@ import click
 
 import br2_vision
 from br2_vision.utility.logging import config_logging, get_script_logger
-from br2_vision.data import MarkerPositions, TrackingData, FlowQueue
+from br2_vision.data_structure import MarkerPositions, TrackingData, FlowQueue
 from br2_vision.cv2_custom.marking import cv2_draw_label
 from br2_vision.cv2_custom.transformation import scale_image
 from br2_vision.qt_custom.label_prompt import LabelPrompt

@@ -10,7 +10,7 @@ from dash import Dash, dcc, html, Input, Output, callback, State
 import br2_vision
 from br2_vision.utility.logging import config_logging, get_script_logger
 from br2_vision.cv2_custom.extract_info import get_video_frame_count
-from br2_vision.data import MarkerPositions, TrackingData, FlowQueue
+from br2_vision.data_structure import MarkerPositions, TrackingData, FlowQueue
 
 import click
 
