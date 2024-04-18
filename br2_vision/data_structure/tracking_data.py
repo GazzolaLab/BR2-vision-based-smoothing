@@ -226,7 +226,7 @@ class TrackingData:
         Initialize the tracking data object. If file exists, raise error.
         """
         if os.path.exists(path):
-            raise RuntimeError(f"File already exists: {path}. Please use 'load' method. instead")
+            return cls.load(path)
         return cls(path, marker_positions)
 
     @classmethod
