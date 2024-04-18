@@ -240,6 +240,7 @@ class TrackingData:
             for vals in dset[...].tolist():
                 # Convert to FlowQueue datatype
                 vals = list(vals)
+                vals[0] = tuple(vals[0][i] for i in range(2))
                 vals[5] = vals[5].decode()
                 fq = FlowQueue(*vals)
                 queues.append(fq)
