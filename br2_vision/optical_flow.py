@@ -269,7 +269,7 @@ class CameraOpticalFlow:
                 )
                 text_img = cv2.warpAffine(
                     text_img,
-                    cv2.getRotationMatrix2D((a, b), 30, 1),  # rotate 30degree
+                    cv2.getRotationMatrix2D((a, b), 20, 1),  # rotate 30degree
                     (frame.shape[1], frame.shape[0]),
                 )
                 frame = cv2.add(frame, text_img)

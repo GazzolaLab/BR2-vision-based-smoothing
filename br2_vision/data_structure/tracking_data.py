@@ -43,7 +43,7 @@ class FlowQueue:
         ("end_frame", "<i4"),
         ("camera", "<i4"),
         ("z_index", "<i4"),
-        ("label", "U10"),
+        ("label", "S10"),
         ("done", "?"),
     ]
 
@@ -108,6 +108,12 @@ class FlowQueue:
         label = self.label  #.decode("utf-8")
         return f"z{z_index}-{label}"
 
+def raise_if_outside_context(method):  # pragma: no cover
+    def decorator(self, *args, **kwargs):
+        if not self._inside_context:
+            raise Exception("This method should be called from inside context.")
+        return method(self, *args, **kwargs)
+    return decorator
 
 class TrackingData:
     """
@@ -120,6 +126,8 @@ class TrackingData:
         self.marker_positions = marker_positions
 
         self.logger = get_script_logger(os.path.basename(__file__))
+
+        self._inside_context = False
 
     @property
     def all_done(self):
@@ -168,7 +176,6 @@ class TrackingData:
                 dset[...] = data
             else:
                 dset[flow_queue.start_frame : flow_queue.end_frame] = data
-        flow_queue.done = True
 
     def load_pixel_flow_trajectory(
         self, flow_queue: FlowQueue, prefix="xy", full_trajectory=False
@@ -215,8 +222,11 @@ class TrackingData:
 
     @classmethod
     def initialize(cls, path, marker_positions):
+        """
+        Initialize the tracking data object. If file exists, raise error.
+        """
         if os.path.exists(path):
-            return cls.load(path)
+            raise RuntimeError(f"File already exists: {path}. Please use 'load' method. instead")
         return cls(path, marker_positions)
 
     @classmethod
@@ -234,7 +244,7 @@ class TrackingData:
 
     def create_template(self):
         """
-        Data Structure:
+        Initialize data structure.
         """
         with h5py.File(self.path, "w") as h5f:
             dset = h5f.create_dataset(
@@ -251,6 +261,7 @@ class TrackingData:
         """
         if not os.path.exists(self.path):
             self.create_template()
+        self._inside_context = True
         return self
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
@@ -262,6 +273,7 @@ class TrackingData:
             dset.resize((len(self.queues),))
             for idx, q in enumerate(self.queues):
                 dset[idx] = np.array(q)
+        self._inside_context = False
 
     def append(self, value):
         # if same value is already in the list, replace values
@@ -274,6 +286,9 @@ class TrackingData:
     def get_flow_queues(
         self, camera=None, start_frame=None, force_run_all: bool = False, tag=None
     ):
+        """
+        General filter method
+        """
         ret = []
         for queue in self.queues:
             # Filter
