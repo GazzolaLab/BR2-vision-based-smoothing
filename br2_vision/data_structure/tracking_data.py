@@ -240,7 +240,7 @@ class TrackingData:
             for vals in dset[...].tolist():
                 # Convert to FlowQueue datatype
                 vals = list(vals)
-                vals[5] = str(vals[5].decode("utf-8"))
+                vals[6] = str(vals[6], encoding="utf-8")
                 fq = FlowQueue(*vals)
                 queues.append(fq)
 
