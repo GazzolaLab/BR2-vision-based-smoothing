@@ -165,14 +165,14 @@ class CameraOpticalFlow:
             points[k] = self.p[k]
         return points
 
-    def draw_points(self, frame, points, radius=8, color=(0, 235, 0), thickness=-1):
+    def draw_points(self, frame, points, radius=8, color=(0, 235, 0), thickness=-1):  # pragma: no cover
         # draw the points (overlay)
         for i, point in enumerate(points):
             a, b = point.ravel()
             a, b = int(a), int(b)
             frame[:] = cv2.circle(frame, (a, b), radius, color, thickness)
 
-    def draw_track(self, mask, p0, p1, color=(0, 235, 0)):
+    def draw_track(self, mask, p0, p1, color=(0, 235, 0)):  # pragma: no cover
         # draw the tracks (overlay)
         for i, (new, old) in enumerate(zip(p1, p0)):
             a, b = new.ravel()
@@ -201,7 +201,7 @@ class CameraOpticalFlow:
         cv2.waitKey(0)
         # cv2.destroyAllWindows()
 
-    def render_tracking_video(self, save_path, queues=None):
+    def render_tracking_video(self, save_path, queues=None):  # pragma: no cover
         """save_tracking_video
 
         Parameters
@@ -245,11 +245,9 @@ class CameraOpticalFlow:
             for qid, (new, old) in enumerate(zip(good_new, good_old)):
                 tag = queues[qid].get_tag()
                 a, b = new.ravel()
-                a = int(a)
-                b = int(b)
+                a, b = int(a), int(b)
                 c, d = old.ravel()
-                c = int(c)
-                d = int(d)
+                c, d = int(c), int(d)
                 if (a <= 5 and b <= 5) or (c <= 5 and d <= 5):
                     continue
                 mask = cv2.line(
@@ -258,8 +256,10 @@ class CameraOpticalFlow:
                 frame = cv2.circle(
                     frame, (a, b), 11, CameraOpticalFlow._color[qid].tolist(), -1
                 )
+
+                text_img = np.zeros_like(frame)
                 cv2.putText(
-                    frame,
+                    text_img,
                     tag,
                     (a, b + 25),
                     fontFace=cv2.FONT_HERSHEY_SIMPLEX,
@@ -267,6 +267,12 @@ class CameraOpticalFlow:
                     color=(255, 255, 255),
                     lineType=2,
                 )
+                text_img = cv2.warpAffine(
+                    text_img,
+                    cv2.getRotationMatrix2D((a, b), 30, 1),  # rotate 30degree
+                    (frame.shape[1], frame.shape[0]),
+                )
+                frame = cv2.add(frame, text_img)
 
             img = cv2.add(frame, mask)
             writer.write(img)
@@ -274,7 +280,8 @@ class CameraOpticalFlow:
         # cv2.destroyAllWindows()
         writer.release()
 
-    def next_inquiry(self, inquiry, stime, etime, debug=False):
+    # It is excluded from coverage test: code is mostly based on cv2. 
+    def next_inquiry(self, inquiry, stime, etime, debug=False):  # pragma: no cover
         num_queue = len(inquiry)
         # initialize data_collection: -1
         data_length = etime - stime
@@ -333,5 +340,5 @@ class CameraOpticalFlow:
             p0 = p1.reshape(-1, 1, 2)
 
         cap.release()
-        # cv2.destroyAllWindows()
+        cv2.destroyAllWindows()
         return data_collection, errors
