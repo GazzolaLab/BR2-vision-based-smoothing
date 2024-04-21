@@ -156,6 +156,22 @@ class TrackingData:
         Save trajectory in h5 file
         - Create (if doesn't exist) directory: /trajectory/camera_{cid}/z_{z_index}/label_{label}
         - Save data in the directory
+
+        Shape of data is expected to be (N, 2).
+        N is the number of frames for the flow queue.
+        If full_trajectory is True, N is the total number of frames in the video.
+
+        Parameters:
+        -----------
+        data: np.ndarray
+            Trajectory data
+        flow_queue: FlowQueue
+        size: int
+        prefix: str
+            (default: "xy")
+        full_trajectory: bool
+            Save full trajectory if True, otherwise save only the trajectory between start_frame and end_frame.
+            (default: False)
         """
         # Create directory
         with h5py.File(self.path, "a") as h5f:
@@ -195,7 +211,7 @@ class TrackingData:
             if full_trajectory:
                 return np.array(dset, dtype=np.int_)
             else:
-                return dset[flow_queue.start_frame : flow_queue.end_frame]
+                return np.array(dset[flow_queue.start_frame : flow_queue.end_frame], dtype=np.int_)
 
     @raise_if_outside_context
     def trim_trajectory(
