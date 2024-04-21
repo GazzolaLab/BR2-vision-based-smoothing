@@ -326,7 +326,7 @@ class TrackingData:
             # Filter
             if camera is not None and queue.camera != camera:
                 continue
-            if start_frame is not None and queue.start_frame < start_frame:
+            if start_frame is not None and queue.start_frame != start_frame:
                 continue
             if tag is not None and queue.get_tag() != tag:
                 continue

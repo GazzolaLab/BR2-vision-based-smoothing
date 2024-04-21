@@ -11,8 +11,8 @@ def mock_flow_queues():
     return [
         FlowQueue((0, 0), 0, 0, 0, 0, "A", False),
         FlowQueue((10, 10), 10, 50, 1, 0, "B", True),
-        FlowQueue((10, 10), 0, 10, 2, 0, "C", False),
-        FlowQueue((10, 10), 0, 10, 3, 0, "D", False),
+        FlowQueue((10, 10), 0, 10, 2, 1, "C", False),
+        FlowQueue((10, 10), 0, 10, 3, 2, "D", False),
     ]
 
 def test_initialization_and_cache(mocker, tmp_path, mock_flow_queues):
@@ -41,6 +41,16 @@ def test_initialization_and_cache(mocker, tmp_path, mock_flow_queues):
         # !! this initialize is not a constructor but calls from cache.
         # Therefore, marker_positions is not None.
         assert cls.marker_positions == marker_positions 
+
+def test_load_and_match_queue_tags(tmp_path, mock_flow_queues):
+    cache_path = tmp_path / "cache_tracking_data.h5"
+    marker_positions = MarkerPositions([], {})
+    cls = TrackingData.initialize(cache_path, marker_positions)
+    with cls:
+        for _queue in mock_flow_queues:
+            cls.append(_queue)
+    for cls_q, mock_q in zip(cls.queues, mock_flow_queues):
+        assert cls_q.get_tag() == mock_q.get_tag()
 
 def test_done_checker(mocker, tmp_path, mock_flow_queues):
     cache_path = tmp_path / "cache_tracking_data.h5"
@@ -201,3 +211,37 @@ def test_trim_trajectory(tmp_path, mock_flow_queues):
         assert q[2] == 40
         assert str(q[5], "utf-8") == 'B'
 
+def test_flow_queue_query(tmp_path, mock_flow_queues):
+    cache_path = tmp_path / "cache_tracking_data.h5"
+    marker_positions = MarkerPositions([], {})
+
+    cls = TrackingData.initialize(cache_path, marker_positions)
+    with cls:
+        for _queue in mock_flow_queues:
+            cls.append(_queue)
+
+    # Test query : by default, query non-done queues
+    with cls:
+        assert cls.get_flow_queues() == [queue for queue in mock_flow_queues if not queue.done]
+
+    # Test query by camera
+    with cls:
+        assert cls.get_flow_queues(camera=0) == [mock_flow_queues[0]]
+        assert cls.get_flow_queues(camera=1) == []
+        assert cls.get_flow_queues(camera=1, force_run_all=True) == [mock_flow_queues[1]]
+        assert cls.get_flow_queues(camera=2) == [mock_flow_queues[2]]
+        assert cls.get_flow_queues(camera=3) == [mock_flow_queues[3]]
+
+    # Test query by start_frame
+    with cls:
+        assert cls.get_flow_queues(start_frame=0) == [mock_flow_queues[0], mock_flow_queues[2], mock_flow_queues[3]]
+        assert cls.get_flow_queues(start_frame=10) == []
+        assert cls.get_flow_queues(start_frame=10, force_run_all=True) == [mock_flow_queues[1]]
+
+    # Test query by tag
+    with cls:
+        assert cls.get_flow_queues(tag="z0-A") == [mock_flow_queues[0]]
+        assert cls.get_flow_queues(tag="z0-B") == []
+        assert cls.get_flow_queues(tag="z0-B", force_run_all=True) == [mock_flow_queues[1]]
+        assert cls.get_flow_queues(tag="z1-C") == [mock_flow_queues[2]]
+        assert cls.get_flow_queues(tag="z2-D") == [mock_flow_queues[3]]
