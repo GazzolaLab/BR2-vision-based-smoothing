@@ -130,15 +130,20 @@ class TrackingData:
         self._inside_context = False
 
     @property
+    @raise_if_outside_context
     def all_done(self):
+        if len(self.queues) == 0:
+            return True
         return all([q.done for q in self.queues])
 
+    @raise_if_outside_context
     def iter_cameras(self):
         # Get unique camera id
         cameras = set([q.camera for q in self.queues])
         # return sorted list
         return sorted(cameras)
 
+    @raise_if_outside_context
     def save_pixel_flow_trajectory(
         self,
         data: np.ndarray,
@@ -177,6 +182,7 @@ class TrackingData:
             else:
                 dset[flow_queue.start_frame : flow_queue.end_frame] = data
 
+    @raise_if_outside_context
     def load_pixel_flow_trajectory(
         self, flow_queue: FlowQueue, prefix="xy", full_trajectory=False
     ):
@@ -191,6 +197,7 @@ class TrackingData:
             else:
                 return dset[flow_queue.start_frame : flow_queue.end_frame]
 
+    @raise_if_outside_context
     def trim_trajectory(
         self,
         tag: str,
@@ -223,7 +230,7 @@ class TrackingData:
     @classmethod
     def initialize(cls, path, marker_positions):
         """
-        Initialize the tracking data object. If file exists, raise error.
+        Initialize the tracking data object.
         """
         if os.path.exists(path):
             return cls.load(path)
@@ -244,11 +251,12 @@ class TrackingData:
                 vals[5] = vals[5].decode()
                 fq = FlowQueue(*vals)
                 queues.append(fq)
-
+        # Reset parameters
         c = cls(path, marker_positions=marker_positions)
         c.queues = queues
         return c
 
+    @raise_if_outside_context
     def create_template(self):
         """
         Initialize data structure.
@@ -266,9 +274,9 @@ class TrackingData:
         """
         If file at self.path does not exist, create one.
         """
+        self._inside_context = True
         if not os.path.exists(self.path):
             self.create_template()
-        self._inside_context = True
         return self
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
@@ -282,7 +290,8 @@ class TrackingData:
                 dset[idx] = np.array(q)
         self._inside_context = False
 
-    def append(self, value):
+    @raise_if_outside_context
+    def append(self, value: FlowQueue):
         # if same value is already in the list, replace values
         if value in self.queues:
             idx = self.queues.index(value)
@@ -290,6 +299,7 @@ class TrackingData:
         else:
             self.queues.append(value)
 
+    @raise_if_outside_context
     def get_flow_queues(
         self, camera=None, start_frame=None, force_run_all: bool = False, tag=None
     ):
