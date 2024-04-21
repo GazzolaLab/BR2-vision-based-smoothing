@@ -211,18 +211,17 @@ class TrackingData:
 
         # find queue with matching tag
         for q in self.queues:
-            if q.get_tag() == tag:
-                # set end-frame to be the frame
-                q.end_frame = frame
-
+            if q.get_tag() == tag and frame >= q.start_frame and frame <= q.end_frame:
                 # load trajectory
                 trajectory = self.load_pixel_flow_trajectory(
                     q, prefix=prefix, full_trajectory=True
                 )
                 if reverse:
                     trajectory[:frame] = -1
+                    q.start_frame = frame
                 else:
                     trajectory[frame:] = -1
+                    q.end_frame = frame
                 self.save_pixel_flow_trajectory(
                     trajectory, q, len(trajectory), prefix=prefix, full_trajectory=True
                 )
