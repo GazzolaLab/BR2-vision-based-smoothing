@@ -104,7 +104,7 @@ def zoomed_inquiry(current_frame, uv, scale=5.0, disp_h=80, disp_w=80):
     x = int(_uv[0] / scale) + x - disp_w // 2
     y = int(_uv[1] / scale) + y - disp_h // 2
 
-    return np.array([x, y], dtype=int)
+    return np.array([x, y], dtype=np.int_)
 
 
 # Mouse Handle
@@ -118,11 +118,11 @@ def mouse_event_click_point(event, x, y, flags, param):
     old_marker_label = param["old_marker_label"]
     bypass_inquiry = flags & cv2.EVENT_FLAG_CTRLKEY
     if event == cv2.EVENT_LBUTTONDOWN:
-        point = np.array([x, y], dtype=np.int32).reshape([1, 2])
+        point = np.array([x, y], dtype=np.int_).tolist()
     elif event == cv2.EVENT_RBUTTONDOWN:
         # Second zoom-layer selection
         uv = zoomed_inquiry(param["frame"], np.array([x, y]))
-        point = uv.astype(np.int32)
+        point = uv.tolist()
     else:
         return
 
