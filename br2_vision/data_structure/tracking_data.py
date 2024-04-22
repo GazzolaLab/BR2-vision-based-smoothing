@@ -209,7 +209,7 @@ class TrackingData:
             grp = h5f[flow_queue.h5_directory]
             dset = grp[prefix]
             if full_trajectory:
-                return np.array(dset, dtype=np.int_)
+                return np.array(dset[:], dtype=np.int_)
             else:
                 return np.array(dset[flow_queue.start_frame : flow_queue.end_frame], dtype=np.int_)
 
@@ -229,18 +229,18 @@ class TrackingData:
         for q in self.queues:
             if q.get_tag() == tag and frame >= q.start_frame and frame <= q.end_frame:
                 # load trajectory
+                relative_frame = frame - q.start_frame
                 trajectory = self.load_pixel_flow_trajectory(
-                    q, prefix=prefix, full_trajectory=True
+                    q, prefix=prefix,
                 )
                 if reverse:
-                    trajectory[:frame] = -1
+                    trajectory[:relative_frame] = -1
+                    self.save_pixel_flow_trajectory(trajectory, q, len(trajectory), prefix=prefix,)
                     q.start_frame = frame
                 else:
-                    trajectory[frame:] = -1
+                    trajectory[relative_frame:] = -1
+                    self.save_pixel_flow_trajectory(trajectory, q, len(trajectory), prefix=prefix,)
                     q.end_frame = frame
-                self.save_pixel_flow_trajectory(
-                    trajectory, q, len(trajectory), prefix=prefix, full_trajectory=True
-                )
 
     @classmethod
     def initialize(cls, path, marker_positions):
