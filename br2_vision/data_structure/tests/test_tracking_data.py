@@ -24,20 +24,23 @@ def test_initialization_and_cache(mocker, tmp_path, mock_flow_queues):
     cls = TrackingData.initialize(cache_path, marker_positions)
     spy_file_create = mocker.spy(cls, "create_template")
     with cls:
+        for _queue in mock_flow_queues:
+            cls.append(_queue)
         assert cls.path == cache_path
         assert cls.marker_positions == marker_positions
-        assert cls.queues == []
-        assert cls._inside_context
+        assert cls.queues == mock_flow_queues
+        assert cls._inside_context == True
         assert spy_file_create.called
         assert spy_mocker_h5_create.called
     assert not cls._inside_context
     assert cache_path.exists()
+    assert cls._inside_context == False
     
     with h5py.File(cache_path, "r") as h5f:
         assert "marker_positions" in h5f
 
     with TrackingData.initialize(cache_path, None) as cls:
-        assert cls.queues == []
+        assert cls.queues == mock_flow_queues
         # !! this initialize is not a constructor but calls from cache.
         # Therefore, marker_positions is not None.
         assert cls.marker_positions == marker_positions 
