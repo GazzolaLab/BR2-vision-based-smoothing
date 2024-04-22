@@ -335,7 +335,6 @@ def main(tag, cam_id, run_id, glob_run_id, start_frame, end_frame, verbose, dry)
             # print(f"{len(dataset.get_flow_queues(camera=cam_id))=}")
             for label, point in zip(marker_label, points):
                 point = tuple([int(v) for v in point])
-                assert label[0].isnumeric()
                 flow_queue = FlowQueue(
                     point, start_frame, _end_frame, cam_id, int(label[0]), label[1]
                 )
@@ -343,7 +342,6 @@ def main(tag, cam_id, run_id, glob_run_id, start_frame, end_frame, verbose, dry)
             if run_id[0] == rid:  # TODO: fix this!!
                 for label, point in zip(old_marker_label, old_points):
                     point = tuple([int(v) for v in point])
-                    assert label[0].isnumeric()
                     flow_queue = FlowQueue(
                         point, start_frame, _end_frame, cam_id, int(label[0]), label[1]
                     )
