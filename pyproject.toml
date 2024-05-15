@@ -31,6 +31,8 @@ interpolate_poses = 'script.process_dlt:process_dlt'
 
 overlay_framemark = 'script.overlay_framemark:process'
 
+overlay_framemark = 'script.overlay_framemark:process'
+
 [tool.poetry.dependencies]
 python = "^3.9,<3.12"
 pytest = "^7.4.0"

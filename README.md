@@ -172,3 +172,8 @@ python data_augment_cross_section.py
 python overlay_smoothing.py
 ```
 
+### Miscellaneous tools
+
+We provide other CLI video processing tools for convenience. Check out `--help` to see the options.
+
+- overlay_framemark
