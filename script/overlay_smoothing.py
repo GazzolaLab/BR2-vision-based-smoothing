@@ -66,7 +66,8 @@ print(list(smoothed_data.keys()))
 print(f"{smoothed_file_name=}")
 
 # Read Experiment Data
-exp_data = np.load(PREPROCESSED_POSITION_PATH.format(RUNID), allow_pickle=True)
+preproc_file_path = config["PATHS"]["position_data_path"].format(tag, run_id)
+exp_data = np.load(preproc_file_path, allow_pickle=True)
 exp_time = np.array(exp_data["time"])
 exp_time = exp_time[exp_time < smoothed_time.max()]
 
