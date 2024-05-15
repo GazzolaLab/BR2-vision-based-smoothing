@@ -32,7 +32,7 @@ interpolate_poses = 'script.process_dlt:process_dlt'
 overlay_framemark = 'script.overlay_framemark:process'
 
 [tool.poetry.dependencies]
-python = "^3.9,<3.11"
+python = "^3.9,<=3.11"
 pytest = "^7.4.0"
 pyelastica = "^0.3.1.post1"
 opencv-python = "^4.0"
