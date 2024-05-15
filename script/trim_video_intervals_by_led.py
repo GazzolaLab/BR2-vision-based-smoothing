@@ -25,7 +25,7 @@ def get_led_state(frame, roi, led_threshold):
     average_color = crop.mean(axis=0).mean(axis=0)
 
     # LED Threshold
-    #new_state = np.linalg.norm(average_color) > np.linalg.norm(led_threshold)
+    # new_state = np.linalg.norm(average_color) > np.linalg.norm(led_threshold)
     new_state = average_color[2] > led_threshold
     return new_state, average_color
 
@@ -54,7 +54,14 @@ def export(input_path, output_path, start_stamp, end_stamp):
     default=60,
     help="Frames per seconds (default=60). Make sure it matches the orignal framerate of the video.",
 )
-@click.option("-r", "--run-id", type=int, default=0, help="Run index given in file", show_default=True)
+@click.option(
+    "-r",
+    "--run-id",
+    type=int,
+    default=0,
+    help="Run index given in file",
+    show_default=True,
+)
 @click.option(
     "-tr",
     "--trailing-frames",
@@ -214,6 +221,7 @@ def process(
         plt.ylabel("LED Color")
         plt.savefig(working_dir + f"/led_color_cam{cam_id[i]}.png")
         plt.close()
+        plt.axhline(led_threshold, color="red", label="Threshold", linestyle="--")
 
 
 if __name__ == "__main__":

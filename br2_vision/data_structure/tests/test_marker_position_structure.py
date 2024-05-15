@@ -5,7 +5,7 @@ import numpy as np
 import h5py
 import yaml
 import pathlib
-from br2_vision.data import MarkerPositions
+from br2_vision.data_structure import MarkerPositions
 
 
 class TestVariables:

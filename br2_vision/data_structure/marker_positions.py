@@ -101,7 +101,12 @@ class MarkerPositions(DataclassYamlSaveLoadMixin):
         """
         Load marker positions from h5 file.
         """
+        if not Path(path).exists():
+            raise FileNotFoundError(f"No h5 file to load marker position: {path}")
+
         with h5py.File(path, "r") as h5f:
+            if "marker_positions" not in h5f:
+                raise KeyError(f"marker_positions not in h5 file: {path}")
             grp: h5py.Group = h5f["marker_positions"]
 
             # Load data and create object
@@ -138,7 +143,7 @@ class MarkerPositions(DataclassYamlSaveLoadMixin):
                 grp.attrs["origin"] = self_data["origin"]
                 grp.attrs["marker_direction"] = self_data["marker_direction"]
                 grp.attrs["normal_direction"] = self_data["normal_direction"]
-                grp.attrs["tags"] = np.array(list(self.tags), dtype="S50")
+                grp.attrs["tags"] = list(self.tags)#, dtype="<U1")
 
                 grp.create_dataset(
                     "marker_center_offset",

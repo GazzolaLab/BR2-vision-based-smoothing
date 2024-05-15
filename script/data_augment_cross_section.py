@@ -11,6 +11,7 @@ from br2_vision.utility.logging import config_logging, get_script_logger
 
 import click
 
+
 @click.command()
 @click.option(
     "-t",
@@ -23,6 +24,7 @@ def main(tag, runid, n_ring):
     config = br2_vision.load_config()
     config_logging(verbose)
     logger = get_script_logger(os.path.basename(__file__))
+
     # Read DLT Point Data
 
     file_path = config["PATHS"]["position_data_path"].format(tag, run_id)

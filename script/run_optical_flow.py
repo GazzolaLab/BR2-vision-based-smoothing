@@ -9,7 +9,7 @@ import numpy as np
 
 import br2_vision
 from br2_vision.utility.logging import config_logging, get_script_logger
-from br2_vision.data import MarkerPositions, TrackingData, FlowQueue
+from br2_vision.data_structure import MarkerPositions, TrackingData, FlowQueue
 from br2_vision.optical_flow import CameraOpticalFlow
 
 import click
@@ -29,16 +29,16 @@ import click
     help="Specify run index. Initial points are saved for all specified run-ids.",
     multiple=True,
 )
-@click.option(
-    "--force-run-all",
-    is_flag=True,
-    type=bool,
-    help="Ignore the pre-run data, and re-run optical flow on all flow-queues.",
-    default=False,
-)
+#@click.option(
+#    "--force-run-all",
+#    is_flag=True,
+#    type=bool,
+#    help="Ignore the pre-run data, and re-run optical flow on all flow-queues.",
+#    default=False,
+#)
 @click.option("-v", "--verbose", is_flag=True, help="Verbose mode.")
 @click.option("-d", "--dry", is_flag=True, help="Dry run.")
-def main(tag, run_id, force_run_all, verbose, dry):
+def main(tag, run_id, verbose, dry):
     config = br2_vision.load_config()
     config_logging(verbose)
     logger = get_script_logger(os.path.basename(__file__))
@@ -50,8 +50,10 @@ def main(tag, run_id, force_run_all, verbose, dry):
         with TrackingData.load(path=datapath) as dataset:
             for cid in dataset.iter_cameras():
                 queues: List[FlowQueue] = dataset.get_flow_queues(
-                    camera=cid, force_run_all=force_run_all
+                    camera=cid, 
                 )
+                print(f"camera: {cid} | Optical flow run on:")
+                [print("    ", q) for q in queues]
 
                 video_path = config["PATHS"]["footage_video_path"].format(tag, cid, rid)
 

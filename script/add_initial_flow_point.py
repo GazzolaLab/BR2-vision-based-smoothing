@@ -1,7 +1,9 @@
 import os, sys
 import numpy as np
 import pathlib
+import glob
 import cv2
+import re
 import matplotlib.pyplot as plt
 
 from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QInputDialog
@@ -10,7 +12,7 @@ import click
 
 import br2_vision
 from br2_vision.utility.logging import config_logging, get_script_logger
-from br2_vision.data import MarkerPositions, TrackingData, FlowQueue
+from br2_vision.data_structure import MarkerPositions, TrackingData, FlowQueue
 from br2_vision.cv2_custom.marking import cv2_draw_label
 from br2_vision.cv2_custom.transformation import scale_image
 from br2_vision.qt_custom.label_prompt import LabelPrompt
@@ -102,7 +104,7 @@ def zoomed_inquiry(current_frame, uv, scale=5.0, disp_h=80, disp_w=80):
     x = int(_uv[0] / scale) + x - disp_w // 2
     y = int(_uv[1] / scale) + y - disp_h // 2
 
-    return np.array([x, y], dtype=int)
+    return np.array([x, y], dtype=np.int_)
 
 
 # Mouse Handle
@@ -116,11 +118,11 @@ def mouse_event_click_point(event, x, y, flags, param):
     old_marker_label = param["old_marker_label"]
     bypass_inquiry = flags & cv2.EVENT_FLAG_CTRLKEY
     if event == cv2.EVENT_LBUTTONDOWN:
-        point = np.array([x, y], dtype=np.int32).reshape([1, 2])
+        point = np.array([x, y], dtype=np.int_).tolist()
     elif event == cv2.EVENT_RBUTTONDOWN:
         # Second zoom-layer selection
         uv = zoomed_inquiry(param["frame"], np.array([x, y]))
-        point = uv.astype(np.int32)
+        point = uv.tolist()
     else:
         return
 
@@ -171,7 +173,7 @@ def frame_label(
     help="Experiment tag. Path ./tag should exist.",
 )
 @click.option(
-    "-c", "--cam-id", type=int, help="Camera index given in file.", multiple=True
+    "-c", "--cam-id", type=int, help="Camera index given in file."
 )
 @click.option(
     "-r",
@@ -181,6 +183,13 @@ def frame_label(
     multiple=True,
 )
 @click.option(
+    "--glob-run-id",
+    type=bool,
+    default=False,
+    is_flag=True,
+    help="If specified, use all run-ids in the directory. If specified, --run-id is ignored.",
+)
+@click.option(
     "-ss", "--start-frame", type=int, help="Start frame.", default=0, show_default=True
 )
 @click.option(
@@ -188,13 +197,25 @@ def frame_label(
 )
 @click.option("-v", "--verbose", is_flag=True, help="Verbose mode.")
 @click.option("-d", "--dry", is_flag=True, help="Dry run.")
-def main(tag, cam_id, run_id, start_frame, end_frame, verbose, dry):
+def main(tag, cam_id, run_id, glob_run_id, start_frame, end_frame, verbose, dry):
     app = QApplication(sys.argv)  # Initialize Q application
 
     config = br2_vision.load_config()
     config_logging(verbose)
     logger = get_script_logger(os.path.basename(__file__))
     scale = float(config["DIMENSION"]["scale_video"])
+
+    if glob_run_id:
+        candidates = pathlib.Path(".").glob(config["PATHS"]["footage_video_path"].format(tag, cam_id, "*"))
+        #candidates = glob.glob(config["PATHS"]["footage_video_path"].format(tag, cam_id, "*"))
+        pattern = config["PATHS"]["footage_video_path"].format(tag, cam_id, "(\d+)")
+        run_id = []
+        for candidate in candidates:
+            rr = re.search(pattern, candidate.as_posix())
+            if rr is None:
+                continue
+            rid = int(rr.group(1))
+            run_id.append(rid)
 
     if len(run_id) > 1 and start_frame != 0:
         logger.error("Start frame is only supported for single run_id.")
@@ -218,102 +239,111 @@ def main(tag, cam_id, run_id, start_frame, end_frame, verbose, dry):
     color = np.random.randint(0, 235, (100, 3)).astype(int)
 
     # Path
-    for cid in cam_id:
-        video_path = config["PATHS"]["footage_video_path"].format(tag, cid, run_id[0])
-        assert os.path.exists(video_path), f"Video not found: {video_path}."
-        initial_point_file = config["PATHS"]["tracing_data_path"].format(tag, run_id[0])
+    video_path = config["PATHS"]["footage_video_path"].format(tag, cam_id, run_id[0])
+    assert os.path.exists(video_path), f"Video not found: {video_path}."
+    initial_point_file = config["PATHS"]["tracing_data_path"].format(tag, run_id[0])
 
-        with TrackingData.initialize(
-            path=initial_point_file, marker_positions=marker_positions
-        ) as dataset:
-            flow_queues = dataset.get_flow_queues(camera=cid, start_frame=start_frame)
-            old_points = [queue.point for queue in flow_queues]  # (N, 2)
-            old_marker_label = [
-                (queue.z_index, queue.label) for queue in flow_queues
-            ]  # (N, 2)
+    with TrackingData.initialize(
+        path=initial_point_file, marker_positions=marker_positions
+    ) as dataset:
+        flow_queues = dataset.get_flow_queues(camera=cam_id, start_frame=start_frame, force_run_all=True)
+        old_points = [queue.point for queue in flow_queues]  # (N, 2)
+        old_marker_label = [
+            (queue.z_index, queue.label) for queue in flow_queues
+        ]  # (N, 2)
 
-        video_name = os.path.basename(video_path)
+    video_name = os.path.basename(video_path)
 
-        # Capture Video
+    # Capture Video
+    cap = cv2.VideoCapture(video_path)
+    video_length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    if start_frame > 0:
+        cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+    ret, curr_frame = cap.read()
+    curr_frame = scale_image(curr_frame, scale)
+
+    assert start_frame < video_length
+
+    marker_label = []
+    points = []
+
+    # TODO: refactor
+    def display():
+        disp_img = curr_frame.copy()
+
+        if len(old_points) > 0:
+            frame_label(
+                disp_img, old_points, old_marker_label, font_color=(0, 255, 0)
+            )
+        if len(points) > 0:
+            frame_label(disp_img, points, marker_label)
+
+        cv2.imshow(video_name, disp_img)
+
+    # First-layer Selection
+    cv2.namedWindow(video_name)
+    cv2.setMouseCallback(
+        video_name,
+        mouse_event_click_point,
+        param={
+            "frame": curr_frame,
+            "points": points,
+            "marker_label": marker_label,
+            "old_marker_label": old_marker_label,
+            "prompt": prompt,
+            "display_func": display,
+        },
+    )
+    while True:
+        display()
+
+        key = cv2.waitKey(1) & 0xFF
+
+        if key == ord("c"):
+            print("done")
+            break
+        elif key == ord("d"):
+            if len(points) > 0:
+                print(f"deleted: {points[-1]} -> {marker_label[-1]}")
+                points.pop(-1)
+                marker_label.pop(-1)
+        elif key == ord("h"):
+            print("check")
+            print(f"preloaded markers: {points=}, {marker_label=}")
+            print(points)
+            print(marker_label)
+            print("")
+            print("c: complete")
+            print("d: delete last point")
+    cv2.destroyAllWindows()
+
+    # Load existing points and marker_label, and append
+    # TODO: Maybe use loaded queue from the beginning
+    for rid in run_id:
+        video_path = config["PATHS"]["footage_video_path"].format(tag, cam_id, rid)
         cap = cv2.VideoCapture(video_path)
         video_length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        if start_frame == -1:
-            start_frame = video_length - 1
+        cap.release()
         if end_frame == -1:
-            end_frame = video_length
-        if start_frame > 0:
-            cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
-        ret, curr_frame = cap.read()
-        curr_frame = scale_image(curr_frame, scale)
+            _end_frame = video_length
 
-        assert start_frame < video_length
-
-        marker_label = []
-        points = []
-
-        # TODO: refactor
-        def display():
-            disp_img = curr_frame.copy()
-
-            if len(old_points) > 0:
-                frame_label(
-                    disp_img, old_points, old_marker_label, font_color=(0, 255, 0)
+        initial_point_file = config["PATHS"]["tracing_data_path"].format(tag, rid)
+        with TrackingData.initialize(
+            path=initial_point_file,
+            marker_positions=marker_positions,
+        ) as dataset:
+            # print(f"{len(dataset.get_flow_queues(camera=cam_id))=}")
+            for label, point in zip(marker_label, points):
+                point = tuple([int(v) for v in point])
+                flow_queue = FlowQueue(
+                    point, start_frame, _end_frame, cam_id, int(label[0]), label[1]
                 )
-            if len(points) > 0:
-                frame_label(disp_img, points, marker_label)
-
-            cv2.imshow(video_name, disp_img)
-
-        # First-layer Selection
-        cv2.namedWindow(video_name)
-        cv2.setMouseCallback(
-            video_name,
-            mouse_event_click_point,
-            param={
-                "frame": curr_frame,
-                "points": points,
-                "marker_label": marker_label,
-                "old_marker_label": old_marker_label,
-                "prompt": prompt,
-                "display_func": display,
-            },
-        )
-        while True:
-            display()
-
-            key = cv2.waitKey(1) & 0xFF
-
-            if key == ord("c"):
-                print("done")
-                break
-            elif key == ord("d"):
-                if len(points) > 0:
-                    print(f"deleted: {points[-1]} -> {marker_label[-1]}")
-                    points.pop(-1)
-                    marker_label.pop(-1)
-            elif key == ord("h"):
-                print("check")
-                print(f"preloaded markers: {points=}, {marker_label=}")
-                print(points)
-                print(marker_label)
-                print("")
-                print("c: complete")
-                print("d: delete last point")
-        cv2.destroyAllWindows()
-
-        # Load existing points and marker_label, and append
-        # TODO: Maybe use loaded queue from the beginning
-        for rid in run_id:
-            initial_point_file = config["PATHS"]["tracing_data_path"].format(tag, rid)
-            with TrackingData.initialize(
-                path=initial_point_file,
-                marker_positions=marker_positions,
-            ) as dataset:
-                # print(f"{len(dataset.get_flow_queues(camera=cid))=}")
-                for label, point in zip(marker_label, points):
-                    point = tuple(point.ravel().tolist())
+                dataset.append(flow_queue)
+            if run_id[0] == rid:  # TODO: fix this!!
+                for label, point in zip(old_marker_label, old_points):
+                    point = tuple([int(v) for v in point])
                     flow_queue = FlowQueue(
-                        point, start_frame, end_frame, cid, label[0], label[1]
+                        point, start_frame, _end_frame, cam_id, int(label[0]), label[1]
                     )
                     dataset.append(flow_queue)
 
@@ -331,19 +361,18 @@ def visualize(tag, cam_id, run_id, config, frame=0):
 
     for rid in run_id:
         with TrackingData.load(path=initial_point_file.format(tag, rid)) as dataset:
-            for cid in cam_id:
-                plt.figure()
-                flow_queues = dataset.get_flow_queues(camera=cid, start_frame=frame)
-                if len(flow_queues) == 0:
-                    continue
-                points = np.array([queue.point for queue in flow_queues])  # (N, 2)
-                plt.scatter(points[:, 0], points[:, 1])
-                plt.title(f"frame {frame}")
-                plt.savefig(
-                    initial_points_dir
-                    / f"initial_points_cam{cid}_run{rid}_frame{frame}.png"
-                )
-                plt.close("all")
+            plt.figure()
+            flow_queues = dataset.get_flow_queues(camera=cam_id, start_frame=frame)
+            if len(flow_queues) == 0:
+                continue
+            points = np.array([queue.point for queue in flow_queues])  # (N, 2)
+            plt.scatter(points[:, 0], points[:, 1])
+            plt.title(f"frame {frame}")
+            plt.savefig(
+                initial_points_dir
+                / f"initial_points_cam{cam_id}_run{rid}_frame{frame}.png"
+            )
+            plt.close("all")
 
 
 if __name__ == "__main__":
