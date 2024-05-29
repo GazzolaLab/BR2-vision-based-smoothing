@@ -211,7 +211,7 @@ class CameraOpticalFlow:
         """
         print("Saving tracing video ...")
 
-        os.makedirs(save_path, exist_ok=True)
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
         if queues is None:
             queues = self.flow_queues
 
