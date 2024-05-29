@@ -69,6 +69,7 @@ def main(tag, run_id, verbose, dry):
                 tracking_overlay_video_path = config["PATHS"][
                     "footage_video_path_with_trace"
                 ].format(tag, cid, rid)
+
                 optical_flow.render_tracking_video(
                     tracking_overlay_video_path, all_queues
                 )
