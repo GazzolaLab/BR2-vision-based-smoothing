@@ -1,6 +1,8 @@
-import os, sys
-import numpy as np
+import os
+import sys
+
 import cv2
+import numpy as np
 
 
 def cv2_draw_cross_indicator(frame, x, y, l, color=(270, 20, 20)):

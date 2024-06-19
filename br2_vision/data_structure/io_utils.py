@@ -1,8 +1,9 @@
-import os
-import yaml
 import dataclasses
+import os
 import pickle
 from collections import OrderedDict
+
+import yaml
 
 
 class DataclassYamlSaveLoadMixin:

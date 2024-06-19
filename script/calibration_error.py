@@ -1,17 +1,14 @@
+import glob
 import os
 import sys
-import glob
-import numpy as np
-import matplotlib.pyplot as plt
-import scipy.stats as sps
-
-from dlt import DLT
-
 from collections import defaultdict
 
+import matplotlib.pyplot as plt
+import numpy as np
+import scipy.stats as sps
 from calibration_point_selection import label_to_3Dcoord
-
 from config import *
+from dlt import DLT
 
 PATH = "data_082421"
 IMAGE_PATH = os.path.join(PATH, "calibration")
@@ -72,7 +69,7 @@ e_y = np.array(e_y)
 e_z = np.array(e_z)
 error_vector = np.array(error_vector)
 
-er = np.sqrt(e_z ** 2 + e_y ** 2 + e_z ** 2)
+er = np.sqrt(e_z**2 + e_y**2 + e_z**2)
 print("Reconstruction Error (m): ", er.mean())
 print(sps.describe(er))
 print("Reconstruction Condition: ", np.mean(condition_numbers))

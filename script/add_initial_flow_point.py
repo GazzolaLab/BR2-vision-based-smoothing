@@ -1,21 +1,21 @@
-import os, sys
-import numpy as np
-import pathlib
 import glob
-import cv2
+import os
+import pathlib
 import re
-import matplotlib.pyplot as plt
-
-from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QInputDialog
+import sys
 
 import click
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
+from PyQt6.QtWidgets import QApplication, QInputDialog, QLineEdit, QPushButton, QWidget
 
 import br2_vision
-from br2_vision.utility.logging import config_logging, get_script_logger
-from br2_vision.data_structure import MarkerPositions, TrackingData, FlowQueue
 from br2_vision.cv2_custom.marking import cv2_draw_label
 from br2_vision.cv2_custom.transformation import scale_image
+from br2_vision.data_structure import FlowQueue, MarkerPositions, TrackingData
 from br2_vision.qt_custom.label_prompt import LabelPrompt
+from br2_vision.utility.logging import config_logging, get_script_logger
 
 
 def on_mouse_zoom(event, x, y, flags, param):
@@ -115,7 +115,6 @@ def mouse_event_click_point(event, x, y, flags, param):
     global prev_tag
     points = param["points"]
     marker_label = param["marker_label"]
-    old_marker_label = param["old_marker_label"]
     bypass_inquiry = flags & cv2.EVENT_FLAG_CTRLKEY
     if event == cv2.EVENT_LBUTTONDOWN:
         point = np.array([x, y], dtype=np.int_).tolist()
@@ -136,15 +135,12 @@ def mouse_event_click_point(event, x, y, flags, param):
             return
     prev_tag = tag
 
-    if tag in old_marker_label:
-        print(f"tag {tag} already exist.")
-    else:
-        points.append(point)
-        marker_label.append(tag)
-        print("added: ")
-        print(point, tag)
+    points.append(point)
+    marker_label.append(tag)
+    print("added: ")
+    print(point, tag)
 
-        param["display_func"]()
+    param["display_func"]()
 
 
 # Draw
@@ -172,9 +168,7 @@ def frame_label(
     type=str,
     help="Experiment tag. Path ./tag should exist.",
 )
-@click.option(
-    "-c", "--cam-id", type=int, help="Camera index given in file."
-)
+@click.option("-c", "--cam-id", type=int, help="Camera index given in file.")
 @click.option(
     "-r",
     "--run-id",
@@ -206,8 +200,10 @@ def main(tag, cam_id, run_id, glob_run_id, start_frame, end_frame, verbose, dry)
     scale = float(config["DIMENSION"]["scale_video"])
 
     if glob_run_id:
-        candidates = pathlib.Path(".").glob(config["PATHS"]["footage_video_path"].format(tag, cam_id, "*"))
-        #candidates = glob.glob(config["PATHS"]["footage_video_path"].format(tag, cam_id, "*"))
+        candidates = pathlib.Path(".").glob(
+            config["PATHS"]["footage_video_path"].format(tag, cam_id, "*")
+        )
+        # candidates = glob.glob(config["PATHS"]["footage_video_path"].format(tag, cam_id, "*"))
         pattern = config["PATHS"]["footage_video_path"].format(tag, cam_id, "(\d+)")
         run_id = []
         for candidate in candidates:
@@ -246,7 +242,9 @@ def main(tag, cam_id, run_id, glob_run_id, start_frame, end_frame, verbose, dry)
     with TrackingData.initialize(
         path=initial_point_file, marker_positions=marker_positions
     ) as dataset:
-        flow_queues = dataset.get_flow_queues(camera=cam_id, start_frame=start_frame, force_run_all=True)
+        flow_queues = dataset.get_flow_queues(
+            camera=cam_id, start_frame=start_frame, force_run_all=True
+        )
         old_points = [queue.point for queue in flow_queues]  # (N, 2)
         old_marker_label = [
             (queue.z_index, queue.label) for queue in flow_queues
@@ -272,9 +270,7 @@ def main(tag, cam_id, run_id, glob_run_id, start_frame, end_frame, verbose, dry)
         disp_img = curr_frame.copy()
 
         if len(old_points) > 0:
-            frame_label(
-                disp_img, old_points, old_marker_label, font_color=(0, 255, 0)
-            )
+            frame_label(disp_img, old_points, old_marker_label, font_color=(0, 255, 0))
         if len(points) > 0:
             frame_label(disp_img, points, marker_label)
 
@@ -289,7 +285,6 @@ def main(tag, cam_id, run_id, glob_run_id, start_frame, end_frame, verbose, dry)
             "frame": curr_frame,
             "points": points,
             "marker_label": marker_label,
-            "old_marker_label": old_marker_label,
             "prompt": prompt,
             "display_func": display,
         },
@@ -319,13 +314,23 @@ def main(tag, cam_id, run_id, glob_run_id, start_frame, end_frame, verbose, dry)
 
     # Load existing points and marker_label, and append
     # TODO: Maybe use loaded queue from the beginning
+    video_lengths = []
     for rid in run_id:
         video_path = config["PATHS"]["footage_video_path"].format(tag, cam_id, rid)
         cap = cv2.VideoCapture(video_path)
         video_length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         cap.release()
+        video_lengths.append(video_length)
+
+    for rid in run_id:
         if end_frame == -1:
-            _end_frame = video_length
+            _end_frame = min(video_lengths)
+        elif end_frame > min(video_lengths):
+            raise ValueError(
+                f"end_frame exceeds 'some' video length: {end_frame} > {min(video_lengths)}"
+            )
+        else:
+            _end_frame = end_frame
 
         initial_point_file = config["PATHS"]["tracing_data_path"].format(tag, rid)
         with TrackingData.initialize(
@@ -339,13 +344,13 @@ def main(tag, cam_id, run_id, glob_run_id, start_frame, end_frame, verbose, dry)
                     point, start_frame, _end_frame, cam_id, int(label[0]), label[1]
                 )
                 dataset.append(flow_queue)
-            if run_id[0] == rid:  # TODO: fix this!!
-                for label, point in zip(old_marker_label, old_points):
-                    point = tuple([int(v) for v in point])
-                    flow_queue = FlowQueue(
-                        point, start_frame, _end_frame, cam_id, int(label[0]), label[1]
-                    )
-                    dataset.append(flow_queue)
+            # if run_id[0] == rid:  # TODO: fix this!!
+            #    for label, point in zip(old_marker_label, old_points):
+            #        point = tuple([int(v) for v in point])
+            #        flow_queue = FlowQueue(
+            #            point, start_frame, _end_frame, cam_id, int(label[0]), label[1]
+            #        )
+            #        dataset.append(flow_queue)
 
     visualize(tag, cam_id, run_id, config)
 

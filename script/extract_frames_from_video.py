@@ -1,13 +1,15 @@
-import os, sys
-import cv2
-import time
-import pathlib
-import click
 import glob
-from tqdm import tqdm
+import os
+import pathlib
+import sys
+import time
 from collections import deque
-import numpy as np
+
+import click
+import cv2
 import matplotlib.pyplot as plt
+import numpy as np
+from tqdm import tqdm
 
 import br2_vision
 from br2_vision.utility.logging import config_logging, get_script_logger

@@ -1,15 +1,15 @@
-import cv2
-import numpy as np
-import os
-import glob
 import datetime
+import glob
+import os
 import pathlib
-import pkl
 
 import click
+import cv2
+import numpy as np
+import pkl
 
-from br2_vision.utility import config_logging, get_script_logger
 from br2_vision.naming import *
+from br2_vision.utility import config_logging, get_script_logger
 
 
 @click.command()

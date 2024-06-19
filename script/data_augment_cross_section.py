@@ -1,15 +1,14 @@
+import os
+import sys
+
+import click
 import numpy as np
-import os, sys
-
-from utility.convert_coordinate import get_center_and_normal
-
 from config import *
+from utility.convert_coordinate import get_center_and_normal
 
 import br2_vision
 from br2_vision.dlt import DLT
 from br2_vision.utility.logging import config_logging, get_script_logger
-
-import click
 
 
 @click.command()

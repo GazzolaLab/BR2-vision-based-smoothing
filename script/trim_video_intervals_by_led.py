@@ -1,15 +1,13 @@
-import cv2
-import sys
-import pathlib
-from tqdm import tqdm
-
-import numpy as np
-import matplotlib.pyplot as plt
-
-import os
 import glob
+import os
+import pathlib
+import sys
 
 import click
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
+from tqdm import tqdm
 
 import br2_vision
 from br2_vision.utility.logging import config_logging, get_script_logger
@@ -112,9 +110,7 @@ def process(
     # Path Configuration
     working_dir = config["PATHS"]["postprocessing_path"].format(tag)
     os.makedirs(working_dir, exist_ok=True)
-    video_path = config["PATHS"]["experiment_video_path"].format(
-        tag, "{}"
-    )  # (cam_id)
+    video_path = config["PATHS"]["experiment_video_path"].format(tag, "{}")  # (cam_id)
     output_path = config["PATHS"]["footage_video_path"].format(
         tag, "{}", "{}"
     )  # (cam_id, run_id)

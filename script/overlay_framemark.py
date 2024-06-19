@@ -1,6 +1,7 @@
-import subprocess
-import os, sys
+import os
 import pathlib
+import subprocess
+import sys
 
 import click
 

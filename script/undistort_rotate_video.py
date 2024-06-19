@@ -1,17 +1,18 @@
-import os, sys
-import numpy as np
-import pathlib
-import logging
-import time
-import cv2
-import glob
 import argparse
+import glob
+import logging
 import multiprocessing as mp
+import os
+import pathlib
+import sys
+import time
 from functools import partial
-from tqdm import tqdm
-import psutil
 
 import click
+import cv2
+import numpy as np
+import psutil
+from tqdm import tqdm
 
 import br2_vision
 from br2_vision.undistort import undistort

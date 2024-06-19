@@ -4,25 +4,22 @@ Use cv2 to select roi for each video.
 Use ffmpeg to crop the video.
 """
 
-from typing import Tuple
-
-import cv2
+import glob
+import os
+import pathlib
 import subprocess
 import sys
-import pathlib
-from tqdm import tqdm
-
-import numpy as np
-import matplotlib.pyplot as plt
-
-import os
-import glob
+from typing import Tuple
 
 import click
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
+from tqdm import tqdm
 
 import br2_vision
-from br2_vision.utility.logging import config_logging, get_script_logger
 from br2_vision.cv2_custom.select_region import select_roi
+from br2_vision.utility.logging import config_logging, get_script_logger
 
 
 def crop_video(

@@ -3,12 +3,13 @@ Created on Aug. 10, 2021
 @author: Heng-Sheng (Hanson) Chang
 """
 
+import os
 import pickle
+import sys
+
+import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
-import matplotlib.pyplot as plt
-
-import os, sys
 
 
 def include_parent_folders(parent_folders):
@@ -28,11 +29,10 @@ include_parent_folders(
     ]
 )
 
-from smoothing import read_data_from_file, create_data_object
-
-from frames.frame_rod import RodFrame
-from frames.frame_data import DirectorFrame
 from frame_tools import rod_color
+from frames.frame_data import DirectorFrame
+from frames.frame_rod import RodFrame
+from smoothing import create_data_object, read_data_from_file
 
 
 def rotate_frame(orientation, position=None, director=None):

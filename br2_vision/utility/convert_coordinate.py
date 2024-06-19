@@ -1,8 +1,8 @@
+from collections import defaultdict
+
 import numpy as np
 import scipy as sp
 import scipy.linalg as spl
-from collections import defaultdict
-
 from sklearn.linear_model import LinearRegression
 
 # Reference Marker Configuration (in m)

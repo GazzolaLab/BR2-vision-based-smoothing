@@ -1,12 +1,12 @@
 __all__ = ["undistort"]
 
+import glob
+import os
+import pathlib
+import pickle as pkl
+
 import cv2
 import numpy as np
-import os
-import glob
-import pathlib
-
-import pickle as pkl
 
 
 def undistort(image, width, height, calibration_file: pathlib.Path):

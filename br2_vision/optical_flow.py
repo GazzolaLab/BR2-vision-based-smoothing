@@ -1,24 +1,25 @@
-from typing import List, Tuple, Dict
-import os, sys
+import os
+import sys
+from itertools import combinations
+from typing import Dict, List, Tuple
 
-import numpy as np
+import cv2
 import matplotlib.pyplot as plt
+import numpy as np
+from tqdm import tqdm
+
+import br2_vision
+from br2_vision.cv2_custom.extract_info import get_video_frame_count
+from br2_vision.cv2_custom.transformation import flat_color, scale_image
+from br2_vision.data_structure import FlowQueue, MarkerPositions, TrackingData
+from br2_vision.utility.logging import config_logging, get_script_logger
 
 # from collections import defaultdict
 
-from tqdm import tqdm
-from itertools import combinations
-
-import cv2
 
 # from dlt import DLT
 # from cv2_custom.marking import cv2_draw_label
 
-import br2_vision
-from br2_vision.utility.logging import config_logging, get_script_logger
-from br2_vision.data_structure import MarkerPositions, TrackingData, FlowQueue
-from br2_vision.cv2_custom.extract_info import get_video_frame_count
-from br2_vision.cv2_custom.transformation import flat_color, scale_image
 
 # from sklearn.linear_model import LinearRegression
 # from scipy.spatial.distance import directed_hausdorff
@@ -68,14 +69,16 @@ class CameraOpticalFlow:
 
         self.scale = scale
 
+        self.__num_frames = None
+
     @property
     def num_frames(self):
         """
         Get the number of frames in the video
         """
-        if not hasattr(self, "_num_frames"):
-            self._num_frames = get_video_frame_count(self.video_path)
-        return self._num_frames
+        if self.__num_frames is None:
+            self.__num_frames = get_video_frame_count(self.video_path)
+        return self.__num_frames
 
     def run(self, debug=False):
         """
@@ -86,7 +89,9 @@ class CameraOpticalFlow:
         """
 
         # Group queues
-        indices = [i for i in range(len(self.flow_queues)) if not self.flow_queues[i].done]
+        indices = [
+            i for i in range(len(self.flow_queues)) if not self.flow_queues[i].done
+        ]
         while indices:
             base_index = indices[0]
             inquiry = [base_index]
@@ -101,7 +106,9 @@ class CameraOpticalFlow:
             [indices.remove(i) for i in inquiry]
 
             if debug:
-                print(f"Dry Run: Start: {start_frame}, End: {end_frame}, Inquiry: {inquiry}")
+                print(
+                    f"Dry Run: Start: {start_frame}, End: {end_frame}, Inquiry: {inquiry}"
+                )
                 for i in inquiry:
                     print("  ", self.flow_queues[i])
                 continue
@@ -165,7 +172,9 @@ class CameraOpticalFlow:
             points[k] = self.p[k]
         return points
 
-    def draw_points(self, frame, points, radius=8, color=(0, 235, 0), thickness=-1):  # pragma: no cover
+    def draw_points(
+        self, frame, points, radius=8, color=(0, 235, 0), thickness=-1
+    ):  # pragma: no cover
         # draw the points (overlay)
         for i, point in enumerate(points):
             a, b = point.ravel()
@@ -281,7 +290,7 @@ class CameraOpticalFlow:
         # cv2.destroyAllWindows()
         writer.release()
 
-    # It is excluded from coverage test: code is mostly based on cv2. 
+    # It is excluded from coverage test: code is mostly based on cv2.
     def next_inquiry(self, inquiry, stime, etime, debug=False):  # pragma: no cover
         num_queue = len(inquiry)
         # initialize data_collection: -1

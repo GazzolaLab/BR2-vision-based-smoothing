@@ -3,10 +3,10 @@ Created on Oct. 19, 2020
 @author: Heng-Sheng (Hanson) Chang
 """
 
+import os
+import sys
+
 import numpy as np
-
-import os, sys
-
 from rod_tools import sigma_to_shear
 
 

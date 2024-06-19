@@ -3,27 +3,22 @@ Created on Aug. 01, 2021
 @author: Heng-Sheng (Hanson) Chang
 """
 
-from collections import defaultdict
-
-from tqdm import tqdm
-import time
-
-import numpy as np
+import os
 import pickle
-
+import sys
+import time
+from collections import defaultdict
 from types import SimpleNamespace as EmptyClass
 
 import matplotlib.pyplot as plt
+import numpy as np
+from algorithms.smoothing_algorithm import ForwardBackwardSmooth
+from elastica.rod.cosserat_rod import CosseratRod
 from matplotlib import gridspec
 from mpl_toolkits.mplot3d import Axes3D
-
-import os, sys
+from tqdm import tqdm
 
 # os.environ['NUMBA_DISABLE_JIT'] = '1'
-
-from elastica.rod.cosserat_rod import CosseratRod
-
-from algorithms.smoothing_algorithm import ForwardBackwardSmooth
 
 
 def read_data_from_file(file_name):

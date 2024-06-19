@@ -3,11 +3,12 @@ Created on Jan. 08, 2021
 @author: Heng-Sheng (Hanson) Chang
 """
 
-import os, sys
+import os
+import sys
 
-import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib import gridspec
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -30,7 +31,7 @@ include_parent_folders(
 )
 
 from frames.frame import Frame
-from rod_tools import sigma_to_shear, kappa_to_curvature, calculate_dilatation
+from rod_tools import calculate_dilatation, kappa_to_curvature, sigma_to_shear
 
 
 class RodFrame(Frame):

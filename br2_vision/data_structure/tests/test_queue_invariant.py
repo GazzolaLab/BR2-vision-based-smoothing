@@ -12,6 +12,7 @@ def test_flow_queue_change_adjustable_parameters():
     expected_flow_queue = FlowQueue((1, 2), 8, 9, 5, 6, "7", True)
     assert flow_queue == expected_flow_queue
 
+
 def test_flow_queue_change_fixed_parameters():
     flow_queue = FlowQueue((1, 2), 3, 4, 5, 6, "7")
 
@@ -26,6 +27,7 @@ def test_flow_queue_change_fixed_parameters():
         flow_queue.z_index = 11
     with pytest.raises(AttributeError):
         flow_queue.label = "5"
+
 
 def test_flow_queue_typecheck():
     flow_queue = FlowQueue((1, 2), 3, 4, 5, 6, "7")

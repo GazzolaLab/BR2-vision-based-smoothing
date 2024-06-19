@@ -1,18 +1,18 @@
+import os
+import sys
 from typing import List
-import os, sys
 
-# import tensorflow as tf
-
+import click
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
 import br2_vision
-from br2_vision.utility.logging import config_logging, get_script_logger
-from br2_vision.data_structure import MarkerPositions, TrackingData, FlowQueue
+from br2_vision.data_structure import FlowQueue, MarkerPositions, TrackingData
 from br2_vision.optical_flow import CameraOpticalFlow
+from br2_vision.utility.logging import config_logging, get_script_logger
 
-import click
+# import tensorflow as tf
 
 
 @click.command()
@@ -29,13 +29,13 @@ import click
     help="Specify run index. Initial points are saved for all specified run-ids.",
     multiple=True,
 )
-#@click.option(
+# @click.option(
 #    "--force-run-all",
 #    is_flag=True,
 #    type=bool,
 #    help="Ignore the pre-run data, and re-run optical flow on all flow-queues.",
 #    default=False,
-#)
+# )
 @click.option("-v", "--verbose", is_flag=True, help="Verbose mode.")
 @click.option("-d", "--dry", is_flag=True, help="Dry run.")
 def main(tag, run_id, verbose, dry):
@@ -50,7 +50,7 @@ def main(tag, run_id, verbose, dry):
         with TrackingData.load(path=datapath) as dataset:
             for cid in dataset.iter_cameras():
                 queues: List[FlowQueue] = dataset.get_flow_queues(
-                    camera=cid, 
+                    camera=cid,
                 )
                 print(f"camera: {cid} | Optical flow run on:")
                 [print("    ", q) for q in queues]

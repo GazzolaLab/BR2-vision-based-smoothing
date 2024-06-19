@@ -1,24 +1,21 @@
 import os
 import sys
-import numpy as np
-from sklearn.linear_model import LinearRegression
-from itertools import product, combinations
-
 from collections import defaultdict
+from itertools import combinations, product
 
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.pyplot as plt
-import mpl_toolkits.mplot3d.axes3d as p3
+import click
 import matplotlib.animation as animation
 import matplotlib.cm as cm
-
+import matplotlib.pyplot as plt
+import mpl_toolkits.mplot3d.axes3d as p3
+import numpy as np
+from mpl_toolkits.mplot3d import Axes3D
+from sklearn.linear_model import LinearRegression
 from utility.convert_coordinate import three_ring_xyz_converter
 
 import br2_vision
 from br2_vision.dlt import DLT
 from br2_vision.utility.logging import config_logging, get_script_logger
-
-import click
 
 # CONFIGURATION
 EXCLUDE_TAGS = []
@@ -61,9 +58,9 @@ def process_dlt(tag, run_id, fps):
     points, tags = [], []
     tags_count = defaultdict(int)
     for cam_id in dataset.iter_cameras():
-        #calibration_ref_point_save = config["PATHS"]["calibration_ref_point_save"].format(cam_id, run_id)
-        #save_path_points=calibration_ref_point_save.format(camera_id, x_id),
-        points_path = TRACKING_FILE.format(cam_id, run_id) # tracing_data_path
+        # calibration_ref_point_save = config["PATHS"]["calibration_ref_point_save"].format(cam_id, run_id)
+        # save_path_points=calibration_ref_point_save.format(camera_id, x_id),
+        points_path = TRACKING_FILE.format(cam_id, run_id)  # tracing_data_path
         points_data = np.load(points_path, allow_pickle=True)
         points.append(points_data["points"])
         tags.append(points_data["tags"])
@@ -152,7 +149,7 @@ def process_dlt(tag, run_id, fps):
     print("Points saved at - {}".format(output_points_path))
     print("")
 
-    plot path_activity = config["PATHS"]["plot_working_box"].format(tag, run_id)
+    plot_path_activity = config["PATHS"]["plot_working_box"].format(tag, run_id)
     fig = plt.figure(1, figsize=(10, 8))
     ax = plt.axes(projection="3d")
     ax.set_xlabel("x")

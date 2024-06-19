@@ -1,12 +1,12 @@
-from typing import Dict, Tuple, List
+import os
+import sys
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Dict, List, Tuple
 
-import os, sys
-import yaml
 import h5py
 import numpy as np
-
-from pathlib import Path
-from dataclasses import dataclass, asdict
+import yaml
 
 from .io_utils import DataclassYamlSaveLoadMixin
 
@@ -143,7 +143,7 @@ class MarkerPositions(DataclassYamlSaveLoadMixin):
                 grp.attrs["origin"] = self_data["origin"]
                 grp.attrs["marker_direction"] = self_data["marker_direction"]
                 grp.attrs["normal_direction"] = self_data["normal_direction"]
-                grp.attrs["tags"] = list(self.tags)#, dtype="<U1")
+                grp.attrs["tags"] = list(self.tags)  # , dtype="<U1")
 
                 grp.create_dataset(
                     "marker_center_offset",

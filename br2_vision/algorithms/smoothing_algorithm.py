@@ -3,38 +3,34 @@ Created on Apr. 27, 2021
 @author: Heng-Sheng (Hanson) Chang
 """
 
+import os
+import pickle
+import sys
 from collections import defaultdict
 
+import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
+import numpy as np
+from elastica._calculus import quadrature_kernel
+from elastica._elastica_numba._external_forces import inplace_addition
+from elastica._elastica_numba._rotations import _inv_rotate, _rotate
+from elastica._linalg import _batch_cross, _batch_matrix_transpose, _batch_matvec
+from matplotlib import gridspec
 from numba import njit
 from numpy.core.shape_base import block
+from rod_tools import (
+    _batch_cross,
+    _lab_to_material,  # _trapezoidal,
+    _material_to_lab,
+    average2D,
+    calculate_dilatation,
+    forward_path,
+    kappa_to_curvature,
+    sigma_to_shear,
+)
 from tqdm import tqdm
 
-import numpy as np
-import pickle
-
-import matplotlib.pyplot as plt
-from matplotlib import gridspec
-import matplotlib.colors as mcolors
-
-import os, sys
-
-from elastica._linalg import _batch_cross, _batch_matvec, _batch_matrix_transpose
-from elastica._calculus import quadrature_kernel
-from elastica._elastica_numba._rotations import _rotate, _inv_rotate
-from elastica._elastica_numba._external_forces import inplace_addition
-
 from .algorithm import Algorithm
-from rod_tools import (
-    forward_path,
-    calculate_dilatation,
-    sigma_to_shear,
-    kappa_to_curvature,
-    _lab_to_material,
-    _material_to_lab,
-    _batch_cross,
-    # _trapezoidal,
-    average2D,
-)
 
 
 class ForwardBackwardSmooth(Algorithm):

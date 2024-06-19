@@ -3,7 +3,10 @@ Created on Jan. 08, 2021
 @author: Heng-Sheng (Hanson) Chang
 """
 
-import os, sys, shutil
+import os
+import shutil
+import sys
+
 import matplotlib.pyplot as plt
 
 

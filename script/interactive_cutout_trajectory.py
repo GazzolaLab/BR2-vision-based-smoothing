@@ -1,21 +1,19 @@
-import os, sys
-
+import os
 import re
-import numpy as np
-import pandas as pd
-
-import plotly.express as px
-from dash import Dash, dcc, html, Input, Output, callback, State
-
-import br2_vision
-from br2_vision.utility.logging import config_logging, get_script_logger
-from br2_vision.cv2_custom.extract_info import get_video_frame_count
-from br2_vision.data_structure import MarkerPositions, TrackingData, FlowQueue
+import sys
 
 import click
+import numpy as np
+import pandas as pd
+import plotly.express as px
+from dash import Dash, Input, Output, State, callback, dcc, html
 
+import br2_vision
+from br2_vision.cv2_custom.extract_info import get_video_frame_count
+from br2_vision.data_structure import FlowQueue, MarkerPositions, TrackingData
 from br2_vision.interactive.app import app  # , cache, long_callback_manager
-from br2_vision.interactive.sidebar import get_sidebar, CONTENT_STYLE, BANNER_STYLE
+from br2_vision.interactive.sidebar import BANNER_STYLE, CONTENT_STYLE, get_sidebar
+from br2_vision.utility.logging import config_logging, get_script_logger
 
 # ---------------------------- Config ----------------------------
 

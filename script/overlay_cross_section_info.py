@@ -1,19 +1,16 @@
+import argparse
 import os
 import sys
-import numpy as np
+
 import cv2
-
-from dlt import DLT
-
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.pyplot as plt
-import mpl_toolkits.mplot3d.axes3d as p3
 import matplotlib.animation as animation
 import matplotlib.cm as cm
-
+import matplotlib.pyplot as plt
+import mpl_toolkits.mplot3d.axes3d as p3
+import numpy as np
+from dlt import DLT
+from mpl_toolkits.mplot3d import Axes3D
 from scipy import interpolate
-
-import argparse
 
 RUNID = 18
 OVERLAY_CAM_ID = 3

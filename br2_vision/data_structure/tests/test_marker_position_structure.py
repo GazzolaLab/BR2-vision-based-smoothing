@@ -1,10 +1,12 @@
-import pytest
-
-import os, sys
-import numpy as np
-import h5py
-import yaml
+import os
 import pathlib
+import sys
+
+import h5py
+import numpy as np
+import pytest
+import yaml
+
 from br2_vision.data_structure import MarkerPositions
 
 

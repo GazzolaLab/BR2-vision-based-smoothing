@@ -14,18 +14,18 @@ optional:
 
 """
 
-import sys
-import os, sys
-import re
 import glob
-import numpy as np
+import os
+import re
+import sys
 from collections import defaultdict
+
+import click
+import numpy as np
 
 import br2_vision
 from br2_vision.dlt import DLT, label_to_3Dcoord
 from br2_vision.utility.logging import config_logging, get_script_logger
-
-import click
 
 
 @click.command()

@@ -6,8 +6,8 @@ authors = ["Seung Hyun Kim <skim449@illinois.edu>"]
 license = "MIT"
 readme = "README.md"
 packages = [
-    { include = "script" },
     { include = "br2_vision" },
+    { include = "script" },
 ]
 
 [tool.poetry.scripts]

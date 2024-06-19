@@ -1,7 +1,7 @@
 import dash
+import dash_bootstrap_components as dbc
 import diskcache
 from dash.long_callback import DiskcacheLongCallbackManager
-import dash_bootstrap_components as dbc
 
 cache = diskcache.Cache("cache")
 # external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]

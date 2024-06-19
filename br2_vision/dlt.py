@@ -1,13 +1,11 @@
+import json
 import os
 import sys
 
-import json
-
 import numpy as np
 import numpy.linalg as la
-
-import scipy.stats as ss
 import scipy.linalg as spl
+import scipy.stats as ss
 
 # http://www.kwon3d.com/theory/dlt/dlt.html
 

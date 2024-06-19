@@ -1,15 +1,13 @@
+import glob
+import os
+import pathlib
 import subprocess
 import sys
-import pathlib
-from tqdm import tqdm
-
-import numpy as np
-import matplotlib.pyplot as plt
-
-import os
-import glob
 
 import click
+import matplotlib.pyplot as plt
+import numpy as np
+from tqdm import tqdm
 
 import br2_vision
 from br2_vision.utility.logging import config_logging, get_script_logger

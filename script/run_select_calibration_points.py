@@ -1,26 +1,22 @@
-import os
-import sys
 import glob
-import time
-import re
+import os
 import pathlib
+import re
+import sys
+import time
 from random import shuffle
 
-import numpy as np
+import click
 import cv2
-
+import numpy as np
+from PyQt6.QtWidgets import QApplication, QInputDialog, QLineEdit, QPushButton, QWidget
 from sklearn import linear_model as lm
 from sklearn.cluster import KMeans
 
-from br2_vision.dlt import DLT2D, DLT, label_to_3Dcoord
+import br2_vision
 from br2_vision.cv2_custom.marking import cv2_draw_label
 from br2_vision.cv2_custom.transformation import scale_image_from_path
-
-from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QInputDialog
-
-import click
-
-import br2_vision
+from br2_vision.dlt import DLT, DLT2D, label_to_3Dcoord
 from br2_vision.utility.logging import config_logging, get_script_logger
 
 
