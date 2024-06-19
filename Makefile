@@ -25,7 +25,7 @@ formatting: codestyle
 #* Linting
 .PHONY: test
 test:
-	poetry run pytest -xs -c pyproject.toml --cov=br2_vision --cov=script
+	poetry run pytest -c pyproject.toml --cov=br2_vision --cov=script
 	coverage html
 
 .PHONY: mypy
