@@ -13,6 +13,10 @@ from br2_vision.optical_flow import CameraOpticalFlow
 from br2_vision.utility.logging import config_logging, get_script_logger
 
 # import tensorflow as tf
+import pdb
+stdin, stdout = sys.stdin, sys.stdout
+def set_trace():
+    pdb.Pdb(stdin=stdin, stdout=stdout).set_trace()
 
 
 @click.command()
@@ -49,9 +53,12 @@ def main(tag, run_id, verbose, dry):
         datapath = config["PATHS"]["tracing_data_path"].format(tag, rid)
         with TrackingData.load(path=datapath) as dataset:
             for cid in dataset.iter_cameras():
-                queues: List[FlowQueue] = dataset.get_flow_queues(
+                queues: list[FlowQueue] = dataset.get_flow_queues(
                     camera=cid,
                 )
+                if len(queues) == 0:
+                    logger.info(f"camera: {cid} | No flow-queue found.")
+                    continue
                 print(f"camera: {cid} | Optical flow run on:")
                 [print("    ", q) for q in queues]
 
@@ -63,6 +70,7 @@ def main(tag, run_id, verbose, dry):
                     dataset=dataset,
                     scale=scale,
                 )
+                # set_trace()
                 optical_flow.run(debug=dry)
 
                 all_queues = dataset.get_flow_queues(camera=cid, force_run_all=True)

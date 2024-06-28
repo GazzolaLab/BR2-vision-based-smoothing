@@ -58,13 +58,17 @@ class CameraOpticalFlow:
     def __init__(
         self,
         video_path,
-        flow_queues: List[FlowQueue],
+        flow_queues: list[FlowQueue],
         dataset: TrackingData,
         scale: float = 1.0,
+        force_run_all: bool = False,
     ):
         self.video_path = video_path
 
-        self.flow_queues = flow_queues
+        if force_run_all:
+            self.flow_queues = flow_queues
+        else:
+            self.flow_queues = [q for q in flow_queues if not q.done]
         self.dataset = dataset
 
         self.scale = scale
@@ -118,9 +122,9 @@ class CameraOpticalFlow:
             # TODO: collect errors and save as well
 
             # Save
-            for i in inquiry:
+            assert len(inquiry) == len(data_collection)
+            for i, data in zip(inquiry, data_collection):
                 q = self.flow_queues[i]
-                data = data_collection[i]
                 self.dataset.save_pixel_flow_trajectory(data, q, self.num_frames)
                 q.done = True
 
@@ -263,9 +267,13 @@ class CameraOpticalFlow:
                 mask = cv2.line(
                     mask, (a, b), (c, d), CameraOpticalFlow._color[qid].tolist(), 2
                 )
-                frame = cv2.circle(
-                    frame, (a, b), 11, CameraOpticalFlow._color[qid].tolist(), -1
+                _frame = frame.copy()
+                _frame = cv2.circle(
+                    _frame, (a, b), 7, CameraOpticalFlow._color[qid].tolist(), -1
                 )
+                alpha = 0.4  # Transparency factor.
+                # Following line overlays transparent circles over the image
+                frame = cv2.addWeighted(_frame, alpha, frame, 1 - alpha, 0)
 
                 text_img = np.zeros_like(frame)
                 cv2.putText(
