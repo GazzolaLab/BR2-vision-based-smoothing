@@ -58,13 +58,17 @@ class CameraOpticalFlow:
     def __init__(
         self,
         video_path,
-        flow_queues: List[FlowQueue],
+        flow_queues: list[FlowQueue],
         dataset: TrackingData,
         scale: float = 1.0,
+        force_run_all: bool = False,
     ):
         self.video_path = video_path
 
-        self.flow_queues = flow_queues
+        if force_run_all:
+            self.flow_queues = flow_queues
+        else:
+            self.flow_queues = [q for q in flow_queues if not q.done]
         self.dataset = dataset
 
         self.scale = scale
@@ -118,9 +122,8 @@ class CameraOpticalFlow:
             # TODO: collect errors and save as well
 
             # Save
-            for i in inquiry:
+            for data, i in zip(inquiry, data_collection):
                 q = self.flow_queues[i]
-                data = data_collection[i]
                 self.dataset.save_pixel_flow_trajectory(data, q, self.num_frames)
                 q.done = True
 
