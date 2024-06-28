@@ -49,9 +49,12 @@ def main(tag, run_id, verbose, dry):
         datapath = config["PATHS"]["tracing_data_path"].format(tag, rid)
         with TrackingData.load(path=datapath) as dataset:
             for cid in dataset.iter_cameras():
-                queues: List[FlowQueue] = dataset.get_flow_queues(
+                queues: list[FlowQueue] = dataset.get_flow_queues(
                     camera=cid,
                 )
+                if len(queues) == 0:
+                    logger.info(f"camera: {cid} | No flow-queue found.")
+                    continue
                 print(f"camera: {cid} | Optical flow run on:")
                 [print("    ", q) for q in queues]
 
