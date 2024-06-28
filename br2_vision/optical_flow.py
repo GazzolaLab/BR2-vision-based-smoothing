@@ -122,7 +122,8 @@ class CameraOpticalFlow:
             # TODO: collect errors and save as well
 
             # Save
-            for data, i in zip(inquiry, data_collection):
+            assert len(inquiry) == len(data_collection)
+            for i, data in zip(inquiry, data_collection):
                 q = self.flow_queues[i]
                 self.dataset.save_pixel_flow_trajectory(data, q, self.num_frames)
                 q.done = True

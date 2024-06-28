@@ -49,12 +49,13 @@ def test_run_optical_flow(mocker, mock_flow_queues):
     mocker.patch(
         "br2_vision.cv2_custom.extract_info.get_video_frame_count", return_value=0
     )
+    mocker.patch("br2_vision.optical_flow.CameraOpticalFlow.num_frames", return_value=10)
 
     tracking_data = MockTrackingData()
     of = CameraOpticalFlow(None, mock_flow_queues, tracking_data)
-    mocker.patch.object(
-        of, "next_inquiry", return_value=(list(range(len(mock_flow_queues))), None)
-    )
+    of.next_inquiry = lambda x, y, z: (range(len(x)), None)
+        #of, "next_inquiry", return_value=(list(range(len([q for q in mock_flow_queues if not q.done]))), None)
+    #)
     # Test debug mode
     dones = [q.done for q in mock_flow_queues]
     of.run(debug=True)
@@ -63,4 +64,5 @@ def test_run_optical_flow(mocker, mock_flow_queues):
     of.run()
     assert all([q.done for q in mock_flow_queues])
 
-    assert tracking_data.data_history == [0, 2, 3]  # queue already happened
+    assert tracking_data.data_history == [0, 0, 1]  # [0] and [0,1]
+    assert tracking_data.q_history == [mock_flow_queues[0], mock_flow_queues[2], mock_flow_queues[3]]
