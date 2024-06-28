@@ -267,9 +267,13 @@ class CameraOpticalFlow:
                 mask = cv2.line(
                     mask, (a, b), (c, d), CameraOpticalFlow._color[qid].tolist(), 2
                 )
-                frame = cv2.circle(
-                    frame, (a, b), 11, CameraOpticalFlow._color[qid].tolist(), -1
+                _frame = frame.copy()
+                _frame = cv2.circle(
+                    _frame, (a, b), 7, CameraOpticalFlow._color[qid].tolist(), -1
                 )
+                alpha = 0.4  # Transparency factor.
+                # Following line overlays transparent circles over the image
+                frame = cv2.addWeighted(_frame, alpha, frame, 1 - alpha, 0)
 
                 text_img = np.zeros_like(frame)
                 cv2.putText(
