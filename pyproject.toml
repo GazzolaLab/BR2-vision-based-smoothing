@@ -24,6 +24,7 @@ distortion_calibration = 'br2_vision_cli.distortion_calibration:calibrate'
 
 set_optical_flow_inquiry = 'br2_vision_cli.add_initial_flow_point:main'
 run_optical_flow = 'br2_vision_cli.run_optical_flow:main'
+run_manual_tracking = 'br2_vision_cli.manual_tracking:main'
 edit_optical_flow = 'br2_vision_cli.interactive_cutout_trajectory:launch'
 
 interpolate_poses = 'br2_vision_cli.process_dlt:process_dlt'

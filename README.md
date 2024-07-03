@@ -118,9 +118,11 @@ flowchart TD
     subgraph Optical-Flow
         opt1("set optical flow inquiry")
         opt2("run optical flow")
+        opt2m("run manual tracking")
         opt3("edit optical flow")
         
         opt1 --> opt2 --> C{satisfied?}
+        opt1 --> opt2m --> C
         C -->|no: trim trajectory| opt3 --> opt1
         C -->|yes| D(("save"))
     end
