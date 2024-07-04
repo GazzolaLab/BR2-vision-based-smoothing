@@ -10,6 +10,21 @@ from br2_vision.utility.logging import get_script_logger
 
 from .marker_positions import MarkerPositions
 
+def h5_directory(camera: "int|None"=None, z_index: "int|None"=None, label: "str|None"=None):
+    path = "/trajectory"
+    if camera is None:
+        return path
+    path += f"/camera_{camera}"
+    if z_index is None:
+        return path
+    path += f"/z_{z_index}"
+    if label is None:
+        return path
+    path += f"/label_{label}"
+    return path
+
+def compose_tag(z_index, label):
+    return f"z{z_index}-{label}"
 
 @dataclass
 class FlowQueue:
@@ -108,12 +123,12 @@ class FlowQueue:
 
     @property
     def h5_directory(self):
-        return f"/trajectory/camera_{self.camera}/z_{self.z_index}/label_{self.label}"
+        return h5_directory(self.camera, self.z_index, self.label)
 
     def get_tag(self):
         z_index = self.z_index  # .decode("utf-8")
         label = self.label  # .decode("utf-8")
-        return f"z{z_index}-{label}"
+        return compose_tag(z_index, label)
 
 
 def raise_if_outside_context(method):  # pragma: no cover
@@ -147,7 +162,7 @@ class TrackingData:
         return all([q.done for q in self.queues])
 
     @raise_if_outside_context
-    def iter_cameras(self):
+    def iter_cameras(self) -> list[int]:
         # Get unique camera id
         cameras = set([q.camera for q in self.queues])
         # return sorted list
@@ -220,6 +235,19 @@ class TrackingData:
                 dset[flow_queue.start_frame : flow_queue.end_frame] = data
 
     @raise_if_outside_context
+    def load_trajectory(
+        self, camera_id: int, z_index: int, label: str, prefix="xy",
+    ):
+        """
+        Load trajectory from h5 file
+        """
+        with h5py.File(self.path, "r") as h5f:
+            directory = h5_directory(camera_id, z_index, label)
+            grp = h5f[directory]
+            dset = grp[prefix]
+            return np.array(dset[:], dtype=np.int_)
+
+    @raise_if_outside_context
     def load_pixel_flow_trajectory(
         self, flow_queue: FlowQueue, prefix="xy", full_trajectory=False
     ):
@@ -235,6 +263,40 @@ class TrackingData:
                 return np.array(
                     dset[flow_queue.start_frame : flow_queue.end_frame], dtype=np.int_
                 )
+
+    @raise_if_outside_context
+    def query_timelength(
+        self, prefix="xy",
+    ) -> int:
+        """
+        Get the length of the smallest trajectory
+        """
+        lengths = -1
+        for cam_id in self.iter_cameras():
+            with h5py.File(self.path, "r") as h5f:
+                directory = h5_directory(cam_id)
+                grp = h5f[directory]
+                dset = grp[list(grp.keys())[0]]
+                data = dset[list(dset.keys())[0]][prefix]
+                lengths = max(lengths, data.shape[0])
+
+        return lengths
+
+    @raise_if_outside_context
+    def query_trajectory(
+        self, z_index: int, label: str, timelength: "int|None"=None, prefix="xy",
+    ):
+        """
+        Load trajectory from h5 file
+        """
+        point_collections = {}
+        for cam_id in self.iter_cameras():
+            data = self.load_trajectory(cam_id, z_index, label, prefix=prefix)
+            if timelength is not None:
+                point_collections[cam_id] = data[:timelength]
+            else:
+                point_collections[cam_id] = data
+        return point_collections
 
     @raise_if_outside_context
     def trim_trajectory(
@@ -352,7 +414,7 @@ class TrackingData:
     @raise_if_outside_context
     def get_flow_queues(
         self, camera=None, start_frame=None, force_run_all: bool = False, tag=None
-    ):
+    ) -> list[FlowQueue]:
         """
         General filter method
         """

@@ -295,7 +295,10 @@ class DLT:
             print("Calibration path not determined")
             return 0
 
-        data = np.load(os.path.join(self.calibration_path, "camera_parameters.npz"))
+        save_path_parameters = os.path.join(
+            self.calibration_path, "camera_parameters.npz"
+        )
+        data = np.load(save_path_parameters)
         self.camera_param = {}
         for k, v in data.items():
             if len(v) != 16:

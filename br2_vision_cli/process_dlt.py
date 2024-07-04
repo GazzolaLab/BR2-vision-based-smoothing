@@ -14,12 +14,12 @@ from sklearn.linear_model import LinearRegression
 
 
 import br2_vision
+from br2_vision.data_structure.tracking_data import TrackingData
 from br2_vision.dlt import DLT
 from br2_vision.utility.convert_coordinate import three_ring_xyz_converter
 from br2_vision.utility.logging import config_logging, get_script_logger
 
 # CONFIGURATION
-EXCLUDE_TAGS = []
 color_scheme = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
 
@@ -32,85 +32,79 @@ color_scheme = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 )
 @click.option("-r", "--run_id", required=True, type=int, help="Run ID")
 @click.option("-f", "--fps", default=60, type=int, help="FPS of the video")
-def process_dlt(tag, run_id, fps):
+@click.option("-v", "--verbose", is_flag=True, type=bool, help="Verbose output")
+def process_dlt(tag, run_id, fps, verbose):
     config = br2_vision.load_config()
     config_logging(verbose)
     logger = get_script_logger(os.path.basename(__file__))
 
-    # Output Path - Default path is the data directory
-    # TODO: move data into tracing_data_path
-    output_points_path = config["PATHS"]["position_data_path"].format(tag, run_id)
-
-    # Read Calibration Parameters
-    dlt = DLT(calibration_path=config["PATHS"]["calibration_path"])
-    dlt.load()
-
     tracing_data_path = config["PATHS"]["tracing_data_path"].format(tag, run_id)
-    assert os.path.exists(tracing_data_path), "Tracing data does not exist."
-    dataset = TrackingData.load(path=tracing_data_path)
-    marker_positions = dataset.marker_positions
+    assert os.path.exists(tracing_data_path), f"Tracing data does not exist: path={tracing_data_path}"
+    with TrackingData.load(path=tracing_data_path) as dataset:
+        marker_positions = dataset.marker_positions
 
-    n_ring = len(marker_positions)
-    ring_space = marker_positions.marker_center_offset
+        n_ring = len(marker_positions)
+        ring_space = marker_positions.marker_center_offset
 
-    # Read Data Points
-    timelength = None
-    txyz = []
-    points, tags = [], []
-    tags_count = defaultdict(int)
-    for cam_id in dataset.iter_cameras():
-        # calibration_ref_point_save = config["PATHS"]["calibration_ref_point_save"].format(cam_id, run_id)
-        # save_path_points=calibration_ref_point_save.format(camera_id, x_id),
-        points_path = TRACKING_FILE.format(cam_id, run_id)  # tracing_data_path
-        points_data = np.load(points_path, allow_pickle=True)
-        points.append(points_data["points"])
-        tags.append(points_data["tags"])
-        for tag in points_data["tags"]:
-            tags_count[tag] += 1
-        timelength = (
-            min(timelength, points[-1].shape[0])
-            if timelength is not None
-            else points[-1].shape[0]
-        )
-    timestamps = np.arange(0, timelength) * (1.0 / fps)
+        # Read Data Points
+        timelength = dataset.query_timelength()
+        timestamps = np.arange(0, timelength) * (1.0 / fps)
 
-    # DLT Interpolation
-    result_tags = []
-    result_points = []
-    result_cond = []
-    observing_camera_count = []
-    for tag, count in tags_count.items():
-        if tag in EXCLUDE_TAGS:
-            continue
-        if count < 2:  # At least 2 camera must see the point to interpolate
-            continue
-        else:
-            observing_camera_count.append(count)
-        result_tags.append(tag)
-        point_collections_for_tag = {}
-        for cam_id, (camera_tag, camera_points) in enumerate(zip(tags, points)):
-            cam_id += 1
-            if tag not in camera_tag:
-                continue
-            point_index = camera_tag.tolist().index(tag)
-            point_collections_for_tag[cam_id] = camera_points[:timelength, point_index]
-        txyz = []
-        conds = []
-        for time in range(timelength):
-            uvs = {}
-            for cam_id, p in point_collections_for_tag.items():
-                uvs[cam_id] = p[time]
-            _xyz, cond = dlt.map(uvs)
-            txyz.append(_xyz)
-            conds.append(cond)
-        result_points.append(txyz)
-        result_cond.append(conds)
-    result_points = np.array(result_points)
-    result_cond = np.array(result_cond)
+        # Count observed tags for each camera
+        tags_count = defaultdict(int)
+        recorded_labels = {(q.camera, q.z_index, q.label) for q in dataset.queues if q.done}
+        for cid, zid, label in recorded_labels:
+            tags_count[(zid, label)] += 1
+        
+        # Remove tags if count is less than 2
+        observing_camera_count = { k : v for k, v in tags_count.items() if v >= 2 } 
+
+        # Print if 3 labels exists for each camera
+        flag = True
+        for zid in range(n_ring):
+            num_labels_at_zid = len({label for (z, label) in observing_camera_count.keys() if z == zid})
+            if num_labels_at_zid != 3:
+                flag = False
+                print(f"Z={zid}: False - {num_labels_at_zid} labels traced.")
+            else:
+                print(f"Z={zid}: True")
+        assert flag, "At least three labels should be interpolated for each z-plane."
+        result_tags = list(observing_camera_count.keys())
+
+        # Verbose output
+        print("Total number of observed tags: ", len(observing_camera_count))
+        print("Used Tags: ", result_tags)
+
+        # DLT Interpolation
+        dlt = DLT(calibration_path=config["PATHS"]["calibration_path"])
+        dlt.load()
+        points, tags = [], []
+
+        result_points = []
+        result_cond = []
+        for tag, count in observing_camera_count.items():
+            # if tag in EXCLUDE_TAGS:
+            #     continue
+            zid, label = tag
+            point_collections_for_tag = dataset.query_trajectory(zid, label, timelength)
+            txyz = []
+            conds = []
+            for tid in range(timelength):
+                uvs = {}
+                for cam_id, p in point_collections_for_tag.items():
+                    if p[tid, 0] == -1 or p[tid, 1] == -1:
+                        continue
+                    uvs[cam_id+1] = p[tid]
+                _xyz, cond = dlt.map(uvs)
+                txyz.append(_xyz)
+                conds.append(cond)
+            result_points.append(txyz)
+            result_cond.append(conds)
+        result_points = np.array(result_points)
+        result_cond = np.array(result_cond)
     print("Process tags:")
     print("Total number of processed timesteps: {}".format(timelength))
     print("Total number of processed points: {}".format(result_points.shape[1]))
-    print("Used Tags: ", result_tags)
     print("Final result shape: {}".format(result_points.shape))
 
     # Move to simulation space
@@ -137,6 +131,9 @@ def process_dlt(tag, run_id, fps):
 
     # result_points = simulation_space_points
 
+    # Output Path - Default path is the data directory
+    # TODO: move data into tracing_data_path
+    output_points_path = config["PATHS"]["position_data_path"].format(tag, run_id)
     # Save Points
     np.savez(
         output_points_path,
@@ -150,6 +147,8 @@ def process_dlt(tag, run_id, fps):
     print("Points saved at - {}".format(output_points_path))
     print("")
 
+    return 
+
     plot_path_activity = config["PATHS"]["plot_working_box"].format(tag, run_id)
     fig = plt.figure(1, figsize=(10, 8))
     ax = plt.axes(projection="3d")
@@ -158,7 +157,7 @@ def process_dlt(tag, run_id, fps):
     ax.set_zlabel("z")
     for i in range(len(result_tags)):
         # print(result_tags[i], ': ', initial_dlt_cond[i])
-        ax.scatter(*initial_dlt_space[i], color=color_scheme[observing_camera_count[i]])
+        ax.scatter(*initial_dlt_space[i], color=color_scheme[observing_camera_count[result_tags[i]]])
         # c = int(initial_dlt_cond[i]*100/initial_dlt_cond_max)-1
         # ax.scatter(*initial_dlt_space[i], c=c, cmap='viridis')
         # ax.scatter(*initial_sim_space[i])
