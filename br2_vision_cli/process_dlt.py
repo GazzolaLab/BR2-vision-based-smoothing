@@ -11,10 +11,11 @@ import mpl_toolkits.mplot3d.axes3d as p3
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.linear_model import LinearRegression
-from utility.convert_coordinate import three_ring_xyz_converter
+
 
 import br2_vision
 from br2_vision.dlt import DLT
+from br2_vision.utility.convert_coordinate import three_ring_xyz_converter
 from br2_vision.utility.logging import config_logging, get_script_logger
 
 # CONFIGURATION
