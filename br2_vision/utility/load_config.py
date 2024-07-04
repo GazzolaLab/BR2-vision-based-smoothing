@@ -8,7 +8,7 @@ from configparser import ConfigParser, ExtendedInterpolation
 from pathlib import Path
 
 
-def load_config(path: str | Path = "br2_vision.ini"):
+def load_config(path: "str | Path" = "br2_vision.ini"):
     """
     Load `br2_vision.ini` file
     """
