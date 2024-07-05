@@ -18,9 +18,9 @@ from elastica._linalg import _batch_cross, _batch_matrix_transpose, _batch_matve
 from matplotlib import gridspec
 from numba import njit
 from numpy.core.shape_base import block
+from rod_tools import _lab_to_material  # _trapezoidal,
 from rod_tools import (
     _batch_cross,
-    _lab_to_material,  # _trapezoidal,
     _material_to_lab,
     average2D,
     calculate_dilatation,

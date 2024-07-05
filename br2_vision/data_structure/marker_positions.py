@@ -66,13 +66,13 @@ class MarkerPositions(DataclassYamlSaveLoadMixin):
         """
         Get the number of markers per plane.
         """
-        return len(self.marker_center_offset)
+        return len(self.marker_positions)
 
     def __len__(self):
         """
         Get the number of plane.
         """
-        return len(self.marker_positions)
+        return len(self.marker_center_offset)
 
     @property
     def Q(self):

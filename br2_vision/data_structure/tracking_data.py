@@ -10,7 +10,10 @@ from br2_vision.utility.logging import get_script_logger
 
 from .marker_positions import MarkerPositions
 
-def h5_directory(camera: "int|None"=None, z_index: "int|None"=None, label: "str|None"=None):
+
+def h5_directory(
+    camera: "int|None" = None, z_index: "int|None" = None, label: "str|None" = None
+):
     path = "/trajectory"
     if camera is None:
         return path
@@ -23,8 +26,10 @@ def h5_directory(camera: "int|None"=None, z_index: "int|None"=None, label: "str|
     path += f"/label_{label}"
     return path
 
+
 def compose_tag(z_index, label):
     return f"z{z_index}-{label}"
+
 
 @dataclass
 class FlowQueue:
@@ -174,6 +179,7 @@ class TrackingData:
         data: np.ndarray,
         flow_queue: FlowQueue,
         size: int | None = None,
+        dim: int = 2,
         prefix="xy",
         full_trajectory=False,
     ):
@@ -182,7 +188,7 @@ class TrackingData:
         - Create (if doesn't exist) directory: /trajectory/camera_{cid}/z_{z_index}/label_{label}
         - Save data in the directory
 
-        Shape of data is expected to be (N, 2).
+        Shape of data is expected to be (N, dim).
         N is the number of frames for the flow queue.
         If full_trajectory is True, N is the total number of frames in the video.
 
@@ -193,6 +199,8 @@ class TrackingData:
         flow_queue: FlowQueue
         size: int
             Full size. (most likely the number of frames in the video)
+        dim: int
+            Dimension of the data. (default: 2)
         prefix: str
             (default: "xy")
         full_trajectory: bool
@@ -214,7 +222,7 @@ class TrackingData:
                 assert (
                     size is not None
                 ), "Trajectory size should be provided if dataset label does not exist."
-                shape = (size, 2)
+                shape = (size, dim)
                 dset = grp.create_dataset(
                     prefix,
                     shape,
@@ -235,19 +243,6 @@ class TrackingData:
                 dset[flow_queue.start_frame : flow_queue.end_frame] = data
 
     @raise_if_outside_context
-    def load_trajectory(
-        self, camera_id: int, z_index: int, label: str, prefix="xy",
-    ):
-        """
-        Load trajectory from h5 file
-        """
-        with h5py.File(self.path, "r") as h5f:
-            directory = h5_directory(camera_id, z_index, label)
-            grp = h5f[directory]
-            dset = grp[prefix]
-            return np.array(dset[:], dtype=np.int_)
-
-    @raise_if_outside_context
     def load_pixel_flow_trajectory(
         self, flow_queue: FlowQueue, prefix="xy", full_trajectory=False
     ):
@@ -265,26 +260,100 @@ class TrackingData:
                 )
 
     @raise_if_outside_context
+    def save_track(
+        self, data, z_index: int, label: str, prefix: str = "xyz", unit: str = "m"
+    ):
+        """
+        Load trajectory from h5 file
+
+        Parameters:
+        -----------
+        data: np.ndarray[np.floating]
+            Trajectory data
+        camera_id: int
+        z_index: int
+        label: str
+        prefix: str
+            (default: "xy")
+        """
+
+        def h5_dir(z_index: "int", label: "str"):
+            path = "/dlt-track"
+            path += f"/z_{z_index}"
+            path += f"/label_{label}"
+            return path
+
+        with h5py.File(self.path, "a") as h5f:
+            directory = h5_dir(z_index, label)
+            grp = h5f.require_group(directory)
+            if prefix in grp:
+                dset = grp[prefix]
+                assert (
+                    dset.shape == data.shape
+                ), f"Shape mismatch: {dset.shape} != {data.shape}"
+            else:
+                dset = grp.create_dataset(
+                    prefix,
+                    data.shape,
+                    dtype=np.float64,
+                    data=data,
+                )
+                dset.attrs["unit"] = unit
+            data = np.array(dset[:], dtype=np.float64)
+
+        print(f"Saved track z{z_index}:{label} size {data.shape} to {directory}")
+
+        return data
+
+    @raise_if_outside_context
+    def load_trajectory(
+        self,
+        camera_id: int,
+        z_index: int,
+        label: str,
+        prefix="xy",
+    ):
+        """
+        Load trajectory from h5 file
+        """
+        with h5py.File(self.path, "r") as h5f:
+            directory = h5_directory(camera_id, z_index, label)
+            if directory not in h5f:
+                return None
+            grp = h5f[directory]
+            dset = grp[prefix]
+            return np.array(dset[:], dtype=np.int_)
+
+    @raise_if_outside_context
     def query_timelength(
-        self, prefix="xy",
+        self,
+        prefix="xy",
     ) -> int:
         """
         Get the length of the smallest trajectory
         """
-        lengths = -1
+        lengths = None
         for cam_id in self.iter_cameras():
             with h5py.File(self.path, "r") as h5f:
                 directory = h5_directory(cam_id)
                 grp = h5f[directory]
                 dset = grp[list(grp.keys())[0]]
                 data = dset[list(dset.keys())[0]][prefix]
-                lengths = max(lengths, data.shape[0])
+                lengths = (
+                    min(lengths, data.shape[0])
+                    if lengths is not None
+                    else data.shape[0]
+                )
 
         return lengths
 
     @raise_if_outside_context
     def query_trajectory(
-        self, z_index: int, label: str, timelength: "int|None"=None, prefix="xy",
+        self,
+        z_index: int,
+        label: str,
+        timelength: "int|None" = None,
+        prefix="xy",
     ):
         """
         Load trajectory from h5 file
@@ -292,6 +361,8 @@ class TrackingData:
         point_collections = {}
         for cam_id in self.iter_cameras():
             data = self.load_trajectory(cam_id, z_index, label, prefix=prefix)
+            if data is None:
+                continue
             if timelength is not None:
                 point_collections[cam_id] = data[:timelength]
             else:

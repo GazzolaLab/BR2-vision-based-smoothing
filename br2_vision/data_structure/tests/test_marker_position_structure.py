@@ -58,7 +58,7 @@ class TestMarkerPositions(TestVariables):
         assert mock_marker_position.tags == list(self.marker_positions.keys())
 
     def test_length(self, mock_marker_position):
-        assert len(mock_marker_position) == len(list(self.marker_positions.keys()))
+        assert len(mock_marker_position) == len(self.marker_center_offset)
 
     def test_to_hdf5(self, tmp_path, mock_marker_position):
         filename = tmp_path / "markers.h5"
@@ -81,7 +81,7 @@ class TestMarkerPositions(TestVariables):
 
     def test_get_count_per_ring(self, mock_marker_position):
         assert mock_marker_position.get_count_per_ring() == len(
-            mock_marker_position.marker_center_offset
+            mock_marker_position.merker_positions
         )
 
     @pytest.mark.parametrize("zid, tag", [(0, "A"), (0, "A"), (1, "B"), (2, "B")])

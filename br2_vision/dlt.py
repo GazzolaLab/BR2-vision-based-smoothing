@@ -100,8 +100,10 @@ class DLT:
         Q = np.asarray(Q)
         q = np.asarray(q)
 
-        # Moore-Penrose pseudo-inverse method
+        # Integrity check
         assert Q.shape[0] >= 4, "Least 2 camera-coordinate must be given"
+
+        # Moore-Penrose pseudo-inverse method
         xyz = spl.pinv(Q) @ q
         condition_number = np.linalg.cond(Q)
 

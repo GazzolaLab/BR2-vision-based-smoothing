@@ -26,6 +26,7 @@ from br2_vision.utility.logging import config_logging, get_script_logger
 # from scipy.spatial.distance import directed_hausdorff
 # from scipy.signal import savgol_filter as sgfilter
 
+
 def mouse_click_event(event, x, y, flags, param):
     data = param["data"]
     current_frame = param["current_frame"][0]
@@ -80,9 +81,7 @@ class ManualTracing:
         end_frame = self.flow_queue.end_frame
 
         if debug:
-            print(
-                f"Dry Run: Start: {start_frame}, End: {end_frame}."
-            )
+            print(f"Dry Run: Start: {start_frame}, End: {end_frame}.")
             return
 
         # Run inquiry
@@ -139,7 +138,12 @@ class ManualTracing:
         cap.release()
         return frames
 
-    def display(self, frame: np.typing.NDArray[np.integer], data_collection: np.typing.NDArray[np.integer], name:str):
+    def display(
+        self,
+        frame: np.typing.NDArray[np.integer],
+        data_collection: np.typing.NDArray[np.integer],
+        name: str,
+    ):
         indices = np.where(data_collection[:, 0])[0]
         num_points = len(indices)
         if num_points == 0:
@@ -171,10 +175,14 @@ class ManualTracing:
         window_name = "Tracing"
         cv2.nameWindow(window_name, cv2.WINDOW_NORMAL)
         cv2.setMouseCallback(
-            window_name, mouse_click_event, param={"data": data_collection, "current_frame": current_frame}
+            window_name,
+            mouse_click_event,
+            param={"data": data_collection, "current_frame": current_frame},
         )
 
-        print("q: -5 frames, w: -1 frame, e: +1 frame, r: +5 frames, x: exit (without save)")
+        print(
+            "q: -5 frames, w: -1 frame, e: +1 frame, r: +5 frames, x: exit (without save)"
+        )
         print("^: first frame, $: last frame")
         print("z: delete last trace point")
         prev_frame = -1
@@ -182,7 +190,11 @@ class ManualTracing:
             # Only redraw when the frame is changed
             if prev_frame != current_frame_idx[0]:
                 prev_frame = current_frame_idx[0]
-                self.display(frames[current_frame_idx[0]].copy(), data_collection[current_frame_idx[0]], window_name)
+                self.display(
+                    frames[current_frame_idx[0]].copy(),
+                    data_collection[current_frame_idx[0]],
+                    window_name,
+                )
                 print(f"{current_frame_idx[0]}/{data_length}")
 
             key = cv2.waitKey(1) & 0xFF
@@ -202,10 +214,9 @@ class ManualTracing:
                 data_collection = None
                 break
             elif key == ord("z"):
-                where = np.where(data_collection[:,0] != -1)[0]
+                where = np.where(data_collection[:, 0] != -1)[0]
                 if len(where) > 0:
                     data_collection[:, where[-1]] = -1
-
 
         cv2.destroyAllWindows()
         return data_collection

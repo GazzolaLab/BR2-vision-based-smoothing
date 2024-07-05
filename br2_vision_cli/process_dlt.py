@@ -12,8 +12,8 @@ import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.linear_model import LinearRegression
 
-
 import br2_vision
+from br2_vision.data_structure.marker_positions import MarkerPositions
 from br2_vision.data_structure.tracking_data import TrackingData
 from br2_vision.dlt import DLT
 from br2_vision.utility.convert_coordinate import three_ring_xyz_converter
@@ -39,9 +39,15 @@ def process_dlt(tag, run_id, fps, verbose):
     logger = get_script_logger(os.path.basename(__file__))
 
     tracing_data_path = config["PATHS"]["tracing_data_path"].format(tag, run_id)
-    assert os.path.exists(tracing_data_path), f"Tracing data does not exist: path={tracing_data_path}"
+    assert os.path.exists(
+        tracing_data_path
+    ), f"Tracing data does not exist: path={tracing_data_path}"
     with TrackingData.load(path=tracing_data_path) as dataset:
-        marker_positions = dataset.marker_positions
+        # FIXME: redundant load
+        marker_positions = MarkerPositions.from_yaml(
+            config["PATHS"]["marker_positions"]
+        )
+        dataset.marker_positions = marker_positions
 
         n_ring = len(marker_positions)
         ring_space = marker_positions.marker_center_offset
@@ -52,22 +58,32 @@ def process_dlt(tag, run_id, fps, verbose):
 
         # Count observed tags for each camera
         tags_count = defaultdict(int)
-        recorded_labels = {(q.camera, q.z_index, q.label) for q in dataset.queues if q.done}
+        recorded_labels = {
+            (q.camera, q.z_index, q.label) for q in dataset.queues if q.done
+        }
         for cid, zid, label in recorded_labels:
             tags_count[(zid, label)] += 1
-        
-        # Remove tags if count is less than 2
-        observing_camera_count = { k : v for k, v in tags_count.items() if v >= 2 } 
 
-        # Print if 3 labels exists for each camera
+        # Remove tags if count is less than 2
+        observing_camera_count = {k: v for k, v in tags_count.items() if v >= 2}
+
+        # Integrity check: Print if 3 labels exists for each camera for all frames
         flag = True
         for zid in range(n_ring):
-            num_labels_at_zid = len({label for (z, label) in observing_camera_count.keys() if z == zid})
-            if num_labels_at_zid != 3:
+
+            count_label = {
+                label: count
+                for (z, label), count in observing_camera_count.items()
+                if z == zid
+            }
+            num_labels_at_zid = len(count_label)
+            if num_labels_at_zid < 3:
                 flag = False
                 print(f"Z={zid}: False - {num_labels_at_zid} labels traced.")
             else:
                 print(f"Z={zid}: True")
+                for label, count in count_label.items():
+                    print(f"  {label}: {count} times.")
         assert flag, "At least three labels should be interpolated for each z-plane."
         result_tags = list(observing_camera_count.keys())
 
@@ -78,8 +94,6 @@ def process_dlt(tag, run_id, fps, verbose):
         # DLT Interpolation
         dlt = DLT(calibration_path=config["PATHS"]["calibration_path"])
         dlt.load()
-        points, tags = [], []
-
         result_points = []
         result_cond = []
         for tag, count in observing_camera_count.items():
@@ -87,6 +101,7 @@ def process_dlt(tag, run_id, fps, verbose):
             #     continue
             zid, label = tag
             point_collections_for_tag = dataset.query_trajectory(zid, label, timelength)
+
             txyz = []
             conds = []
             for tid in range(timelength):
@@ -94,18 +109,26 @@ def process_dlt(tag, run_id, fps, verbose):
                 for cam_id, p in point_collections_for_tag.items():
                     if p[tid, 0] == -1 or p[tid, 1] == -1:
                         continue
-                    uvs[cam_id+1] = p[tid]
-                _xyz, cond = dlt.map(uvs)
+                    uvs[cam_id] = p[tid]
+                if len(uvs) < 4:
+                    _xyz, cond = np.zeros(3) * np.nan, np.inf
+                else:
+                    _xyz, cond = dlt.map(uvs)
                 txyz.append(_xyz)
                 conds.append(cond)
             result_points.append(txyz)
             result_cond.append(conds)
+
+            dd = dataset.save_track(np.asarray(txyz), zid, label)
+
         result_points = np.array(result_points)
         result_cond = np.array(result_cond)
     print("Process tags:")
     print("Total number of processed timesteps: {}".format(timelength))
     print("Total number of processed points: {}".format(result_points.shape[1]))
-    print("Final result shape: {}".format(result_points.shape))
+    print("Final result points shape: {}".format(result_points.shape))
+    print("Final result conditioning number shape: {}".format(result_cond.shape))
+    return
 
     # Move to simulation space
     initial_dlt_space = result_points[:, 0, :]
@@ -113,9 +136,7 @@ def process_dlt(tag, run_id, fps, verbose):
     initial_dlt_cond_max = initial_dlt_cond.max()
     initial_sim_space = np.empty_like(initial_dlt_space)
     for idx, tag in enumerate(result_tags):
-        initial_sim_space[idx, :] = three_ring_xyz_converter(
-            tag, n_ring, kwargs.get("ring_space")
-        )
+        initial_sim_space[idx, :] = three_ring_xyz_converter(tag, n_ring, ring_space)
     reg = LinearRegression(fit_intercept=True, normalize=False).fit(
         initial_dlt_space, initial_sim_space
     )
@@ -147,7 +168,7 @@ def process_dlt(tag, run_id, fps, verbose):
     print("Points saved at - {}".format(output_points_path))
     print("")
 
-    return 
+    return
 
     plot_path_activity = config["PATHS"]["plot_working_box"].format(tag, run_id)
     fig = plt.figure(1, figsize=(10, 8))
@@ -157,7 +178,10 @@ def process_dlt(tag, run_id, fps, verbose):
     ax.set_zlabel("z")
     for i in range(len(result_tags)):
         # print(result_tags[i], ': ', initial_dlt_cond[i])
-        ax.scatter(*initial_dlt_space[i], color=color_scheme[observing_camera_count[result_tags[i]]])
+        ax.scatter(
+            *initial_dlt_space[i],
+            color=color_scheme[observing_camera_count[result_tags[i]]],
+        )
         # c = int(initial_dlt_cond[i]*100/initial_dlt_cond_max)-1
         # ax.scatter(*initial_dlt_space[i], c=c, cmap='viridis')
         # ax.scatter(*initial_sim_space[i])

@@ -10,6 +10,7 @@ from br2_vision.data_structure import FlowQueue, MarkerPositions, TrackingData
 
 # Create similar action sequence as add_initial_flow_point + edit_optical_flow
 
+
 def test_access_br2_vision_ini(template_br2vision_config):
     config = template_br2vision_config
     assert True

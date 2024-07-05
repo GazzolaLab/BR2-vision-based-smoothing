@@ -1,4 +1,7 @@
 import os
+
+# import tensorflow as tf
+import pdb
 import re
 import sys
 from typing import List
@@ -13,9 +16,9 @@ from br2_vision.data_structure import FlowQueue, MarkerPositions, TrackingData
 from br2_vision.manual_tracing import ManualTracing
 from br2_vision.utility.logging import config_logging, get_script_logger
 
-# import tensorflow as tf
-import pdb
 stdin, stdout = sys.stdin, sys.stdout
+
+
 def set_trace():
     pdb.Pdb(stdin=stdin, stdout=stdout).set_trace()
 
@@ -35,11 +38,11 @@ def set_trace():
     required=True,
 )
 @click.option(
-   "--force-list-done-queue",
-   is_flag=True,
-   type=bool,
-   help="If set, prompt all queues to be tracked.",
-   default=False,
+    "--force-list-done-queue",
+    is_flag=True,
+    type=bool,
+    help="If set, prompt all queues to be tracked.",
+    default=False,
 )
 @click.option("-v", "--verbose", is_flag=True, help="Verbose mode.")
 @click.option("-d", "--dry", is_flag=True, help="Dry run.")
@@ -56,7 +59,9 @@ def main(tag, run_id, verbose, dry, force_list_done_queue):
             force_run_all=force_list_done_queue,
         )
         if len(queues) == 0:
-            logger.info(f"No flow-queue found. Please select a queue using set_optical_flow_inquiry.")
+            logger.info(
+                f"No flow-queue found. Please select a queue using set_optical_flow_inquiry."
+            )
             return
 
         # Print all queues
@@ -104,9 +109,7 @@ def main(tag, run_id, verbose, dry, force_list_done_queue):
             "footage_video_path_with_trace"
         ].format(tag, cid, run_id)
 
-        optical_flow.render_tracking_video(
-            tracking_overlay_video_path, all_queues
-        )
+        optical_flow.render_tracking_video(tracking_overlay_video_path, all_queues)
 
         cv2.destroyAllWindows()
 
