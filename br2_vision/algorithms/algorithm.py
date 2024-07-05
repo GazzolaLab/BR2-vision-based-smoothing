@@ -7,7 +7,8 @@ import os
 import sys
 
 import numpy as np
-from rod_tools import sigma_to_shear
+
+from .rod_tools import sigma_to_shear
 
 
 class Algorithm(object):

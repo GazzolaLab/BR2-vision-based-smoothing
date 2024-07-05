@@ -28,6 +28,7 @@ run_manual_tracking = 'br2_vision_cli.manual_tracking:main'
 edit_optical_flow = 'br2_vision_cli.interactive_cutout_trajectory:launch'
 
 interpolate_poses = 'br2_vision_cli.process_dlt:process_dlt'
+run_smoothing = 'br2_vision_cli.run_smoothing:main'
 
 overlay_framemark = 'br2_vision_cli.overlay_framemark:process'
 
@@ -50,6 +51,7 @@ dash-bootstrap-components = "^1.5.0"
 pandas = "^2.2.0"
 h5py = "^3.10.0"
 coverage = { version = "^7.4.4", extras = ["toml"] }
+nptyping = "^2.5.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.2.2"

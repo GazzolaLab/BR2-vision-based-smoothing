@@ -14,9 +14,9 @@ from sklearn.linear_model import LinearRegression
 
 import br2_vision
 from br2_vision.data_structure.marker_positions import MarkerPositions
+from br2_vision.data_structure.posture_data import PostureData
 from br2_vision.data_structure.tracking_data import TrackingData
 from br2_vision.dlt import DLT
-from br2_vision.utility.convert_coordinate import three_ring_xyz_converter
 from br2_vision.utility.logging import config_logging, get_script_logger
 
 # CONFIGURATION
@@ -32,11 +32,21 @@ color_scheme = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 )
 @click.option("-r", "--run_id", required=True, type=int, help="Run ID")
 @click.option("-f", "--fps", default=60, type=int, help="FPS of the video")
+@click.option(
+    "-p",
+    "--save_path",
+    type=click.Path(exists=False),
+    default="results",
+    help="Path to save the data",
+)
 @click.option("-v", "--verbose", is_flag=True, type=bool, help="Verbose output")
-def process_dlt(tag, run_id, fps, verbose):
+def process_dlt(tag, run_id, fps, save_path, verbose):
     config = br2_vision.load_config()
     config_logging(verbose)
     logger = get_script_logger(os.path.basename(__file__))
+
+    save_path = Path(save_path)
+    save_path.mkdir(parents=True, exist_ok=True)
 
     tracing_data_path = config["PATHS"]["tracing_data_path"].format(tag, run_id)
     assert os.path.exists(
@@ -55,6 +65,7 @@ def process_dlt(tag, run_id, fps, verbose):
         # Read Data Points
         timelength = dataset.query_timelength()
         timestamps = np.arange(0, timelength) * (1.0 / fps)
+        dataset.save_timestamps(timestamps)
 
         # Count observed tags for each camera
         tags_count = defaultdict(int)
@@ -94,8 +105,8 @@ def process_dlt(tag, run_id, fps, verbose):
         # DLT Interpolation
         dlt = DLT(calibration_path=config["PATHS"]["calibration_path"])
         dlt.load()
-        result_points = []
-        result_cond = []
+        result_dlt_coords = []
+        result_actual_coords = []
         for tag, count in observing_camera_count.items():
             # if tag in EXCLUDE_TAGS:
             #     continue
@@ -110,94 +121,79 @@ def process_dlt(tag, run_id, fps, verbose):
                     if p[tid, 0] == -1 or p[tid, 1] == -1:
                         continue
                     uvs[cam_id] = p[tid]
-                if len(uvs) < 4:
+                if len(uvs) < 2:
                     _xyz, cond = np.zeros(3) * np.nan, np.inf
                 else:
                     _xyz, cond = dlt.map(uvs)
                 txyz.append(_xyz)
                 conds.append(cond)
-            result_points.append(txyz)
-            result_cond.append(conds)
 
-            dd = dataset.save_track(np.asarray(txyz), zid, label)
+            if not np.isnan(txyz[0]).any():
+                actual_coord = marker_positions.get_position(zid, label)
+                result_dlt_coords.append(txyz[0])  # keep the firat frame
+                result_actual_coords.append(actual_coord)
 
-        result_points = np.array(result_points)
-        result_cond = np.array(result_cond)
-    print("Process tags:")
-    print("Total number of processed timesteps: {}".format(timelength))
-    print("Total number of processed points: {}".format(result_points.shape[1]))
-    print("Final result points shape: {}".format(result_points.shape))
-    print("Final result conditioning number shape: {}".format(result_cond.shape))
-    return
+            dataset.save_track(np.asarray(txyz), zid, label, prefix="dlt_mapped_xyz")
 
-    # Move to simulation space
-    initial_dlt_space = result_points[:, 0, :]
-    initial_dlt_cond = result_cond[:, 0]
-    initial_dlt_cond_max = initial_dlt_cond.max()
-    initial_sim_space = np.empty_like(initial_dlt_space)
-    for idx, tag in enumerate(result_tags):
-        initial_sim_space[idx, :] = three_ring_xyz_converter(tag, n_ring, ring_space)
-    reg = LinearRegression(fit_intercept=True, normalize=False).fit(
-        initial_dlt_space, initial_sim_space
-    )
-    print("regression coefficient:\n", reg.coef_)
-    print("   det=", np.linalg.det(reg.coef_))
-    print("   trace=", np.trace(reg.coef_))
-    print("   angle=", np.arccos((np.trace(reg.coef_) - 1) / 2.0))
-    print("regression rank: ", reg.rank_)
-    print("regression intercept: ", reg.intercept_)
-    print("regression score: ", reg.score(initial_dlt_space, initial_sim_space))
-    simulation_space_points = reg.predict(result_points.reshape([-1, 3]))
-    simulation_space_points = simulation_space_points.reshape([-1, timelength, 3])
-
-    # result_points = simulation_space_points
-
-    # Output Path - Default path is the data directory
-    # TODO: move data into tracing_data_path
-    output_points_path = config["PATHS"]["position_data_path"].format(tag, run_id)
-    # Save Points
-    np.savez(
-        output_points_path,
-        time=timestamps,
-        position=result_points,
-        # simulation_space_points=simulation_space_points,
-        tags=result_tags,
-        # origin_offset=center,
-        # normal_pob=np.array(plane.normal)
-    )
-    print("Points saved at - {}".format(output_points_path))
-    print("")
-
-    return
-
-    plot_path_activity = config["PATHS"]["plot_working_box"].format(tag, run_id)
-    fig = plt.figure(1, figsize=(10, 8))
-    ax = plt.axes(projection="3d")
-    ax.set_xlabel("x")
-    ax.set_ylabel("y")
-    ax.set_zlabel("z")
-    for i in range(len(result_tags)):
-        # print(result_tags[i], ': ', initial_dlt_cond[i])
-        ax.scatter(
-            *initial_dlt_space[i],
-            color=color_scheme[observing_camera_count[result_tags[i]]],
+        result_dlt_coords = np.array(result_dlt_coords)
+        result_actual_coords = np.array(result_actual_coords)
+        print("Process tags:")
+        print("Total number of processed timesteps: {}".format(timelength))
+        print(
+            "Total number of processed points: {}".format(len(observing_camera_count))
         )
-        # c = int(initial_dlt_cond[i]*100/initial_dlt_cond_max)-1
-        # ax.scatter(*initial_dlt_space[i], c=c, cmap='viridis')
-        # ax.scatter(*initial_sim_space[i])
-        ax.text(*initial_dlt_space[i], result_tags[i], size=10, zorder=1, color="k")
-    # draw cube
-    cx = np.array([1, 15]) * 0.02
-    cy = np.array([1, 12]) * 0.04
-    cz = np.array([1, 10]) * 0.04
-    for s, e in combinations(np.array(list(product(cx, cy, cz))), 2):
-        if np.sum(np.abs(s - e)) >= 0.2:
-            ax.plot3D(*zip(s, e), color="b")
-    ax.view_init(elev=-90, azim=-70)
-    fig.savefig(plot_path_activity)
-    # plt.show()
 
-    return
+        # Re-map dlt points to rod space
+        reg = LinearRegression(fit_intercept=True).fit(
+            result_dlt_coords, result_actual_coords
+        )
+        print("regression coefficient:\n", reg.coef_)
+        print("   det=", np.linalg.det(reg.coef_))
+        print("   trace=", np.trace(reg.coef_))
+        print("   angle=", np.arccos((np.trace(reg.coef_) - 1) / 2.0))
+        print("regression rank: ", reg.rank_)
+        print("regression intercept: ", reg.intercept_)
+        print("regression score: ", reg.score(result_dlt_coords, result_actual_coords))
+
+        for tag, count in observing_camera_count.items():
+            txyz = dataset.load_track(zid, label, prefix="dlt_mapped_xyz")
+            nan_indices = np.isnan(txyz).any(axis=1)
+            mapped_txyz = reg.predict(txyz[~nan_indices])
+            txyz[~nan_indices] = mapped_txyz
+            dataset.save_track(txyz, zid, label, prefix="xyz")
+
+    with PostureData(path=tracing_data_path) as dataset:
+        pass
+
+    # TODO: debugging plots
+    # plot_path_activity = config["PATHS"]["plot_working_box"].format(tag, run_id)
+    # fig = plt.figure(1, figsize=(10, 8))
+    # ax = plt.axes(projection="3d")
+    # ax.set_xlabel("x")
+    # ax.set_ylabel("y")
+    # ax.set_zlabel("z")
+    # for i in range(len(result_tags)):
+    #     # print(result_tags[i], ': ', initial_dlt_cond[i])
+    #     ax.scatter(
+    #         *result_dlt_coords [i],
+    #         color=color_scheme[observing_camera_count[result_tags[i]]],
+    #     )
+    #     # c = int(initial_dlt_cond[i]*100/initial_dlt_cond_max)-1
+    #     # ax.scatter(*result_dlt_coords [i], c=c, cmap='viridis')
+    #     # ax.scatter(*result_actual_coords [i])
+    #     ax.text(*result_dlt_coords [i], result_tags[i], size=10, zorder=1, color="k")
+    # # draw cube
+    # cx = np.array([1, 15]) * 0.02
+    # cy = np.array([1, 12]) * 0.04
+    # cz = np.array([1, 10]) * 0.04
+    # for s, e in combinations(np.array(list(product(cx, cy, cz))), 2):
+    #     if np.sum(np.abs(s - e)) >= 0.2:
+    #         ax.plot3D(*zip(s, e), color="b")
+    # ax.view_init(elev=-90, azim=-70)
+    # fig.savefig(plot_path_activity)
+    # # plt.show()
+
+    # return
 
 
 if __name__ == "__main__":

@@ -5,10 +5,19 @@ from typing import List, Tuple
 
 import h5py
 import numpy as np
+from nptyping import Floating, NDArray, Shape
 
 from br2_vision.utility.logging import get_script_logger
 
 from .marker_positions import MarkerPositions
+from .utils import raise_if_outside_context
+
+
+def h5_track_dir(z_index: "int", label: "str"):
+    path = "/dlt-track"
+    path += f"/z_{z_index}"
+    path += f"/label_{label}"
+    return path
 
 
 def h5_directory(
@@ -136,15 +145,6 @@ class FlowQueue:
         return compose_tag(z_index, label)
 
 
-def raise_if_outside_context(method):  # pragma: no cover
-    def decorator(self, *args, **kwargs):
-        if not self._inside_context:
-            raise Exception("This method should be called from inside context.")
-        return method(self, *args, **kwargs)
-
-    return decorator
-
-
 class TrackingData:
     """
     Data structure for storing tracking data
@@ -260,6 +260,41 @@ class TrackingData:
                 )
 
     @raise_if_outside_context
+    def save_timestamps(self, timestamps):
+        """
+        Save timestamps in h5 file
+        """
+        with h5py.File(self.path, "a") as h5f:
+            dset = h5f.require_dataset(
+                "dlt-track/timestamps",
+                timestamps.shape,
+                dtype=np.float64,
+                data=timestamps,
+            )
+            dset.attrs["unit"] = "s"
+
+        print(f"Saved timestamps size {timestamps.shape} to /dlt-track/timestamps")
+
+    @raise_if_outside_context
+    def load_track(
+        self,
+        z_index: int,
+        label: str,
+        prefix: str = "xyz",
+    ) -> "NDArray[Shape['T', 'D'], Floating] | None":
+        """
+        Load trajectory from h5 file
+        """
+        with h5py.File(self.path, "r") as h5f:
+            directory = h5_track_dir(z_index, label)
+            if directory not in h5f:
+                return None
+            grp = h5f[directory]
+            dset = grp[prefix]
+            data = np.array(dset[:], dtype=np.float64)
+        return data
+
+    @raise_if_outside_context
     def save_track(
         self, data, z_index: int, label: str, prefix: str = "xyz", unit: str = "m"
     ):
@@ -277,14 +312,8 @@ class TrackingData:
             (default: "xy")
         """
 
-        def h5_dir(z_index: "int", label: "str"):
-            path = "/dlt-track"
-            path += f"/z_{z_index}"
-            path += f"/label_{label}"
-            return path
-
         with h5py.File(self.path, "a") as h5f:
-            directory = h5_dir(z_index, label)
+            directory = h5_track_dir(z_index, label)
             grp = h5f.require_group(directory)
             if prefix in grp:
                 dset = grp[prefix]
@@ -301,9 +330,9 @@ class TrackingData:
                 dset.attrs["unit"] = unit
             data = np.array(dset[:], dtype=np.float64)
 
-        print(f"Saved track z{z_index}:{label} size {data.shape} to {directory}")
-
-        return data
+        print(
+            f"Saved track z{z_index}:{label} size {data.shape} to {directory} - prefix-{prefix}"
+        )
 
     @raise_if_outside_context
     def load_trajectory(
@@ -471,6 +500,7 @@ class TrackingData:
             dset.resize((len(self.queues),))
             for idx, q in enumerate(self.queues):
                 dset[idx] = np.array(q)
+        self.marker_positions.to_h5(self.path, overwrite=True)
         self._inside_context = False
 
     @raise_if_outside_context

@@ -91,9 +91,9 @@ class MarkerPositions(DataclassYamlSaveLoadMixin):
         """
         Get the absolute position of a marker.
         """
-        z_loc = np.cumsum(self.marker_center_offset)
+        z_loc = np.cumsum(self.marker_center_offset)[zidx]
         vec_marker = self.Q @ np.array(self.marker_positions[tag])
-        z_position = z_loc[zidx] * np.array(self.marker_direction)
+        z_position = z_loc * np.array(self.marker_direction)
         return np.array(self.origin) + z_position + vec_marker
 
     @classmethod
@@ -145,11 +145,15 @@ class MarkerPositions(DataclassYamlSaveLoadMixin):
                 grp.attrs["normal_direction"] = self_data["normal_direction"]
                 grp.attrs["tags"] = list(self.tags)  # , dtype="<U1")
 
+                if overwrite and "marker_center_offset" in grp:
+                    del grp["marker_center_offset"]
                 grp.create_dataset(
                     "marker_center_offset",
                     data=self_data["marker_center_offset"],
                     dtype=float,
                 )
+                if overwrite and "marker_positions" in grp:
+                    del grp["marker_positions"]
                 grp.create_dataset(
                     "marker_positions",
                     data=np.array(list(self.marker_positions.values())),

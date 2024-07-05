@@ -61,7 +61,8 @@ def three_ring_xz_converter(loc_idx):
     return pz
 
 
-def three_ring_xyz_converter(label, n_ring, ring_space):
+# FIXME: Deprecated
+def three_ring_xyz_converter(label, ring_space):
     """
     Three-ring cross-sectional plane on BR2 (07/05/21)
     """
@@ -86,6 +87,7 @@ def three_ring_xyz_converter(label, n_ring, ring_space):
     return vec
 
 
+# FIXME: Deprecated
 def get_center_and_normal(labelled_points: dict, n_ring: int):
     # Return Placeholder
     center_position = np.zeros([3, n_ring])
@@ -228,7 +230,7 @@ if __name__ == "__main__":
     for ring_id in range(1, NUM_RING + 1):
         for point_id in range(NUM_POINT):
             tag = f"{RING_CHAR}{ring_id}-{point_id}"
-            coord = tuple(three_ring_xyz_converter(tag, 9, spacing).tolist())
+            coord = tuple(three_ring_xyz_converter(tag, spacing).tolist())
 
             if ring_id == 1:
                 print(tag, coord)

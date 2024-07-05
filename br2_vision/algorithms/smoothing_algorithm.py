@@ -12,14 +12,16 @@ import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 from elastica._calculus import quadrature_kernel
-from elastica._elastica_numba._external_forces import inplace_addition
-from elastica._elastica_numba._rotations import _inv_rotate, _rotate
 from elastica._linalg import _batch_cross, _batch_matrix_transpose, _batch_matvec
+from elastica._rotations import _inv_rotate, _rotate
+from elastica.external_forces import inplace_addition
 from matplotlib import gridspec
 from numba import njit
-from numpy.core.shape_base import block
-from rod_tools import _lab_to_material  # _trapezoidal,
-from rod_tools import (
+from tqdm import tqdm
+
+from .algorithm import Algorithm
+from .rod_tools import _lab_to_material  # _trapezoidal,
+from .rod_tools import (
     _batch_cross,
     _material_to_lab,
     average2D,
@@ -28,9 +30,6 @@ from rod_tools import (
     kappa_to_curvature,
     sigma_to_shear,
 )
-from tqdm import tqdm
-
-from .algorithm import Algorithm
 
 
 class ForwardBackwardSmooth(Algorithm):

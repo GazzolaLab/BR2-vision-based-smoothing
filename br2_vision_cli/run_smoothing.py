@@ -1,6 +1,7 @@
 """
 Created on Aug. 01, 2021
 @author: Heng-Sheng (Hanson) Chang
+@modified by: Seung Hyun Kim
 """
 
 import os
@@ -8,31 +9,45 @@ import pickle
 import sys
 import time
 from collections import defaultdict
+from pathlib import Path
 from types import SimpleNamespace as EmptyClass
+from typing import Protocol
 
+import click
 import matplotlib.pyplot as plt
 import numpy as np
-from algorithms.smoothing_algorithm import ForwardBackwardSmooth
 from elastica.rod.cosserat_rod import CosseratRod
 from matplotlib import gridspec
 from mpl_toolkits.mplot3d import Axes3D
 from tqdm import tqdm
 
-# os.environ['NUMBA_DISABLE_JIT'] = '1'
+import br2_vision
+from br2_vision.algorithms.smoothing_algorithm import ForwardBackwardSmooth
+from br2_vision.data_structure.marker_positions import MarkerPositions
+from br2_vision.data_structure.posture_data import PostureData
+from br2_vision.utility.logging import config_logging, get_script_logger
 
 
-def read_data_from_file(file_name):
-    raw_data = np.load("data/" + file_name + ".npz")
-    return raw_data
+class RequiredRawData(Protocol):
+    @property
+    def time(self) -> np.typing.NDArray[np.float64]: ...
+
+    @property
+    def cross_section_center_position(self) -> np.typing.NDArray[np.float64]: ...
+
+    @property
+    def cross_section_director(self) -> np.typing.NDArray[np.float64]: ...
 
 
-def create_data_object(raw_data, delta_s_position):
+def create_data_object(
+    raw_data: RequiredRawData, delta_s_position: np.typing.NDArray[np.float64]
+):
     data = EmptyClass()
-    data.time = raw_data["time"].copy()
-    data.position = raw_data["cross_section_center_position"].copy()
-
-    data.director = raw_data["cross_section_director"].copy()
+    data.time = raw_data.time.copy()
+    data.position = raw_data.cross_section_center_position.copy()
+    data.director = raw_data.cross_section_director.copy()
     data.director_flag = True
+
     frame_index = 0
     data.noisy_position = data.position[frame_index, :, :].copy()
     data.noisy_director = data.director[frame_index, :, :, :].copy()
@@ -49,7 +64,7 @@ def create_data_object(raw_data, delta_s_position):
     # delta_s_position = np.array([12, 63, 61, 57.5, 60, 58])
 
     data.s_position = np.cumsum(delta_s_position)
-    L0 = data.s_position[-1] / 1000
+    L0 = data.s_position[-1]
     data.s_position /= data.s_position[-1]
     data.s_director = data.s_position.copy()
     return data, L0
@@ -69,16 +84,19 @@ def create_BR2(n=500, L0=0.16, radius=0.0075, youngs_modulus=1e7):
         base_length=L0,
         base_radius=radii_mean.copy(),
         density=700,
-        nu=damp_coefficient * ((radii_mean / radius) ** 2),
         youngs_modulus=youngs_modulus,
-        poisson_ratio=0.5,
-        nu_for_torques=damp_coefficient * ((radii_mean / radius) ** 4),
+        # nu=damp_coefficient * ((radii_mean / radius) ** 2),
+        # poisson_ratio=0.5,
+        # nu_for_torques=damp_coefficient * ((radii_mean / radius) ** 4),
     )
     return rod
 
 
-def process_data(file_name, delta_s_position):
-    raw_data = read_data_from_file(file_name)
+def process_data(
+    raw_data: RequiredRawData,
+    delta_s_position: np.typing.NDArray[np.float64],
+    save_path: Path,
+):
     data, L0 = create_data_object(raw_data, delta_s_position)
 
     # define rod
@@ -137,13 +155,10 @@ def process_data(file_name, delta_s_position):
         smoothed_data["kappa"].append(algo.kappa.copy())
 
     # Export
-    import pickle
-
     print("Saving data to pickle files ...", end="\r")
 
-    with open("result/" + file_name + ".pickle", "wb") as data_file:
+    with open(save_path / "smoothing.pkl", "wb") as data_file:
         data = dict(
-            datafile_name=file_name,
             time=smoothed_data["time"],
             data_index=smoothed_data["data_index"],
             radius=smoothed_data["radius"],
@@ -155,35 +170,44 @@ def process_data(file_name, delta_s_position):
         pickle.dump(data, data_file)
 
 
-def main(problem):
-    if problem == "bend":
-        file_name = "bend"
-        delta_s_position = np.array([23.9, 35.17, 33.82, 34.55, 32.8])
-    if problem == "twist":
-        file_name = "bend"
-        delta_s_position = np.array([23.9, 35.17, 33.82, 34.55, 32.8])
-    if problem == "mix":
-        file_name = "mix"
-        delta_s_position = np.array([23.9, 35.17, 33.82, 34.55, 32.8])
-    if problem == "cable":
-        file_name = "cable"
-        delta_s_position = np.array(
-            [27.5, 33.5, 28, 34, 30, 31, 36.5, 31.5, 32, 34.5, 30, 31]
+@click.command()
+@click.option(
+    "-t",
+    "--tag",
+    type=str,
+    help="Experiment tag. Path ./tag should exist.",
+)
+@click.option("-r", "--run_id", required=True, type=int, help="Run ID")
+@click.option(
+    "-p",
+    "--save_path",
+    type=click.Path(exists=False),
+    default="results",
+    help="Path to save the data",
+)
+@click.option("-v", "--verbose", is_flag=True, type=bool, help="Verbose output")
+def main(tag, run_id, save_path, verbose):
+    config = br2_vision.load_config()
+    config_logging(verbose)
+    logger = get_script_logger(os.path.basename(__file__))
+
+    save_path = Path(save_path)
+    save_path.mkdir(parents=True, exist_ok=True)
+
+    marker_positions = MarkerPositions.from_yaml(config["PATHS"]["marker_positions"])
+    delta_s_position = np.array(marker_positions.marker_center_offset)
+
+    # Create raw data
+    raw_data = EmptyClass()
+    tracing_data_path = config["PATHS"]["tracing_data_path"].format(tag, run_id)
+    assert os.path.exists(
+        tracing_data_path
+    ), f"Tracing data does not exist: path={tracing_data_path}"
+    with PostureData(path=tracing_data_path) as dataset:
+        raw_data.time = dataset.get_time()
+        raw_data.cross_section_center_position = (
+            dataset.get_cross_section_center_position()
         )
+        raw_data.cross_section_director = dataset.get_cross_section_director()
 
-    process_data(file_name, delta_s_position)
-
-
-if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(description="Require problem keyword")
-    parser.add_argument(
-        "--problem",
-        metavar="subproblem number",
-        type=str,
-        nargs=1,
-        help="problem keywork: bend, twist, mix, cable",
-    )
-    args = parser.parse_args()
-    main(args.problem[0])
+    process_data(raw_data, delta_s_position, save_path)
