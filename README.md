@@ -158,20 +158,11 @@ Recommended file structure is as follow:
 │   ├── raw
 │   │   ├── cam1.MOV
 │   │   ├── cam2.MOV
-│   │   ├── cam3.MOV
-│   │   ├── cam4.MOV
-│   │   └── cam5.MOV
 ...
-```
-
-### Overlay Result
-
-Plot simulated data points on camera space.
-Careful choice of axis is required
-
-```bash
-python data_augment_cross_section.py
-python overlay_smoothing.py
+│   ├── dlt-calibration
+│   │   ├── cam1.MOV
+│   │   ├── cam2.MOV
+...
 ```
 
 ### Miscellaneous tools
