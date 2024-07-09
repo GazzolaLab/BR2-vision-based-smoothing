@@ -49,7 +49,7 @@ class ManualTracing:
     def __init__(
         self,
         video_path,
-        flow_queue: list[FlowQueue],
+        flow_queue: FlowQueue,
         dataset: TrackingData,
         scale: float = 1.0,
     ):
@@ -78,7 +78,6 @@ class ManualTracing:
         debug mode: dry run
         """
 
-        base_index = indices[0]
         start_frame = self.flow_queue.start_frame
         end_frame = self.flow_queue.end_frame
 
