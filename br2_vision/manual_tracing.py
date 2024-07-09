@@ -116,7 +116,7 @@ class ManualTracing:
             c, d = int(c), int(d)
             frame[:] = cv2.line(frame, (a, b), (c, d), color, 2)
 
-    def stack_frames(self, start_frame, end_frame):
+    def stack_frames(self, start_frame: int, end_frame: int):
         cap = cv2.VideoCapture(self.video_path)
         assert cap.isOpened(), "Video is not properly opened: {}".format(
             self.video_path
@@ -124,8 +124,8 @@ class ManualTracing:
         cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)  # Jump frame
 
         # get width and height
-        width = int(cap.get(3)) * self.scale
-        height = int(cap.get(4)) * self.scale
+        width = int(cap.get(3) * self.scale)
+        height = int(cap.get(4) * self.scale)
 
         # get frames
         frames = np.zeros((end_frame - start_frame, height, width, 3), np.uint8)
