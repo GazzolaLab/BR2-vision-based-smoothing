@@ -31,10 +31,10 @@ from br2_vision.utility.logging import config_logging, get_script_logger
 
 def mouse_click_event(event, x, y, flags, param):
     data = param["data"]
-    current_frame = param["current_frame"][0]
+    current_frame_idx = param["current_frame_idx"][0]
     if event == cv2.EVENT_LBUTTONDOWN:
-        data[current_frame, 0] = x
-        data[current_frame, 1] = y
+        data[current_frame_idx, 0] = x
+        data[current_frame_idx, 1] = y
 
 
 # Optical Flow and Point Detection Module
@@ -174,11 +174,11 @@ class ManualTracing:
         data_collection[0, :] = point
 
         window_name = "Tracing"
-        cv2.nameWindow(window_name, cv2.WINDOW_NORMAL)
+        cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
         cv2.setMouseCallback(
             window_name,
             mouse_click_event,
-            param={"data": data_collection, "current_frame": current_frame},
+            param={"data": data_collection, "current_frame_idx": current_frame_idx},
         )
 
         print(
