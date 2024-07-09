@@ -145,7 +145,7 @@ class ManualTracing:
         data_collection: NDArray,
         name: str,
     ):
-        indices = np.where(data_collection[:, 0])[0]
+        indices = np.where(data_collection[:, 0]-1)[0]
         num_points = len(indices)
         if num_points == 0:
             pass
@@ -156,7 +156,7 @@ class ManualTracing:
             spline = CubicSpline(indices, points)
             spline_trajectory = spline(np.arange(len(data_collection)))
             self.draw_points(frame, points)
-            self.draw_track(frame, spline_trajectory)
+            self.draw_track(frame, spline_trajectory[:-1], spline_trajectory[1:])
 
         cv2.imshow(name, frame)
 
@@ -193,7 +193,7 @@ class ManualTracing:
                 prev_frame = current_frame_idx[0]
                 self.display(
                     frames[current_frame_idx[0]].copy(),
-                    data_collection[current_frame_idx[0]],
+                    data_collection,
                     window_name,
                 )
                 print(f"{current_frame_idx[0]}/{data_length}")
