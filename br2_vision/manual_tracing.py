@@ -1,3 +1,5 @@
+from nptyping import NDArray
+
 import os
 import sys
 from itertools import combinations
@@ -140,8 +142,8 @@ class ManualTracing:
 
     def display(
         self,
-        frame: np.typing.NDArray[np.integer],
-        data_collection: np.typing.NDArray[np.integer],
+        frame: NDArray,
+        data_collection: NDArray,
         name: str,
     ):
         indices = np.where(data_collection[:, 0])[0]
