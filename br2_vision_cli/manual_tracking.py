@@ -14,6 +14,7 @@ import numpy as np
 import br2_vision
 from br2_vision.data_structure import FlowQueue, MarkerPositions, TrackingData
 from br2_vision.manual_tracing import ManualTracing
+from br2_vision.optical_flow import CameraOpticalFlow
 from br2_vision.utility.logging import config_logging, get_script_logger
 
 stdin, stdout = sys.stdin, sys.stdout
@@ -98,13 +99,13 @@ def main(tag, run_id, verbose, dry, force_list_done_queue):
             return
 
         # Render tracking video
+        all_queues = dataset.get_flow_queues(camera=cid, force_run_all=True)
         optical_flow = CameraOpticalFlow(
             video_path=video_path,
-            flow_queues=queues,
+            flow_queues=all_queues,
             dataset=dataset,
             scale=scale,
         )
-        all_queues = dataset.get_flow_queues(camera=cid, force_run_all=True)
         tracking_overlay_video_path = config["PATHS"][
             "footage_video_path_with_trace"
         ].format(tag, cid, run_id)

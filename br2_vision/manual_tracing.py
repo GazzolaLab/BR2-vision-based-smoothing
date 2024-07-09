@@ -91,6 +91,12 @@ class ManualTracing:
             # Halting
             return False
 
+        # Interpolation
+        indices = np.where(data[:,0] != -1)[0]
+        points = data[indices,:]
+        spline = CubicSpline(indices, points)
+        data = spline(np.arange(end_frame - start_frame))
+
         # Save
         q = self.flow_queue
         self.dataset.save_pixel_flow_trajectory(data, q, self.num_frames)
@@ -99,7 +105,7 @@ class ManualTracing:
         return True
 
     def draw_points(
-        self, frame, points, radius=8, color=(0, 235, 0), thickness=-1
+        self, frame, points, radius=4, color=(0, 235, 0), thickness=-1
     ):  # pragma: no cover
         # draw the points (overlay)
         for i, point in enumerate(points):
@@ -145,7 +151,7 @@ class ManualTracing:
         data_collection: NDArray,
         name: str,
     ):
-        indices = np.where(data_collection[:, 0]-1)[0]
+        indices = np.where(data_collection[:, 0] != -1)[0]
         num_points = len(indices)
         if num_points == 0:
             pass
@@ -153,10 +159,8 @@ class ManualTracing:
             self.draw_points(frame, data_collection[indices, :])
         else:
             points = data_collection[indices, :]
-            spline = CubicSpline(indices, points)
-            spline_trajectory = spline(np.arange(len(data_collection)))
             self.draw_points(frame, points)
-            self.draw_track(frame, spline_trajectory[:-1], spline_trajectory[1:])
+            self.draw_track(frame, points[:-1], points[1:])
 
         cv2.imshow(name, frame)
 
@@ -196,7 +200,7 @@ class ManualTracing:
                     data_collection,
                     window_name,
                 )
-                print(f"{current_frame_idx[0]}/{data_length}")
+                print(f"(frame {current_frame_idx[0]+start_frame}){current_frame_idx[0]}/{data_length}")
 
             key = cv2.waitKey(1) & 0xFF
             if key == ord("q"):

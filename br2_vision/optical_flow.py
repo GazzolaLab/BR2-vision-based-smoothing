@@ -216,6 +216,7 @@ class CameraOpticalFlow:
         cv2.waitKey(0)
         # cv2.destroyAllWindows()
 
+    # FIXME: Change it to be global functionals
     def render_tracking_video(self, save_path, queues=None):  # pragma: no cover
         """save_tracking_video
 
