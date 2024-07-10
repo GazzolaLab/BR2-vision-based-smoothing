@@ -1,7 +1,7 @@
 import operator
 import os
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 import h5py
 import numpy as np
@@ -178,7 +178,7 @@ class TrackingData:
         self,
         data: np.ndarray,
         flow_queue: FlowQueue,
-        size: int | None = None,
+        size: Union[int, None] = None,
         dim: int = 2,
         prefix="xy",
         full_trajectory=False,

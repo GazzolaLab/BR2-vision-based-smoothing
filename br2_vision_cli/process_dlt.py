@@ -2,6 +2,7 @@ import os
 import sys
 from collections import defaultdict
 from itertools import combinations, product
+from pathlib import Path
 
 import click
 import matplotlib.animation as animation
