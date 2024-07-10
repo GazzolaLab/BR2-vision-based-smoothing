@@ -178,7 +178,7 @@ class TrackingData:
         self,
         data: np.ndarray,
         flow_queue: FlowQueue,
-        size: Union[int, None] = None,
+        size: "int | None" = None,
         dim: int = 2,
         prefix="xy",
         full_trajectory=False,
