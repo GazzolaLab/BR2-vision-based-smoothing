@@ -27,6 +27,8 @@ run_optical_flow = 'br2_vision_cli.run_optical_flow:main'
 run_manual_tracking = 'br2_vision_cli.manual_tracking:main'
 edit_optical_flow = 'br2_vision_cli.interactive_cutout_trajectory:launch'
 
+render_tracking_video = 'br2_vision_cli.render_video:main'
+
 interpolate_poses = 'br2_vision_cli.process_dlt:process_dlt'
 run_smoothing = 'br2_vision_cli.run_smoothing:main'
 
