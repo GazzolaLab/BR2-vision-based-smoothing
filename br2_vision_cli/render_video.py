@@ -56,49 +56,7 @@ def main(tag, run_id, verbose, dry, force_list_done_queue):
     # Run optical flow for each run-id
     datapath = config["PATHS"]["tracing_data_path"].format(tag, run_id)
     with TrackingData.load(path=datapath) as dataset:
-        queues: list[FlowQueue] = dataset.get_flow_queues(
-            force_run_all=force_list_done_queue,
-        )
-        # if len(queues) == 0:
-        #    logger.info(
-        #        f"No flow-queue found. Please select a queue using set_optical_flow_inquiry."
-        #    )
-        #    return
-
-        # Print all queues
-        # for idx, q in enumerate(queues):
-        #     print(f"Queue {idx}: {q}")
-
-        # Prompt user to select a queue
-        # queue_idx = input("Select a queue:")
-
-        # Check if the input is valid, using regex
-        # if not re.match(r"^\d+$", queue_idx):
-        #     logger.error("Invalid input. Please input a number.")
-        #     return
-        # queue_idx = int(queue_idx)
-        # # check if the input is within the range
-        # if queue_idx < 0 or queue_idx >= len(queues):
-        #     logger.error("Invalid input. Please input a number within the range.")
-        #     return
-        # queue = queues[queue_idx]
-        # cid = queue.camera
-
-        # video_path = config["PATHS"]["footage_video_path"].format(tag, cid, run_id)
-
-        # tracing = ManualTracing(
-        #     video_path=video_path,
-        #     flow_queue=queue,
-        #     dataset=dataset,
-        #     scale=scale,
-        # )
-        # set_trace()
         
-        # result = tracing.run(debug=dry)
-        # if not result:
-        #     logger.info(f"Failed to trace queue {queue_idx}.")
-        #     return
-
         # Render tracking video
         all_queues = dataset.get_flow_queues(camera=cid, force_run_all=True)
         optical_flow = CameraOpticalFlow(
