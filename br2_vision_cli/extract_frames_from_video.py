@@ -1,7 +1,7 @@
 import glob
-import re
 import os
 import pathlib
+import re
 import sys
 import time
 from collections import deque

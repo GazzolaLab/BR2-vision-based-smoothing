@@ -63,7 +63,7 @@ def main(tag, cam_id, run_id, verbose, dry, force_list_done_queue):
     # Run optical flow for each run-id
     datapath = config["PATHS"]["tracing_data_path"].format(tag, run_id)
     with TrackingData.load(path=datapath) as dataset:
-        
+
         # Render tracking video
         video_path = config["PATHS"]["footage_video_path"].format(tag, cam_id, run_id)
         all_queues = dataset.get_flow_queues(camera=cam_id, force_run_all=True)
