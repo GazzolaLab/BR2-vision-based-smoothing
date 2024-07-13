@@ -32,6 +32,13 @@ def set_trace():
     help="Experiment tag. Path ./tag should exist.",
 )
 @click.option(
+    "-c",
+    "--cam-id",
+    type=int,
+    help="Specify camera index.",
+    required=True,
+)
+@click.option(
     "-r",
     "--run-id",
     type=int,
@@ -47,7 +54,7 @@ def set_trace():
 )
 @click.option("-v", "--verbose", is_flag=True, help="Verbose mode.")
 @click.option("-d", "--dry", is_flag=True, help="Dry run.")
-def main(tag, run_id, verbose, dry, force_list_done_queue):
+def main(tag, cam_id, run_id, verbose, dry, force_list_done_queue):
     config = br2_vision.load_config()
     config_logging(verbose)
     logger = get_script_logger(os.path.basename(__file__))
@@ -58,7 +65,8 @@ def main(tag, run_id, verbose, dry, force_list_done_queue):
     with TrackingData.load(path=datapath) as dataset:
         
         # Render tracking video
-        all_queues = dataset.get_flow_queues(camera=cid, force_run_all=True)
+        video_path = config["PATHS"]["footage_video_path"].format(tag, cam_id, run_id)
+        all_queues = dataset.get_flow_queues(camera=cam_id, force_run_all=True)
         optical_flow = CameraOpticalFlow(
             video_path=video_path,
             flow_queues=all_queues,
@@ -67,7 +75,7 @@ def main(tag, run_id, verbose, dry, force_list_done_queue):
         )
         tracking_overlay_video_path = config["PATHS"][
             "footage_video_path_with_trace"
-        ].format(tag, cid, run_id)
+        ].format(tag, cam_id, run_id)
 
         optical_flow.render_tracking_video(tracking_overlay_video_path, all_queues)
 
