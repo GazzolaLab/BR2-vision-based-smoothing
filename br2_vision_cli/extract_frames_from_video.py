@@ -117,6 +117,22 @@ def extract_frames(
                 prev_similarity = similarity
                 similarities.append(similarity)
             elif not ret:
+                filename = (
+                    directory
+                    / "frame_{:05d}.{}".format(
+                        frame_count, config["DEFAULT"]["processing_image_extension"]
+                    )
+                ).as_posix()
+                cv2.imwrite(
+                    filename,
+                    prev_frames[0],
+                    [cv2.IMWRITE_PNG_COMPRESSION, compression],
+                )
+                plt.axvline(
+                    x=1.0 * (frame_count - maxlen) / skip_frame,
+                    color="r",
+                    linestyle="--",
+                )
                 break
             frame_count += 1
             prev_frames.append(frame)
