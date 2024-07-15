@@ -157,7 +157,7 @@ def process_data(
     # Export
     print("Saving data to pickle files ...", end="\r")
 
-    with open(save_path / "smoothing.pkl", "wb") as data_file:
+    with open(save_path, "wb") as data_file:
         data = dict(
             time=smoothed_data["time"],
             data_index=smoothed_data["data_index"],
@@ -182,7 +182,7 @@ def process_data(
     "-p",
     "--save_path",
     type=click.Path(exists=False),
-    default="results",
+    default="results/{}/smoothing_{}.pkl",
     help="Path to save the data",
 )
 @click.option("-v", "--verbose", is_flag=True, type=bool, help="Verbose output")
@@ -191,8 +191,8 @@ def main(tag, run_id, save_path, verbose):
     config_logging(verbose)
     logger = get_script_logger(os.path.basename(__file__))
 
-    save_path = Path(save_path)
-    save_path.mkdir(parents=True, exist_ok=True)
+    save_path = Path(save_path.format(tag, run_id))
+    save_path.parent.mkdir(parents=True, exist_ok=True)
 
     marker_positions = MarkerPositions.from_yaml(config["PATHS"]["marker_positions"])
     delta_s_position = np.array(marker_positions.marker_center_offset)
