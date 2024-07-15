@@ -34,6 +34,8 @@ run_smoothing = 'br2_vision_cli.run_smoothing:main'
 
 overlay_framemark = 'br2_vision_cli.overlay_framemark:process'
 
+tip_twist_angle = 'br2_vision_cli.tip_twist_angle:main'
+
 [tool.poetry.dependencies]
 python = "^3.9,<3.12"
 pyelastica = "^0.3.1.post1"
