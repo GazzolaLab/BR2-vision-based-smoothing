@@ -1,5 +1,6 @@
 import os
 import sys
+from pathlib import Path
 from collections import defaultdict
 from itertools import combinations, product
 from pathlib import Path
@@ -157,6 +158,7 @@ def process_dlt(tag, run_id, fps, save_path, verbose):
         print("regression score: ", reg.score(result_dlt_coords, result_actual_coords))
 
         for tag, count in observing_camera_count.items():
+            zid, label = tag
             txyz = dataset.load_track(zid, label, prefix="dlt_mapped_xyz")
             nan_indices = np.isnan(txyz).any(axis=1)
             mapped_txyz = reg.predict(txyz[~nan_indices])

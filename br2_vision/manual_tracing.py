@@ -1,5 +1,3 @@
-from nptyping import NDArray
-
 import os
 import sys
 from itertools import combinations
@@ -8,6 +6,7 @@ from typing import Dict, List, Tuple
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+from nptyping import NDArray
 from scipy.interpolate import CubicSpline
 from tqdm import tqdm
 
@@ -35,6 +34,13 @@ def mouse_click_event(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONDOWN:
         data[current_frame_idx, 0] = x
         data[current_frame_idx, 1] = y
+
+        # display
+        param["func_display"](
+            param["frames"][current_frame_idx].copy(),
+            data,
+            param["window_name"],
+        )
 
 
 # Optical Flow and Point Detection Module
@@ -92,8 +98,8 @@ class ManualTracing:
             return False
 
         # Interpolation
-        indices = np.where(data[:,0] != -1)[0]
-        points = data[indices,:]
+        indices = np.where(data[:, 0] != -1)[0]
+        points = data[indices, :]
         spline = CubicSpline(indices, points)
         data = spline(np.arange(end_frame - start_frame))
 
@@ -182,7 +188,13 @@ class ManualTracing:
         cv2.setMouseCallback(
             window_name,
             mouse_click_event,
-            param={"data": data_collection, "current_frame_idx": current_frame_idx},
+            param={
+                "data": data_collection,
+                "current_frame_idx": current_frame_idx,
+                "frames": frames,
+                "window_name": window_name,
+                "func_display": self.display,
+            },
         )
 
         print(
@@ -191,16 +203,20 @@ class ManualTracing:
         print("^: first frame, $: last frame")
         print("z: delete last trace point")
         prev_frame = -1
+        force_refresh = False
         while current_frame_idx[0] < data_length:
             # Only redraw when the frame is changed
-            if prev_frame != current_frame_idx[0]:
+            if prev_frame != current_frame_idx[0] or force_refresh:
                 prev_frame = current_frame_idx[0]
                 self.display(
                     frames[current_frame_idx[0]].copy(),
                     data_collection,
                     window_name,
                 )
-                print(f"(frame {current_frame_idx[0]+start_frame}){current_frame_idx[0]}/{data_length}")
+                print(
+                    f"(frame {current_frame_idx[0]+start_frame}){current_frame_idx[0]}/{data_length}"
+                )
+                force_refresh = False
 
             key = cv2.waitKey(1) & 0xFF
             if key == ord("q"):
@@ -222,6 +238,7 @@ class ManualTracing:
                 where = np.where(data_collection[:, 0] != -1)[0]
                 if len(where) > 0:
                     data_collection[:, where[-1]] = -1
+                force_refresh = True
 
         cv2.destroyAllWindows()
         return data_collection
