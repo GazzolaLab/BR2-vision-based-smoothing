@@ -109,10 +109,10 @@ def process_dlt(tag, run_id, fps, save_path, verbose):
         dlt.load()
         result_dlt_coords = []
         result_actual_coords = []
-        for tag, count in observing_camera_count.items():
-            # if tag in EXCLUDE_TAGS:
+        for zid_label, count in observing_camera_count.items():
+            # if zid_label in EXCLUDE_TAGS:
             #     continue
-            zid, label = tag
+            zid, label = zid_label
             point_collections_for_tag = dataset.query_trajectory(zid, label, timelength)
 
             txyz = []
@@ -132,7 +132,7 @@ def process_dlt(tag, run_id, fps, save_path, verbose):
 
             if not np.isnan(txyz[0]).any():
                 actual_coord = marker_positions.get_position(zid, label)
-                result_dlt_coords.append(txyz[0])  # keep the firat frame
+                result_dlt_coords.append(txyz[0])  # keep the first frame
                 result_actual_coords.append(actual_coord)
 
             dataset.save_track(np.asarray(txyz), zid, label, prefix="dlt_mapped_xyz")
@@ -157,8 +157,8 @@ def process_dlt(tag, run_id, fps, save_path, verbose):
         print("regression intercept: ", reg.intercept_)
         print("regression score: ", reg.score(result_dlt_coords, result_actual_coords))
 
-        for tag, count in observing_camera_count.items():
-            zid, label = tag
+        for zid_label, count in observing_camera_count.items():
+            zid, label = zid_label
             txyz = dataset.load_track(zid, label, prefix="dlt_mapped_xyz")
             nan_indices = np.isnan(txyz).any(axis=1)
             mapped_txyz = reg.predict(txyz[~nan_indices])
@@ -168,24 +168,25 @@ def process_dlt(tag, run_id, fps, save_path, verbose):
     with PostureData(path=tracing_data_path) as dataset:
         pass
 
-    # TODO: debugging plots
-    # plot_path_activity = config["PATHS"]["plot_working_box"].format(tag, run_id)
-    # fig = plt.figure(1, figsize=(10, 8))
-    # ax = plt.axes(projection="3d")
-    # ax.set_xlabel("x")
-    # ax.set_ylabel("y")
-    # ax.set_zlabel("z")
-    # for i in range(len(result_tags)):
-    #     # print(result_tags[i], ': ', initial_dlt_cond[i])
-    #     ax.scatter(
-    #         *result_dlt_coords [i],
-    #         color=color_scheme[observing_camera_count[result_tags[i]]],
-    #     )
-    #     # c = int(initial_dlt_cond[i]*100/initial_dlt_cond_max)-1
-    #     # ax.scatter(*result_dlt_coords [i], c=c, cmap='viridis')
-    #     # ax.scatter(*result_actual_coords [i])
-    #     ax.text(*result_dlt_coords [i], result_tags[i], size=10, zorder=1, color="k")
-    # # draw cube
+    # Debugging plots
+    plot_path_activity = os.path.join(config["PATHS"]["results_dir"], f"first_frame_marker_positions_{tag}_{run_id}.png")
+
+    fig = plt.figure(1, figsize=(10, 8))
+    ax = plt.axes(projection="3d")
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    ax.set_zlabel("z")
+    for i in range(len(result_tags)):
+        # print(result_tags[i], ': ', initial_dlt_cond[i])
+        ax.scatter(
+            *result_dlt_coords [i],
+            color=color_scheme[observing_camera_count[result_tags[i]]],
+        )
+        # c = int(initial_dlt_cond[i]*100/initial_dlt_cond_max)-1
+        # ax.scatter(*result_dlt_coords [i], c=c, cmap='viridis')
+        # ax.scatter(*result_actual_coords [i])
+        ax.text(*result_dlt_coords [i], result_tags[i], size=10, zorder=1, color="k")
+    # draw cube
     # cx = np.array([1, 15]) * 0.02
     # cy = np.array([1, 12]) * 0.04
     # cz = np.array([1, 10]) * 0.04
@@ -193,10 +194,10 @@ def process_dlt(tag, run_id, fps, save_path, verbose):
     #     if np.sum(np.abs(s - e)) >= 0.2:
     #         ax.plot3D(*zip(s, e), color="b")
     # ax.view_init(elev=-90, azim=-70)
-    # fig.savefig(plot_path_activity)
-    # # plt.show()
+    fig.savefig(plot_path_activity)
+    plt.show()
 
-    # return
+    return
 
 
 if __name__ == "__main__":
