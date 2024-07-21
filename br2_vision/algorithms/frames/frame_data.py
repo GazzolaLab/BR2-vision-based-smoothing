@@ -13,24 +13,24 @@ from matplotlib import gridspec
 from mpl_toolkits.mplot3d import Axes3D
 
 
-def include_parent_folders(parent_folders):
-    for parent_folder in parent_folders:
-        path = os.path.abspath(__file__)
-        for directory in path.split("/")[::-1]:
-            if directory == parent_folder:
-                break
-            path = os.path.dirname(path)
-        sys.path.append(path)
+# def include_parent_folders(parent_folders):
+#     for parent_folder in parent_folders:
+#         path = os.path.abspath(__file__)
+#         for directory in path.split("/")[::-1]:
+#             if directory == parent_folder:
+#                 break
+#             path = os.path.dirname(path)
+#         sys.path.append(path)
 
 
-include_parent_folders(
-    parent_folders=[
-        "elastica-python",
-        "Smoothing",
-    ]
-)
+# include_parent_folders(
+#     parent_folders=[
+#         "elastica-python",
+#         "Smoothing",
+#     ]
+# )
 
-from frame_tools import default_colors
+from br2_vision.algorithms.frame_tools import default_colors
 
 
 class PositionFrame(object):
