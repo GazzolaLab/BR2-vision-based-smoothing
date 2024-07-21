@@ -62,22 +62,25 @@ def crop_image(image, roi):
 def main(file_path, length):
     # Load video
     cap = cv2.VideoCapture(file_path)
-    current_frame = 0
     total_frame = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     ret, frame = cap.read()
 
     # Select ROI : on resized image
     width = 1000
-    roi = cv2.selectROI("Select ROI", resize_image(frame, width))
-    cv2.destroyAllWindows()
-    frame = crop_image(resize_image(frame, width), roi)
-
     cache_path = f"{file_path}.pkl"
     if os.path.exists(cache_path):
         with open(cache_path, "rb") as f:
-            points = pickle.load(f)
+            data = pickle.load(f)
+            points = data["points"]
+            roi = data["roi"]
+            current_frame = data.get("current_frame", 0)
     else:
         points = []
+        roi = cv2.selectROI("Select ROI", resize_image(frame, width))
+        cv2.destroyAllWindows()
+        current_frame = 0
+
+    frame = crop_image(resize_image(frame, width), roi)
 
     window_name = "Select Points"
     cv2.namedWindow(window_name)
@@ -95,11 +98,18 @@ def main(file_path, length):
         # api
         # x: exit
         # q: -5 frames, w: -1 frame, e: +1 frame, r: +5 frames
+        # a: beginning, f: last
         # s: save cache
         # d: reset
         key = cv2.waitKey(0)
         if key == ord("x"):
             break
+        elif key == ord("a"):
+            current_frame = 0
+            print(f"{current_frame}/{total_frame}")
+        elif key == ord("f"):
+            current_frame = total_frame - 1
+            print(f"{current_frame}/{total_frame}")
         elif key == ord("q"):
             current_frame = max(0, current_frame - 5)
             print(f"{current_frame}/{total_frame}")
@@ -147,4 +157,6 @@ def main(file_path, length):
     print(f"Average Curvature: {avg_curvature}")
 
     with open(cache_path, "wb") as f:
-        pickle.dump(points, f)
+        pickle.dump({"points": points, "roi": roi, "current_frame": current_frame}, f)
+
+    print(f"{total_angle} {max_curvature} {avg_curvature}")
