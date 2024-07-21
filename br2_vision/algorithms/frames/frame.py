@@ -46,11 +46,11 @@ class Frame(object):
             plt.close(self.fig)
 
     def movie(self, frame_rate, movie_name):
-        print("Create movie:", movie_name + ".mov")
+        print("Create movie:", movie_name)
         cmd = "ffmpeg -r {}".format(frame_rate)
         figure_name = self.figure_name.replace("{:", "%")
         figure_name = figure_name.replace("}", "")
         cmd += " -i " + self.folder_name + "/" + figure_name
         cmd += " -b:v 90M -c:v libx264 -pix_fmt yuv420p -f mov "
-        cmd += "-y " + movie_name + ".mov"
+        cmd += "-y " + movie_name.as_posix()
         os.system(cmd)

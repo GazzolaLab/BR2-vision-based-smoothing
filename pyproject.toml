@@ -31,6 +31,7 @@ render_tracking_video = 'br2_vision_cli.render_video:main'
 
 interpolate_poses = 'br2_vision_cli.process_dlt:process_dlt'
 run_smoothing = 'br2_vision_cli.run_smoothing:main'
+visualize_smoothing = 'br2_vision_cli.visualize_smoothing:main'
 
 overlay_framemark = 'br2_vision_cli.overlay_framemark:process'
 

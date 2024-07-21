@@ -6,33 +6,41 @@ Created on Aug. 10, 2021
 import os
 import pickle
 import sys
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
+from types import SimpleNamespace as EmptyClass
+
+import click
+import br2_vision
+from br2_vision.data_structure.marker_positions import MarkerPositions
+from br2_vision.data_structure.posture_data import PostureData
+from br2_vision.utility.logging import config_logging
+
+# def include_parent_folders(parent_folders):
+#     for parent_folder in parent_folders:
+#         path = os.path.abspath(__file__)
+#         for directory in path.split("/")[::-1]:
+#             if directory == parent_folder:
+#                 break
+#             path = os.path.dirname(path)
+#         sys.path.append(path)
 
 
-def include_parent_folders(parent_folders):
-    for parent_folder in parent_folders:
-        path = os.path.abspath(__file__)
-        for directory in path.split("/")[::-1]:
-            if directory == parent_folder:
-                break
-            path = os.path.dirname(path)
-        sys.path.append(path)
+# include_parent_folders(
+#     parent_folders=[
+#         "elastica-python",
+#         "Smoothing",
+#     ]
+# )
 
-
-include_parent_folders(
-    parent_folders=[
-        "elastica-python",
-        "Smoothing",
-    ]
-)
-
-from frame_tools import rod_color
-from frames.frame_data import DirectorFrame
-from frames.frame_rod import RodFrame
-from smoothing import create_data_object, read_data_from_file
+from br2_vision.algorithms.frame_tools import rod_color
+from br2_vision.algorithms.frames.frame_data import DirectorFrame
+from br2_vision.algorithms.frames.frame_rod import RodFrame
+from br2_vision_cli.run_smoothing import RequiredRawData, create_data_object
+# from br2_vision.data_structure.smoothing import create_data_object, read_data_from_file
 
 
 def rotate_frame(orientation, position=None, director=None):
@@ -73,10 +81,10 @@ class Frame(RodFrame, DirectorFrame):
         DirectorFrame.reset(self, self.ax_rod, self.reference_length)
 
 
-def create_movie(file_name, delta_s_position):
-    with open("smoothing_data/" + file_name + ".pickle", "rb") as f:
+def create_movie(file_path, delta_s_position, save_path):
+    with open(file_path, "rb") as f:
         smoothed_data = pickle.load(f)
-        datafile_name = smoothed_data["datafile_name"]
+        # datafile_name = smoothed_data["datafile_name"]
         time = smoothed_data["time"]
         data_index = smoothed_data["data_index"]
         radius = smoothed_data["radius"]
@@ -85,8 +93,8 @@ def create_movie(file_name, delta_s_position):
         shear = smoothed_data["shear"]
         kappa = smoothed_data["kappa"]
 
-    raw_data = read_data_from_file(datafile_name)
-    data, L0 = create_data_object(raw_data, delta_s_position)
+    # raw_data = read_data_from_file(datafile_name)
+    # data, L0 = create_data_object(raw_data, delta_s_position)
 
     orientation = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]])
 
@@ -122,15 +130,15 @@ def create_movie(file_name, delta_s_position):
 
         axes_shear, axes_curvature = frame.plot_strains(shear=shear[k], kappa=kappa[k])
 
-        if k != 0:
-            frame.plot_data(
-                position=rotate_frame(
-                    orientation, position=data.position[data_index[k]]
-                ),
-                director=rotate_frame(
-                    orientation, director=data.director[data_index[k]]
-                ),
-            )
+        # if k != 0:
+        #     frame.plot_data(
+        #         position=rotate_frame(
+        #             orientation, position=data.position[data_index[k]]
+        #         ),
+        #         director=rotate_frame(
+        #             orientation, director=data.director[data_index[k]]
+        #         ),
+        #     )
 
         position_for_director = (position[k][:, 1:] + position[k][:, :-1]) / 2
 
@@ -155,38 +163,86 @@ def create_movie(file_name, delta_s_position):
         frame.set_labels(time[k])
         frame.save()
 
-    frame.movie(frame_rate=30, movie_name=file_name)
+    frame.movie(frame_rate=30, movie_name=save_path)
 
 
-# delta_s_position = None
-def main(problem):
-    if problem == "bend":
-        file_name = "bend"
-        delta_s_position = np.array([23.9, 35.17, 33.82, 34.55, 32.8])
-    if problem == "twist":
-        file_name = "bend"
-        delta_s_position = np.array([23.9, 35.17, 33.82, 34.55, 32.8])
-    if problem == "mix":
-        file_name = "mix"
-        delta_s_position = np.array([23.9, 35.17, 33.82, 34.55, 32.8])
-    if problem == "cable":
-        file_name = "cable"
-        delta_s_position = np.array(
-            [27.5, 33.5, 28, 34, 30, 31, 36.5, 31.5, 32, 34.5, 30, 31]
-        )
-    create_movie(file_name, delta_s_position)
+@click.command()
+@click.option(
+    "-t",
+    "--tag",
+    type=str,
+    help="Experiment tag. Path ./tag should exist.",
+)
+@click.option("-r", "--run_id", required=True, type=int, help="Run ID")
+@click.option(
+    "-p",
+    "--file_path",
+    type=click.Path(exists=False),
+    default="results/{}/smoothing_{}.pkl",
+    help="Path to save the data",
+)
+@click.option(
+    "-p",
+    "--save_path",
+    type=click.Path(exists=False),
+    default="results/{}/smoothing_{}.mov",
+    help="Path to save the data",
+)
+@click.option("-v", "--verbose", is_flag=True, type=bool, help="Verbose output")
+def main(tag, run_id, file_path, save_path, verbose):
+    config = br2_vision.load_config()
+    config_logging(verbose)
+    
+    file_path = Path(file_path.format(tag, run_id))
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+
+    save_path = Path(save_path.format(tag, run_id))
+    save_path.parent.mkdir(parents=True, exist_ok=True)
+    # if problem == "bend":
+    #     file_name = "bend"
+    #     delta_s_position = np.array([23.9, 35.17, 33.82, 34.55, 32.8])
+    # if problem == "twist":
+    #     file_name = "bend"
+    #     delta_s_position = np.array([23.9, 35.17, 33.82, 34.55, 32.8])
+    # if problem == "mix":
+    #     file_name = "mix"
+    #     delta_s_position = np.array([23.9, 35.17, 33.82, 34.55, 32.8])
+    # if problem == "cable":
+    #     file_name = "cable"
+    #     delta_s_position = np.array(
+    #         [27.5, 33.5, 28, 34, 30, 31, 36.5, 31.5, 32, 34.5, 30, 31]
+    #     )
+
+    marker_positions = MarkerPositions.from_yaml(config["PATHS"]["marker_positions"])
+    delta_s_position = np.array(marker_positions.marker_center_offset)
+
+    # Create raw data
+    # raw_data = EmptyClass()
+    # tracing_data_path = config["PATHS"]["tracing_data_path"].format(tag, run_id)
+    # assert os.path.exists(
+    #     tracing_data_path
+    # ), f"Tracing data does not exist: path={tracing_data_path}"
+    # with PostureData(path=tracing_data_path) as dataset:
+    #     # raw_data.time = dataset.get_time()
+    #     raw_data.cross_section_center_position = (
+    #         dataset.get_cross_section_center_position()
+    #     )
+    #     raw_data.cross_section_director = dataset.get_cross_section_director()
 
 
-if __name__ == "__main__":
-    import argparse
+    create_movie(file_path, delta_s_position, save_path)
 
-    parser = argparse.ArgumentParser(description="Require problem keyword")
-    parser.add_argument(
-        "problem",
-        metavar="subproblem number",
-        type=str,
-        nargs=1,
-        help="problem keywork: bend, twist, mix",
-    )
-    args = parser.parse_args()
-    main(args.problem[0])
+
+# if __name__ == "__main__":
+#     import argparse
+
+#     parser = argparse.ArgumentParser(description="Require problem keyword")
+#     parser.add_argument(
+#         "problem",
+#         metavar="subproblem number",
+#         type=str,
+#         nargs=1,
+#         help="problem keywork: bend, twist, mix",
+#     )
+#     args = parser.parse_args()
+#     main(args.problem[0])
