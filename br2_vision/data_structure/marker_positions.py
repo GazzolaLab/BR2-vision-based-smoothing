@@ -91,10 +91,13 @@ class MarkerPositions(DataclassYamlSaveLoadMixin):
         """
         Get the absolute position of a marker.
         """
+        origin = np.array(self.origin)
         z_loc = np.cumsum(self.marker_center_offset)[zidx]
-        vec_marker = self.Q @ np.array(self.marker_positions[tag])
+        marker_position = np.array(self.marker_positions[tag])
         z_position = z_loc * np.array(self.marker_direction)
-        return np.array(self.origin) + z_position + vec_marker
+
+        return (origin + z_position + marker_position)
+        #return np.array(self.origin) + z_position + vec_marker
 
     @classmethod
     def from_h5(cls, path):

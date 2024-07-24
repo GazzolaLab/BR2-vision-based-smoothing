@@ -156,7 +156,8 @@ def process_dlt(tag, run_id, fps, save_path, verbose):
         print("regression rank: ", reg.rank_)
         print("regression intercept: ", reg.intercept_)
         print("regression score: ", reg.score(result_dlt_coords, result_actual_coords))
-
+        result_dlt_coords_shifted = reg.predict(result_dlt_coords)
+        
         for zid_label, count in observing_camera_count.items():
             zid, label = zid_label
             txyz = dataset.load_track(zid, label, prefix="dlt_mapped_xyz")
@@ -169,37 +170,156 @@ def process_dlt(tag, run_id, fps, save_path, verbose):
         pass
 
     # Debugging plots
+    plot_path_labels = os.path.join(
+        config["PATHS"]["results_dir"],
+        f"labels_{tag}_{run_id}.png",
+    )
+    marker_positions = MarkerPositions.from_yaml(
+        config["PATHS"]["marker_positions"]
+    )
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(1,2,1,projection='3d')
+    ax.set_xlabel("x (m)")
+    ax.set_ylabel("y (m)")
+    ax.set_zlabel("z (m)")
+    for label, position in marker_positions.marker_positions.items():
+        ax.scatter(
+            *position,
+        )
+        ax.text(*position, " "+label, size=10, zorder=1, color="k")
+    ax.set_aspect('equal')
+    ax = fig.add_subplot(1,2,2)
+    ax.set_xlabel("z (m)")
+    ax.set_ylabel("x (m)")
+    for label, position in marker_positions.marker_positions.items():
+        ax.scatter(position[2], position[0])
+        ax.text(position[2], position[0], " "+label, size=10, zorder=1, color="k")
+    ax.set_aspect('equal')
+    fig.suptitle('Marker Positions')
+    fig.savefig(plot_path_labels)
+    plt.close('all')
+
+    # Debugging plots
+    plot_path_labels_loc = os.path.join(
+        config["PATHS"]["results_dir"],
+        f"label_loc_{tag}_{run_id}.png",
+    )
+    marker_positions = MarkerPositions.from_yaml(
+        config["PATHS"]["marker_positions"]
+    )
+    fig = plt.figure(figsize=(8, 6))
+    ax = fig.add_subplot(1,1,1,projection='3d')
+    ax.set_xlabel("x (m)")
+    ax.set_ylabel("y (m)")
+    ax.set_zlabel("z (m)")
+    for zid in range(len(marker_positions)):
+        for label, position in marker_positions.marker_positions.items():
+            actual_coord = marker_positions.get_position(zid, label)
+            ax.scatter(*actual_coord)
+            ax.text(*actual_coord, " "+label, size=10, zorder=1, color="k")
+    ax.set_aspect('equal')
+    fig.savefig(plot_path_labels_loc)
+    plt.close('all')
+
+    # Debugging plots
     plot_path_activity = os.path.join(
         config["PATHS"]["results_dir"],
         f"first_frame_marker_positions_{tag}_{run_id}.png",
     )
 
     fig = plt.figure(1, figsize=(10, 8))
-    ax = plt.axes(projection="3d")
+    ax = fig.add_subplot(1,1,1,projection="3d")
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     ax.set_zlabel("z")
-    unique_observing_cameras = np.unique(observing_camera_count.values())
+    unique_observing_cameras = np.unique([*observing_camera_count.values()])
     legend_elements = [
         plt.Line2D(
             [0], [0], marker="o", color=color_scheme[i], label=f"Camera count {i}"
         )
-        for i in unique_observing_cameras.keys()
+        for i in unique_observing_cameras
     ]
     for i in range(len(result_tags)):
         # print(result_tags[i], ': ', initial_dlt_cond[i])
         ax.scatter(
-            *result_dlt_coords[i],
+            *result_dlt_coords_shifted[i],
             color=color_scheme[observing_camera_count[result_tags[i]]],
+        )
+        ax.scatter(
+            *result_actual_coords[i],
+            color=color_scheme[observing_camera_count[result_tags[i]]],
+            alpha=0.5
+        )
+        ax.plot(
+            *zip(result_dlt_coords_shifted[i], result_actual_coords[i]),
+            color="black",
+            alpha=0.5
         )
         # c = int(initial_dlt_cond[i]*100/initial_dlt_cond_max)-1
         # ax.scatter(*result_dlt_coords [i], c=c, cmap='viridis')
         # ax.scatter(*result_actual_coords [i])
-        ax.text(*result_dlt_coords[i], result_tags[i], size=10, zorder=1, color="k")
+        ax.text(*result_dlt_coords_shifted[i], " "+str(result_tags[i]), size=10, zorder=1, color="k")
     ax.legend(handles=legend_elements, loc="upper right")
+    ax.set_aspect('equal')
 
-    # zoom equal
-    ax.set_box_aspect([1, 1, 1])
+    fig.savefig(plot_path_activity)
+    plt.close('all')
+
+    # Debugging plots
+    for zid in range(len(marker_positions)):
+        plot_path_activity = os.path.join(
+            config["PATHS"]["results_dir"],
+            f"first_frame_{zid=}_marker_positions_{tag}_{run_id}.png",
+        )
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(1,2,1,projection="3d")
+        ax2 = fig.add_subplot(1,2,2)
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
+        ax.set_zlabel("z")
+        ax2.set_xlabel("z")
+        ax2.set_ylabel("x")
+        for i in range(len(result_tags)):
+            if result_tags[i][0] != zid:
+                continue
+            sc = ax.scatter(
+                *result_dlt_coords_shifted[i],
+                label=result_tags[i][1],
+            )
+            ax.scatter(
+                *result_actual_coords[i],
+                color=sc.get_facecolors()[0].tolist(),
+                alpha=0.5,
+            )
+            ax.plot(
+                *zip(result_dlt_coords_shifted[i], result_actual_coords[i]),
+                color="black",
+                alpha=0.5
+            )
+
+            sc = ax2.scatter(
+                result_dlt_coords_shifted[i][2],
+                result_dlt_coords_shifted[i][0],
+                label=result_tags[i][1],
+            )
+            ax2.scatter(
+                result_actual_coords[i][2],
+                result_actual_coords[i][0],
+                color=sc.get_facecolors()[0].tolist(),
+                alpha=0.5,
+            )
+            ax2.plot(
+                [result_dlt_coords_shifted[i][2], result_actual_coords[i][2]],
+                [result_dlt_coords_shifted[i][0], result_actual_coords[i][0]],
+                color="black",
+                alpha=0.5
+            )
+        ax.legend()
+        ax.set_aspect('equal')
+        ax2.legend()
+        ax2.set_aspect('equal')
+        fig.savefig(plot_path_activity)
+        plt.close('all')
 
     # draw cube
     # cx = np.array([1, 15]) * 0.02
@@ -209,8 +329,6 @@ def process_dlt(tag, run_id, fps, save_path, verbose):
     #     if np.sum(np.abs(s - e)) >= 0.2:
     #         ax.plot3D(*zip(s, e), color="b")
     # ax.view_init(elev=-90, azim=-70)
-    fig.savefig(plot_path_activity)
-    plt.show()
 
     return
 

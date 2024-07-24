@@ -67,10 +67,13 @@ def extract_frames(
         if not directory.exists():
             directory.mkdir(parents=True)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        # 250 per 4inch width
+
         frame_count = 0
         pbar = tqdm(total=total_frames)
 
-        fig, ax = plt.subplots(1, 1, figsize=(10, 5))
+        figwidth = total_frames / 1600.
+        fig, ax = plt.subplots(1, 1, figsize=(figwidth, 3))
 
         maxlen = 80
         prev_frames = deque(maxlen=maxlen)
