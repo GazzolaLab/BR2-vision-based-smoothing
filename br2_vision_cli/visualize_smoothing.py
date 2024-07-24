@@ -81,7 +81,7 @@ class Frame(RodFrame, DirectorFrame):
         DirectorFrame.reset(self, self.ax_rod, self.reference_length)
 
 
-def create_movie(file_path, delta_s_position, save_path):
+def create_movie(raw_data, file_path, delta_s_position, save_path):
     with open(file_path, "rb") as f:
         smoothed_data = pickle.load(f)
         # datafile_name = smoothed_data["datafile_name"]
@@ -94,7 +94,7 @@ def create_movie(file_path, delta_s_position, save_path):
         kappa = smoothed_data["kappa"]
 
     # raw_data = read_data_from_file(datafile_name)
-    # data, L0 = create_data_object(raw_data, delta_s_position)
+    data, L0 = create_data_object(raw_data, delta_s_position)
 
     orientation = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]])
 
@@ -130,15 +130,15 @@ def create_movie(file_path, delta_s_position, save_path):
 
         axes_shear, axes_curvature = frame.plot_strains(shear=shear[k], kappa=kappa[k])
 
-        # if k != 0:
-        #     frame.plot_data(
-        #         position=rotate_frame(
-        #             orientation, position=data.position[data_index[k]]
-        #         ),
-        #         director=rotate_frame(
-        #             orientation, director=data.director[data_index[k]]
-        #         ),
-        #     )
+        if k != 0:
+            frame.plot_data(
+                position=rotate_frame(
+                    orientation, position=data.position[data_index[k]]
+                ),
+                director=rotate_frame(
+                    orientation, director=data.director[data_index[k]]
+                ),
+            )
 
         position_for_director = (position[k][:, 1:] + position[k][:, :-1]) / 2
 
@@ -217,20 +217,20 @@ def main(tag, run_id, file_path, save_path, verbose):
     delta_s_position = np.array(marker_positions.marker_center_offset)
 
     # Create raw data
-    # raw_data = EmptyClass()
-    # tracing_data_path = config["PATHS"]["tracing_data_path"].format(tag, run_id)
-    # assert os.path.exists(
-    #     tracing_data_path
-    # ), f"Tracing data does not exist: path={tracing_data_path}"
-    # with PostureData(path=tracing_data_path) as dataset:
-    #     # raw_data.time = dataset.get_time()
-    #     raw_data.cross_section_center_position = (
-    #         dataset.get_cross_section_center_position()
-    #     )
-    #     raw_data.cross_section_director = dataset.get_cross_section_director()
+    raw_data = EmptyClass()
+    tracing_data_path = config["PATHS"]["tracing_data_path"].format(tag, run_id)
+    assert os.path.exists(
+        tracing_data_path
+    ), f"Tracing data does not exist: path={tracing_data_path}"
+    with PostureData(path=tracing_data_path) as dataset:
+        raw_data.time = dataset.get_time()
+        raw_data.cross_section_center_position = (
+            dataset.get_cross_section_center_position()
+        )
+        raw_data.cross_section_director = dataset.get_cross_section_director()
 
 
-    create_movie(file_path, delta_s_position, save_path)
+    create_movie(raw_data, file_path, delta_s_position, save_path)
 
 
 # if __name__ == "__main__":
