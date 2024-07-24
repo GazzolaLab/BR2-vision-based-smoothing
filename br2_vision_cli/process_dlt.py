@@ -184,7 +184,7 @@ def process_dlt(tag, run_id, fps, save_path, verbose):
         plt.Line2D(
             [0], [0], marker="o", color=color_scheme[i], label=f"Camera count {i}"
         )
-        for i in unique_observing_cameras
+        for i in unique_observing_cameras.keys()
     ]
     for i in range(len(result_tags)):
         # print(result_tags[i], ': ', initial_dlt_cond[i])
