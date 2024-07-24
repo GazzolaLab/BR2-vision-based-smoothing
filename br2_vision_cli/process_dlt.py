@@ -169,23 +169,38 @@ def process_dlt(tag, run_id, fps, save_path, verbose):
         pass
 
     # Debugging plots
-    plot_path_activity = os.path.join(config["PATHS"]["results_dir"], f"first_frame_marker_positions_{tag}_{run_id}.png")
+    plot_path_activity = os.path.join(
+        config["PATHS"]["results_dir"],
+        f"first_frame_marker_positions_{tag}_{run_id}.png",
+    )
 
     fig = plt.figure(1, figsize=(10, 8))
     ax = plt.axes(projection="3d")
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     ax.set_zlabel("z")
+    unique_observing_cameras = np.unique(observing_camera_count.values())
+    legend_elements = [
+        plt.Line2D(
+            [0], [0], marker="o", color=color_scheme[i], label=f"Camera count {i}"
+        )
+        for i in unique_observing_cameras.keys()
+    ]
     for i in range(len(result_tags)):
         # print(result_tags[i], ': ', initial_dlt_cond[i])
         ax.scatter(
-            *result_dlt_coords [i],
+            *result_dlt_coords[i],
             color=color_scheme[observing_camera_count[result_tags[i]]],
         )
         # c = int(initial_dlt_cond[i]*100/initial_dlt_cond_max)-1
         # ax.scatter(*result_dlt_coords [i], c=c, cmap='viridis')
         # ax.scatter(*result_actual_coords [i])
-        ax.text(*result_dlt_coords [i], result_tags[i], size=10, zorder=1, color="k")
+        ax.text(*result_dlt_coords[i], result_tags[i], size=10, zorder=1, color="k")
+    ax.legend(handles=legend_elements, loc="upper right")
+
+    # zoom equal
+    ax.set_box_aspect([1, 1, 1])
+
     # draw cube
     # cx = np.array([1, 15]) * 0.02
     # cy = np.array([1, 12]) * 0.04
