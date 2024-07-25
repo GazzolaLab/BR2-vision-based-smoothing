@@ -39,6 +39,9 @@ overlay_framemark = 'br2_vision_cli.overlay_framemark:process'
 tip_twist_angle = 'br2_vision_cli.tip_twist_angle:main'
 bend_curve_angle = 'br2_vision_cli.bend_curv:main'
 
+# h5 specific
+h5_remove_dataset = 'br2_vision_cli.h5_remove_dataset:launch'
+
 [tool.poetry.dependencies]
 python = "^3.9,<3.12"
 pyelastica = "^0.3.1.post1"
