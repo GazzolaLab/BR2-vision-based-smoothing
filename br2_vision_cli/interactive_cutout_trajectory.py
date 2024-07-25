@@ -221,6 +221,8 @@ def get_camera_data(cid) -> pd.DataFrame:
 
         for qid, q in enumerate(queues):
             data = dataset.load_pixel_flow_trajectory(q, full_trajectory=True)
+            if data is None:
+                continue
             _df = pd.DataFrame(data, columns=["x", "y"])
             _df["label"] = q.get_tag()
             _df["frame"] = np.arange(num_frames)

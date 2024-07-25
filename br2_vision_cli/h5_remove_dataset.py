@@ -5,12 +5,9 @@ import click
 import h5py
 
 import br2_vision
-from br2_vision.utility.logging import config_logging, get_script_logger
+from br2_vision.utility.logging import get_script_logger
 
 # ---------------------------- Config ----------------------------
-
-config = br2_vision.load_config()
-config_logging(False)
 logger = get_script_logger(os.path.basename(__file__))
 
 
