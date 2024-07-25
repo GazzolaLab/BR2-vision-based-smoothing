@@ -16,6 +16,7 @@ crop_video = 'br2_vision_cli.crop_video:process'
 trim_video_intervals_by_led = 'br2_vision_cli.trim_video_intervals_by_led:process'
 trim_video_intervals_manual = 'br2_vision_cli.trim_video_intervals_manual:process'
 
+select_origin = 'br2_vision_cli.add_origin:main'
 select_calibration_points = 'br2_vision_cli.run_select_calibration_points:select_calibration_points'
 extract_frames_from_video = 'br2_vision_cli.extract_frames_from_video:extract_frames'
 dlt_calibration = 'br2_vision_cli.dlt_calibration:calibrate'
