@@ -6,6 +6,7 @@ from collections import OrderedDict
 import yaml
 
 
+# TODO: Pydantic
 class DataclassYamlSaveLoadMixin:
     @classmethod
     def from_yaml(cls, file_path: str):

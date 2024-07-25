@@ -115,6 +115,7 @@ flowchart TD
 flowchart TD
     collect[("Experiment Footage")]
     T[("tracking data (h5)")]
+    RT["render tracking video"]
     subgraph Optical-Flow
         opt1("set optical flow inquiry")
         opt2("run optical flow")
@@ -133,14 +134,18 @@ flowchart TD
 
 ```mermaid
 flowchart TD
+    Origin["select origin"]
     T[("tracking data (h5)")]
     DLT[("dlt-parameters (npz)")]
     smt1["interpolate poses"]
     smt2["run smoothing"]
+    smt3["visualize smoothing"]
     
+    Origin --> smt1
     T --> smt1
     DLT --> smt1
     smt1 --> smt2
+    smt2 -->|optional| smt3
 ```
 
 ### Path Configuration
@@ -170,3 +175,6 @@ Recommended file structure is as follow:
 We provide other CLI video processing tools for convenience. Check out `--help` to see the options.
 
 - overlay_framemark
+- render_tracking_video
+- tip_twist_angle: global twist-angle measurement
+- bend_curve_angle: global bend curvature measurement

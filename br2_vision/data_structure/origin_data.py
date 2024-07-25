@@ -1,4 +1,3 @@
-from typing import TypeAlias
 import operator
 import os
 from dataclasses import dataclass
@@ -16,7 +15,6 @@ from br2_vision.utility.logging import get_script_logger
 from .tracking_data import TrackingData
 from .utils import raise_if_outside_context
 
-CameraID = TypeAlias("CameraID", int)
 
 
 class OriginData:
@@ -36,7 +34,7 @@ class OriginData:
         self._origin_frames: NDArray[Shape["C, [u,v]"], Floating] | None = None
         self._origin_frames_key: str = "/origin/uv"
 
-        self._camera_indices: list[CameraID] | None = None
+        self._camera_indices: list[int] | None = None
         self._camera_indices_key: str = "/origin/camera_indices"
 
     @raise_if_outside_context
@@ -44,13 +42,14 @@ class OriginData:
         return self._positions
 
     @raise_if_outside_context
-    def get_camera_origin(self) -> dict[CameraID, NDArray[Shape["[u,v]"], Floating]]:
+    def get_camera_origin(self) -> dict[int, NDArray[Shape["[u,v]"], Floating]]:
         return {
-            for camera_id in self._camera_indices
+            camera_id: frame_uv
+            for camera_id, frame_uv in zip(self._camera_indices, self._origin_frames)
         }
 
     @raise_if_outside_context
-    def set_camera_frames(self, camera_ids: list[CameraID], frames: NDArray[Shape["C, [u,v]"], Floating]):
+    def set_camera_frames(self, camera_ids: list[int], frames: NDArray[Shape["C, [u,v]"], Floating]):
         self._camera_indices = camera_ids
         self._origin_frames = frames
 
@@ -85,6 +84,7 @@ class OriginData:
                     (len(self._camera_indices),),
                     dtype=np.int32,
                 )
+                camera_indices_dataset[:] = self._camera_indices
 
     @raise_if_outside_context
     def load(self):
