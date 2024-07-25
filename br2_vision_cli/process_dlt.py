@@ -165,10 +165,10 @@ def process_dlt(tag, run_id, fps, save_path, verbose):
         H = P.T @ Q
         u, s, vh = np.linalg.svd(H)
         d = np.linalg.det(u@vh)
-        print("R:\n", R)
-        print("  d =", d)
         Id = np.eye(3); Id[2,2] = d
         R = u @ Id @ vh
+        print("R:\n", R)
+        print("  d =", d)
         ops = lambda D: (R @ D.T).T
 
         # Re-map dlt points to rod space
