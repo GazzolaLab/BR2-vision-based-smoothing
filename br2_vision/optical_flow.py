@@ -225,8 +225,10 @@ class CameraOpticalFlow:
         save_path :
             path
         """
+        print(f"{save_path=}")
         print("Saving tracing video ...")
-
+        import tempfile
+        tmp_path = os.path.join(tempfile.gettempdir(), "_r.mp4")
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         if queues is None:
             queues = self.flow_queues
@@ -240,14 +242,15 @@ class CameraOpticalFlow:
         frame_width = int(old_frame.shape[0])
         frame_height = int(old_frame.shape[1])
         writer = cv2.VideoWriter(
-            save_path, cv2.VideoWriter_fourcc(*"mp4v"), 60, (frame_height, frame_width)
+            tmp_path, cv2.VideoWriter_fourcc(*"mp4v"), 60, (frame_height, frame_width)
         )
         video_length = self.num_frames
 
         data_collection = np.zeros((len(queues), video_length, 2), dtype=np.int_) - 1
         for qid, q in enumerate(queues):
             _data = self.dataset.load_pixel_flow_trajectory(q, full_trajectory=True)
-            data_collection[qid, :, :] = _data
+            if _data is not None:
+                data_collection[qid, :, :] = _data
 
         for num_frame in tqdm(range(video_length), miniters=10):
             # while cap.isOpened():
@@ -296,10 +299,20 @@ class CameraOpticalFlow:
                 frame = cv2.add(frame, text_img)
 
             img = cv2.add(frame, mask)
+            assert img.shape == (frame_width, frame_height, 3)
             writer.write(img)
         cap.release()
         # cv2.destroyAllWindows()
         writer.release()
+
+        # TODO
+        import subprocess
+        command = ["ffmpeg", "-y"]
+        command.extend(["-i", tmp_path])
+        command.extend([save_path])
+        command = " ".join(command)
+        print("running : ", command)
+        sts = subprocess.Popen(command, shell=True).wait()
 
     # It is excluded from coverage test: code is mostly based on cv2.
     def next_inquiry(self, inquiry, stime, etime, debug=False):  # pragma: no cover

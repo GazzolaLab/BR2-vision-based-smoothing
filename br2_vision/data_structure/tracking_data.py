@@ -250,6 +250,8 @@ class TrackingData:
         Load trajectory from h5 file
         """
         with h5py.File(self.path, "r") as h5f:
+            if flow_queue.h5_directory not in h5f:
+                return None
             grp = h5f[flow_queue.h5_directory]
             dset = grp[prefix]
             if full_trajectory:
