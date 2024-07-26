@@ -1,7 +1,7 @@
 import operator
 import os
 from dataclasses import dataclass
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Iterable
 
 import h5py
 import numpy as np
