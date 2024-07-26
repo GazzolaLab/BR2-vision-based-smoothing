@@ -247,7 +247,7 @@ class CameraOpticalFlow:
 
         data_collection = []
         tags = []
-        for data, tag in self.dataset.iter_trajectory(camera_id):
+        for tag, data in self.dataset.iter_trajectory(camera_id):
             data_collection.append(data)
             tags.append(tag)
         data_collection = np.asarray(data_collection)

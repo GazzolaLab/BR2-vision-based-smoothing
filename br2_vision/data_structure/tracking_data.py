@@ -1,5 +1,6 @@
 import operator
 import os
+import itertools
 from dataclasses import dataclass
 from typing import List, Tuple, Union, Iterable
 
@@ -168,8 +169,9 @@ class TrackingData:
 
     @raise_if_outside_context
     def iter_trajectory(self, camera_id: int) -> Iterable[Tuple[int, NDArray]]:
+        ret = []
         with h5py.File(self.path, "r") as h5f:
-            for zid, label in zip(
+            for zid, label in itertools.product(
                 range(len(self.marker_positions)), self.marker_positions.tags
             ):
                 directory = h5_directory(camera_id, zid, label)
@@ -178,7 +180,8 @@ class TrackingData:
                 tag = compose_tag(zid, label)
                 grp = h5f[directory]
                 data = np.array(grp["xy"]).copy()
-                yield tag, data
+                ret.append((tag, data))
+        return ret
 
     @raise_if_outside_context
     def iter_cameras(self) -> list[int]:
@@ -419,6 +422,7 @@ class TrackingData:
         self,
         tag: str,
         frame: int,
+        camera_index: int = None,
         prefix="xy",
         reverse=False,
     ):
@@ -428,6 +432,8 @@ class TrackingData:
 
         # find queue with matching tag
         for q in self.queues:
+            if camera_index is not None and q.camera != camera_index:
+                continue
             if q.get_tag() == tag and frame >= q.start_frame and frame <= q.end_frame:
                 # load trajectory
                 relative_frame = frame - q.start_frame

@@ -77,7 +77,7 @@ def main(tag, cam_id, run_id, verbose, dry, force_list_done_queue):
             "footage_video_path_with_trace"
         ].format(tag, cam_id, run_id)
 
-        optical_flow.render_tracking_video(tracking_overlay_video_path, all_queues)
+        optical_flow.render_tracking_video(tracking_overlay_video_path, cam_id)
 
         cv2.destroyAllWindows()
 
