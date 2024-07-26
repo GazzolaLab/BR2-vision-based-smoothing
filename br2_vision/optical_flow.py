@@ -316,6 +316,8 @@ class CameraOpticalFlow:
 
         command = ["ffmpeg", "-y"]
         command.extend(["-i", tmp_path])
+        command.extend(["-vf", "\"drawtext=text=\'Frame %{n}\':fontsize=30:fontcolor=white:borderw=2:bordercolor=black:x=10:y=th+10\""])
+        command.extend(["-c:a", "copy"])
         command.extend([save_path])
         command = " ".join(command)
         print("running : ", command)
