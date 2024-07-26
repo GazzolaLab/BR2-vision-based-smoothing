@@ -41,6 +41,7 @@ bend_curve_angle = 'br2_vision_cli.bend_curv:main'
 
 # h5 specific
 h5_remove_dataset = 'br2_vision_cli.h5_remove_dataset:launch'
+h5_trim_trajectory = 'br2_vision_cli.cutout_trajectory:main'
 
 [tool.poetry.dependencies]
 python = "^3.9,<3.12"

@@ -167,6 +167,20 @@ class TrackingData:
         return all([q.done for q in self.queues])
 
     @raise_if_outside_context
+    def iter_trajectory(self, camera_id: int) -> Iterable[Tuple[int, NDArray]]:
+        with h5py.File(self.path, "r") as h5f:
+            for zid, label in zip(
+                range(len(self.marker_positions)), self.marker_positions.tags
+            ):
+                directory = h5_directory(camera_id, zid, label)
+                if directory not in h5f:
+                    continue
+                tag = compose_tag(zid, label)
+                grp = h5f[directory]
+                data = np.array(grp["xy"]).copy()
+                yield tag, data
+
+    @raise_if_outside_context
     def iter_cameras(self) -> list[int]:
         # Get unique camera id
         cameras = set([q.camera for q in self.queues])

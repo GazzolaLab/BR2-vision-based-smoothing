@@ -217,7 +217,7 @@ class CameraOpticalFlow:
         # cv2.destroyAllWindows()
 
     # FIXME: Change it to be global functionals
-    def render_tracking_video(self, save_path, queues=None):  # pragma: no cover
+    def render_tracking_video(self, save_path, camera_id):  # pragma: no cover
         """save_tracking_video
 
         Parameters
@@ -228,10 +228,9 @@ class CameraOpticalFlow:
         print(f"{save_path=}")
         print("Saving tracing video ...")
         import tempfile
+
         tmp_path = os.path.join(tempfile.gettempdir(), "_r.mp4")
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        if queues is None:
-            queues = self.flow_queues
 
         cap = cv2.VideoCapture(self.video_path)
         # Create a mask image for drawing purposes
@@ -246,11 +245,18 @@ class CameraOpticalFlow:
         )
         video_length = self.num_frames
 
-        data_collection = np.zeros((len(queues), video_length, 2), dtype=np.int_) - 1
-        for qid, q in enumerate(queues):
-            _data = self.dataset.load_pixel_flow_trajectory(q, full_trajectory=True)
-            if _data is not None:
-                data_collection[qid, :, :] = _data
+        data_collection = []
+        tags = []
+        for data, tag in self.dataset.iter_trajectory(camera_id):
+            data_collection.append(data)
+            tags.append(tag)
+        data_collection = np.asarray(data_collection)
+
+        # data_collection = np.zeros((len(queues), video_length, 2), dtype=np.int_) - 1
+        # for qid, q in enumerate(queues):
+        #    _data = self.dataset.load_pixel_flow_trajectory(q, full_trajectory=True)
+        #    if _data is not None:
+        #        data_collection[qid, :, :] = _data
 
         for num_frame in tqdm(range(video_length), miniters=10):
             # while cap.isOpened():
@@ -263,7 +269,7 @@ class CameraOpticalFlow:
             good_new = data_collection[:, num_frame + 1, :]
             good_old = data_collection[:, num_frame, :]
             for qid, (new, old) in enumerate(zip(good_new, good_old)):
-                tag = queues[qid].get_tag()
+                tag = tags[qid]  # queues[qid].get_tag()
                 a, b = new.ravel()
                 a, b = int(a), int(b)
                 c, d = old.ravel()
@@ -277,7 +283,7 @@ class CameraOpticalFlow:
                 _frame = cv2.circle(
                     _frame, (a, b), 7, CameraOpticalFlow._color[qid].tolist(), -1
                 )
-                alpha = 0.4  # Transparency factor.
+                alpha = 0.6  # Transparency factor.
                 # Following line overlays transparent circles over the image
                 frame = cv2.addWeighted(_frame, alpha, frame, 1 - alpha, 0)
 
@@ -307,6 +313,7 @@ class CameraOpticalFlow:
 
         # TODO
         import subprocess
+
         command = ["ffmpeg", "-y"]
         command.extend(["-i", tmp_path])
         command.extend([save_path])
