@@ -373,7 +373,9 @@ def select_calibration_points(verbose, dry, show):
         return
 
     # Create directory
-    calibration_ref_path = os.path.dirname(config["PATHS"]["calibration_ref_points_path"])
+    calibration_ref_path = os.path.dirname(
+        config["PATHS"]["calibration_ref_points_path"]
+    )
     os.makedirs(calibration_ref_path, exist_ok=True)
 
     # Label Reference Point

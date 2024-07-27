@@ -7,17 +7,21 @@ import os
 import pickle
 import sys
 from pathlib import Path
-
-import matplotlib.pyplot as plt
-import numpy as np
-from tqdm import tqdm
 from types import SimpleNamespace as EmptyClass
 
 import click
+import matplotlib.pyplot as plt
+import numpy as np
+from tqdm import tqdm
+
 import br2_vision
+from br2_vision.algorithms.frame_tools import rod_color
+from br2_vision.algorithms.frames.frame_data import DirectorFrame
+from br2_vision.algorithms.frames.frame_rod import RodFrame
 from br2_vision.data_structure.marker_positions import MarkerPositions
 from br2_vision.data_structure.posture_data import PostureData
 from br2_vision.utility.logging import config_logging
+from br2_vision_cli.run_smoothing import RequiredRawData, create_data_object
 
 # def include_parent_folders(parent_folders):
 #     for parent_folder in parent_folders:
@@ -36,10 +40,6 @@ from br2_vision.utility.logging import config_logging
 #     ]
 # )
 
-from br2_vision.algorithms.frame_tools import rod_color
-from br2_vision.algorithms.frames.frame_data import DirectorFrame
-from br2_vision.algorithms.frames.frame_rod import RodFrame
-from br2_vision_cli.run_smoothing import RequiredRawData, create_data_object
 # from br2_vision.data_structure.smoothing import create_data_object, read_data_from_file
 
 
@@ -68,7 +68,7 @@ class Frame(RodFrame, DirectorFrame):
             fig_dict,
             gs_dict,
             rod_color=rod_color,
-            **kwargs
+            **kwargs,
         )
         DirectorFrame.__init__(self, 0.02)
 
@@ -192,7 +192,7 @@ def create_movie(raw_data, file_path, delta_s_position, save_path):
 def main(tag, run_id, file_path, save_path, verbose):
     config = br2_vision.load_config()
     config_logging(verbose)
-    
+
     file_path = Path(file_path.format(tag, run_id))
     file_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -228,7 +228,6 @@ def main(tag, run_id, file_path, save_path, verbose):
             dataset.get_cross_section_center_position()
         )
         raw_data.cross_section_director = dataset.get_cross_section_director()
-
 
     create_movie(raw_data, file_path, delta_s_position, save_path)
 

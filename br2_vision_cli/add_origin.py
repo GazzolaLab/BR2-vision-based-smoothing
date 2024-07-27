@@ -14,12 +14,14 @@ from br2_vision.cv2_custom.transformation import scale_image
 from br2_vision.data_structure import OriginData
 from br2_vision.utility.logging import config_logging, get_script_logger
 
+
 def mouse_event_click_point(event, x, y, flags, param):
     point = param["point"]
     if event == cv2.EVENT_LBUTTONDOWN:
         point[0] = x
         point[1] = y
     param["display_func"]()
+
 
 @click.command()
 @click.option(
@@ -75,12 +77,14 @@ def main(tag, run_id, glob_run_id, verbose, dry):
         cap.release()
 
         # Select point using mouse event
-        point: list[float,float] = [0,0]
+        point: list[float, float] = [0, 0]
         window_name = "select point"
+
         def display():
             disp_img = frame.copy()
             cv2.circle(disp_img, tuple(point), 3, (0, 255, 0), -1)
             cv2.imshow(window_name, disp_img)
+
         cv2.namedWindow(window_name)
         cv2.setMouseCallback(
             window_name,
@@ -117,6 +121,7 @@ def main(tag, run_id, glob_run_id, verbose, dry):
         with OriginData(path=initial_point_file) as dataset:
             dataset.set_camera_frames(cam_id, points)
         print("done")
+
 
 if __name__ == "__main__":
     main()

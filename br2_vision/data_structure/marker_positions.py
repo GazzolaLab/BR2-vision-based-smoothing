@@ -96,8 +96,8 @@ class MarkerPositions(DataclassYamlSaveLoadMixin):
         marker_position = np.array(self.marker_positions[tag])
         z_position = z_loc * np.array(self.marker_direction)
 
-        return (z_position + marker_position - origin)
-        #return np.array(self.origin) + z_position + vec_marker
+        return z_position + marker_position - origin
+        # return np.array(self.origin) + z_position + vec_marker
 
     @classmethod
     def from_h5(cls, path):
