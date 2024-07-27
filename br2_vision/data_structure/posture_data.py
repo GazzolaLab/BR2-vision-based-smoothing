@@ -1,4 +1,4 @@
-import operator
+import sys
 import os
 from dataclasses import dataclass
 from typing import List, Tuple
@@ -14,6 +14,13 @@ from br2_vision.utility.logging import get_script_logger
 
 from .tracking_data import TrackingData
 from .utils import raise_if_outside_context
+
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
+import mpl_toolkits.mplot3d.axes3d as p3
+import matplotlib.animation as animation
+import matplotlib.cm as cm
+
 
 
 def compute_positions_and_directors(
@@ -159,3 +166,64 @@ class PostureData:
         """
         self.save_positions_and_directors()
         self._inside_context = False
+
+    def debug_plot(self, path):
+        # Configuration
+        video_name = os.path.join(path, "interpolated_poses.mp4")
+        dpi = 300
+        step = 1
+        fps = 60
+        color_scheme = plt.rcParams['axes.prop_cycle'].by_key()['color']
+        quiver_length = 0.120
+
+        positions = self._positions
+        directors = self._directors
+
+        n_visualized_plane = positions.shape[-1]
+        timesteps = positions.shape[0]
+
+        # Prepare Matplotlib axes
+        fig = plt.figure(1, figsize=(10, 8))
+        ax = plt.axes(projection="3d")
+
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
+        ax.set_zlabel("z")
+
+        ax.set_xlim((-0.13, 0.13))
+        ax.set_ylim((0, 0.3))
+        ax.set_zlim((-0.13, 0.13))
+
+        ax.view_init(elev=-60, azim=-90)
+
+        # Write Video
+        FFMpegWriter = animation.writers["ffmpeg"]
+        metadata = dict(title="Movie Test", artist="Matplotlib", comment="Movie support!")
+        writer = FFMpegWriter(fps=fps, metadata=metadata)
+        with writer.saving(fig, video_name, dpi):
+            time_idx = 0
+            quiver_axes = [[] for _ in range(n_visualized_plane)]
+            #_rot = [] # Delete later
+            for idx in range(n_visualized_plane):
+                position = positions[time_idx,:,idx]
+                director = directors[time_idx,:,:,idx]
+                #_rot.append(np.matmul(directors[time_idx,:,:,0], director.T)) # Delete later
+                #director = np.matmul(_rot[idx], director) # Delete later
+                for i in range(3):
+                    quiver_axes[idx].append(ax.quiver(*position, *director[i], length=quiver_length, color=color_scheme[i])) #idx%10]))
+            writer.grab_frame()
+
+            #ax.set_aspect("equal")
+            ax.set_aspect("auto")
+            for time_idx in tqdm(range(0, timesteps, int(step))):
+                for idx in range(n_visualized_plane):
+                    position = positions[time_idx,:,idx]
+                    director = directors[time_idx,:,:,idx]
+                    #director = np.matmul(_rot[idx], director) # Delete later
+                    director *= quiver_length
+                    for i in range(3):
+                        segs = [[position.tolist(), (position+director[i,:]).tolist()]]
+                        quiver_axes[idx][i].set_segments(segs)
+                writer.grab_frame()
+        plt.close(plt.gcf())
+

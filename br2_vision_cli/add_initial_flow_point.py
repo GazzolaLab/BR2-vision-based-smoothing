@@ -269,8 +269,8 @@ def main(tag, cam_id, run_id, glob_run_id, start_frame, end_frame, verbose, dry)
     def display():
         disp_img = curr_frame.copy()
 
-        if len(old_points) > 0:
-            frame_label(disp_img, old_points, old_marker_label, font_color=(0, 255, 0))
+        #if len(old_points) > 0:
+        #    frame_label(disp_img, old_points, old_marker_label, font_color=(0, 255, 0))
         if len(points) > 0:
             frame_label(disp_img, points, marker_label)
 

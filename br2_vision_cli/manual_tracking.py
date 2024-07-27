@@ -45,9 +45,16 @@ def set_trace():
     help="If set, prompt all queues to be tracked.",
     default=False,
 )
+@click.option(
+    "--iterate",
+    is_flag=True,
+    type=bool,
+    help="Iter mode. Don't use with force-list-done-queue",
+    default=False,
+)
 @click.option("-v", "--verbose", is_flag=True, help="Verbose mode.")
 @click.option("-d", "--dry", is_flag=True, help="Dry run.")
-def main(tag, run_id, verbose, dry, force_list_done_queue):
+def main(tag, run_id, verbose, dry, force_list_done_queue, iterate):
     config = br2_vision.load_config()
     config_logging(verbose)
     logger = get_script_logger(os.path.basename(__file__))
@@ -69,50 +76,59 @@ def main(tag, run_id, verbose, dry, force_list_done_queue):
         for idx, q in enumerate(queues):
             print(f"Queue {idx}: {q}")
 
-        # Prompt user to select a queue
-        queue_idx = input("Select a queue:")
+        if iterate:
+            tasks = list(range(len(queues)))
+        else:
+            # Prompt user to select a queue
+            queue_idx = input("Select a queue:")
 
-        # Check if the input is valid, using regex
-        if not re.match(r"^\d+$", queue_idx):
-            logger.error("Invalid input. Please input a number.")
-            return
-        queue_idx = int(queue_idx)
-        # check if the input is within the range
-        if queue_idx < 0 or queue_idx >= len(queues):
-            logger.error("Invalid input. Please input a number within the range.")
-            return
-        queue = queues[queue_idx]
-        cid = queue.camera
+            # Check if the input is valid, using regex
+            if not re.match(r"^\d+$", queue_idx):
+                logger.error("Invalid input. Please input a number.")
+                return
+            queue_idx = int(queue_idx)
+            # check if the input is within the range
+            if queue_idx < 0 or queue_idx >= len(queues):
+                logger.error("Invalid input. Please input a number within the range.")
+                return
+            tasks = [queue_idx]
 
-        video_path = config["PATHS"]["footage_video_path"].format(tag, cid, run_id)
+        for queue_idx in tasks:
+            queue = queues[queue_idx]
+            print("working on: ")
+            print(queue)
+            cid = queue.camera
 
-        tracing = ManualTracing(
-            video_path=video_path,
-            flow_queue=queue,
-            dataset=dataset,
-            scale=scale,
-        )
-        # set_trace()
-        result = tracing.run(debug=dry)
-        if not result:
-            logger.info(f"Failed to trace queue {queue_idx}.")
-            return
+            video_path = config["PATHS"]["footage_video_path"].format(tag, cid, run_id)
 
-        # Render tracking video
-        all_queues = dataset.get_flow_queues(camera=cid, force_run_all=True)
-        optical_flow = CameraOpticalFlow(
-            video_path=video_path,
-            flow_queues=all_queues,
-            dataset=dataset,
-            scale=scale,
-        )
-        tracking_overlay_video_path = config["PATHS"][
-            "footage_video_path_with_trace"
-        ].format(tag, cid, run_id)
+            tracing = ManualTracing(
+                video_path=video_path,
+                flow_queue=queue,
+                dataset=dataset,
+                scale=scale,
+            )
+            # set_trace()
+            result = tracing.run(debug=dry)
+            if not result:
+                logger.info(f"Failed to trace queue {queue_idx}.")
+                return
 
-        optical_flow.render_tracking_video(tracking_overlay_video_path, cid)
+            if verbose:
+                # Render tracking video
+                all_queues = dataset.get_flow_queues(camera=cid, force_run_all=True)
+                optical_flow = CameraOpticalFlow(
+                    video_path=video_path,
+                    flow_queues=all_queues,
+                    dataset=dataset,
+                    scale=scale,
+                )
+                tracking_overlay_video_path = config["PATHS"][
+                    "footage_video_path_with_trace"
+                ].format(tag, cid, run_id)
 
-        cv2.destroyAllWindows()
+                optical_flow.render_tracking_video(tracking_overlay_video_path, cid)
+
+                cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":

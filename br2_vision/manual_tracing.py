@@ -57,7 +57,7 @@ class ManualTracing:
         video_path,
         flow_queue: FlowQueue,
         dataset: TrackingData,
-        scale: float = 1.0,
+        scale: float = 1.5,
     ):
         self.video_path = video_path
 
@@ -99,9 +99,13 @@ class ManualTracing:
 
         # Interpolation
         indices = np.where(data[:, 0] != -1)[0]
-        points = data[indices, :]
-        spline = CubicSpline(indices, points)
-        data = spline(np.arange(end_frame - start_frame))
+        if len(indices) < 2:
+            raise ValueError("More point needs to be selected")
+        for si, ei in zip(indices[:-1], indices[1:]):
+            data[si:ei] = np.linspace(data[si], data[ei], ei-si)
+        #points = data[indices, :]
+        #spline = CubicSpline(indices, points)
+        #data = spline(np.arange(end_frame - start_frame))
 
         # Save
         q = self.flow_queue
@@ -111,7 +115,7 @@ class ManualTracing:
         return True
 
     def draw_points(
-        self, frame, points, radius=4, color=(0, 235, 0), thickness=-1
+        self, frame, points, radius=2, color=(0, 235, 0), thickness=-1
     ):  # pragma: no cover
         # draw the points (overlay)
         for i, point in enumerate(points):

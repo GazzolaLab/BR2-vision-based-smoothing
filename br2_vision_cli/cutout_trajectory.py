@@ -70,20 +70,21 @@ def main(tag, cam_id, run_id, frame, z_index, label, verbose, dry):
     with TrackingData.load(path=datapath) as dataset:
         dataset.trim_trajectory(q_tag, frame, cam_id)
 
-        from br2_vision.optical_flow import CameraOpticalFlow
-        scale = float(config["DIMENSION"]["scale_video"])
-        video_path = config["PATHS"]["footage_video_path"].format(tag, cam_id, run_id)
-        all_queues = dataset.get_flow_queues(camera=cam_id, force_run_all=True)
-        optical_flow = CameraOpticalFlow(
-            video_path=video_path,
-            flow_queues=all_queues,
-            dataset=dataset,
-            scale=scale,
-        )
-        tracking_overlay_video_path = config["PATHS"][
-            "footage_video_path_with_trace"
-        ].format(tag, cam_id, run_id)
+        if verbose:
+            from br2_vision.optical_flow import CameraOpticalFlow
+            scale = float(config["DIMENSION"]["scale_video"])
+            video_path = config["PATHS"]["footage_video_path"].format(tag, cam_id, run_id)
+            all_queues = dataset.get_flow_queues(camera=cam_id, force_run_all=True)
+            optical_flow = CameraOpticalFlow(
+                video_path=video_path,
+                flow_queues=all_queues,
+                dataset=dataset,
+                scale=scale,
+            )
+            tracking_overlay_video_path = config["PATHS"][
+                "footage_video_path_with_trace"
+            ].format(tag, cam_id, run_id)
 
-        optical_flow.render_tracking_video(tracking_overlay_video_path, cam_id)
+            optical_flow.render_tracking_video(tracking_overlay_video_path, cam_id)
 
 

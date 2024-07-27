@@ -35,21 +35,14 @@ color_scheme = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 )
 @click.option("-r", "--run_id", required=True, type=int, help="Run ID")
 @click.option("-f", "--fps", default=60, type=int, help="FPS of the video")
-@click.option(
-    "-p",
-    "--save_path",
-    type=click.Path(exists=False),
-    default="results",
-    help="Path to save the data",
-)
 @click.option("-v", "--verbose", is_flag=True, type=bool, help="Verbose output")
-def process_dlt(tag, run_id, fps, save_path, verbose):
+def process_dlt(tag, run_id, fps, verbose):
     config = br2_vision.load_config()
     config_logging(verbose)
     logger = get_script_logger(os.path.basename(__file__))
 
-    save_path = Path(save_path)
-    save_path.mkdir(parents=True, exist_ok=True)
+    save_path = config["PATHS"]["results_dir"].format(tag, run_id)
+    os.makedirs(save_path, exist_ok=True)
 
     dlt = DLT(calibration_path=config["PATHS"]["calibration_path"])
     dlt.load()
@@ -114,10 +107,12 @@ def process_dlt(tag, run_id, fps, save_path, verbose):
         # Verbose output
         print("Total number of observed tags: ", len(observing_camera_count))
         print("Used Tags: ", result_tags)
+        print("Used Tags count: ", len(result_tags))
 
         # DLT Interpolation
         result_dlt_coords = []
         result_actual_coords = []
+        result_tags_first_frame = []
         for zid_label, count in observing_camera_count.items():
             # if zid_label in EXCLUDE_TAGS:
             #     continue
@@ -132,7 +127,7 @@ def process_dlt(tag, run_id, fps, save_path, verbose):
                     if p[tid, 0] == -1 or p[tid, 1] == -1:
                         continue
                     uvs[cam_id] = p[tid]
-                if len(uvs) < 2:
+                if len(uvs) < 3:
                     _xyz, cond = np.zeros(3) * np.nan, np.inf
                 else:
                     _xyz, cond = dlt.map(uvs)
@@ -144,6 +139,7 @@ def process_dlt(tag, run_id, fps, save_path, verbose):
                 actual_coord = marker_positions.get_position(zid, label)
                 result_dlt_coords.append(txyz[0])  # keep the first frame
                 result_actual_coords.append(actual_coord)
+                result_tags_first_frame.append(zid_label)
 
             dataset.save_track(np.asarray(txyz), zid, label, prefix="dlt_mapped_xyz")
 
@@ -154,6 +150,8 @@ def process_dlt(tag, run_id, fps, save_path, verbose):
         print(
             "Total number of processed points: {}".format(len(observing_camera_count))
         )
+        print(f"{result_dlt_coords.shape=}")
+        print(f"{result_actual_coords.shape=}")
 
         # Kobsch algorithm (Rotation only)
         # This step is to match DLT-frame to Lab frame
@@ -192,17 +190,19 @@ def process_dlt(tag, run_id, fps, save_path, verbose):
             txyz = dataset.load_track(zid, label, prefix="dlt_mapped_xyz")
             nan_indices = np.isnan(txyz).any(axis=1)
             # mapped_txyz = reg.predict(txyz[~nan_indices])
-            mapped_txyz = ops(txyz[~nan_indices])
-            txyz[~nan_indices] = mapped_txyz
+            if txyz[~nan_indices].size > 0:
+                mapped_txyz = ops(txyz[~nan_indices])
+                txyz[~nan_indices] = mapped_txyz
             dataset.save_track(txyz, zid, label, prefix="xyz")
 
     with PostureData(path=tracing_data_path) as dataset:
-        pass
+        save_path = config["PATHS"]["results_dir"].format(tag, run_id)
+        dataset.debug_plot(save_path)
 
     # Debugging plots
     plot_path_labels = os.path.join(
-        config["PATHS"]["results_dir"],
-        f"labels_{tag}_{run_id}.png",
+        config["PATHS"]["results_dir"].format(tag, run_id),
+        f"labels.png",
     )
     marker_positions = MarkerPositions.from_yaml(
         config["PATHS"]["marker_positions"]
@@ -231,8 +231,8 @@ def process_dlt(tag, run_id, fps, save_path, verbose):
 
     # Debugging plots
     plot_path_labels_loc = os.path.join(
-        config["PATHS"]["results_dir"],
-        f"label_loc_{tag}_{run_id}.png",
+        config["PATHS"]["results_dir"].format(tag, run_id),
+        f"label_loc.png",
     )
     marker_positions = MarkerPositions.from_yaml(
         config["PATHS"]["marker_positions"]
@@ -253,8 +253,8 @@ def process_dlt(tag, run_id, fps, save_path, verbose):
 
     # Debugging plots
     plot_path_activity = os.path.join(
-        config["PATHS"]["results_dir"],
-        f"first_frame_marker_positions_{tag}_{run_id}.png",
+        config["PATHS"]["results_dir"].format(tag, run_id),
+        f"first_frame_marker_positions.png",
     )
 
     fig = plt.figure(1, figsize=(10, 8))
@@ -269,15 +269,15 @@ def process_dlt(tag, run_id, fps, save_path, verbose):
         )
         for i in unique_observing_cameras
     ]
-    for i in range(len(result_tags)):
+    for i in range(len(result_tags_first_frame)):
         # print(result_tags[i], ': ', initial_dlt_cond[i])
         ax.scatter(
             *result_dlt_coords_shifted[i],
-            color=color_scheme[observing_camera_count[result_tags[i]]],
+            color=color_scheme[observing_camera_count[result_tags_first_frame[i]]],
         )
         ax.scatter(
             *result_actual_coords[i],
-            color=color_scheme[observing_camera_count[result_tags[i]]],
+            color=color_scheme[observing_camera_count[result_tags_first_frame[i]]],
             alpha=0.5
         )
         ax.plot(
@@ -288,19 +288,19 @@ def process_dlt(tag, run_id, fps, save_path, verbose):
         # c = int(initial_dlt_cond[i]*100/initial_dlt_cond_max)-1
         # ax.scatter(*result_dlt_coords [i], c=c, cmap='viridis')
         # ax.scatter(*result_actual_coords [i])
-        ax.text(*result_dlt_coords_shifted[i], " "+str(result_tags[i]), size=10, zorder=1, color="k")
+        ax.text(*result_dlt_coords_shifted[i], " "+str(result_tags_first_frame[i]), size=10, zorder=1, color="k")
     ax.legend(handles=legend_elements, loc="upper right")
     ax.set_aspect('equal')
 
     fig.savefig(plot_path_activity)
-    plt.show()
+    #plt.show()
     plt.close('all')
 
     # Debugging plots
     for zid in range(len(marker_positions)):
         plot_path_activity = os.path.join(
-            config["PATHS"]["results_dir"],
-            f"first_frame_{zid=}_marker_positions_{tag}_{run_id}.png",
+            config["PATHS"]["results_dir"].format(tag, run_id),
+            f"first_frame_{zid=}_marker_positions.png",
         )
         fig = plt.figure(figsize=(10, 8))
         ax = fig.add_subplot(1,2,1,projection="3d")
@@ -310,12 +310,12 @@ def process_dlt(tag, run_id, fps, save_path, verbose):
         ax.set_zlabel("z")
         ax2.set_xlabel("z")
         ax2.set_ylabel("x")
-        for i in range(len(result_tags)):
-            if result_tags[i][0] != zid:
+        for i in range(len(result_tags_first_frame)):
+            if result_tags_first_frame[i][0] != zid:
                 continue
             sc = ax.scatter(
                 *result_dlt_coords_shifted[i],
-                label=result_tags[i][1],
+                label=result_tags_first_frame[i][1],
             )
             ax.scatter(
                 *result_actual_coords[i],
@@ -331,7 +331,7 @@ def process_dlt(tag, run_id, fps, save_path, verbose):
             sc = ax2.scatter(
                 result_dlt_coords_shifted[i][2],
                 result_dlt_coords_shifted[i][0],
-                label=result_tags[i][1],
+                label=result_tags_first_frame[i][1],
             )
             ax2.scatter(
                 result_actual_coords[i][2],

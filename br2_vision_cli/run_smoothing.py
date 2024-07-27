@@ -178,21 +178,14 @@ def process_data(
     help="Experiment tag. Path ./tag should exist.",
 )
 @click.option("-r", "--run_id", required=True, type=int, help="Run ID")
-@click.option(
-    "-p",
-    "--save_path",
-    type=click.Path(exists=False),
-    default="results/{}/smoothing_{}.pkl",
-    help="Path to save the data",
-)
 @click.option("-v", "--verbose", is_flag=True, type=bool, help="Verbose output")
-def main(tag, run_id, save_path, verbose):
+def main(tag, run_id, verbose):
     config = br2_vision.load_config()
     config_logging(verbose)
     logger = get_script_logger(os.path.basename(__file__))
 
-    save_path = Path(save_path.format(tag, run_id))
-    save_path.parent.mkdir(parents=True, exist_ok=True)
+    save_path = config["PATHS"]["results_dir"].format(tag, run_id)
+    os.makedirs(save_path, exist_ok=True)
 
     marker_positions = MarkerPositions.from_yaml(config["PATHS"]["marker_positions"])
     delta_s_position = np.array(marker_positions.marker_center_offset)
@@ -210,4 +203,4 @@ def main(tag, run_id, save_path, verbose):
         )
         raw_data.cross_section_director = dataset.get_cross_section_director()
 
-    process_data(raw_data, delta_s_position, save_path)
+    process_data(raw_data, delta_s_position, os.path.join(save_path, "smoothing.pkl"))

@@ -38,7 +38,7 @@ def mouse_event_click_point(event, x, y, flags, param):
 @click.option(
     "--glob-run-id",
     type=bool,
-    default=True,
+    default=False,
     is_flag=True,
     help="If specified, use all run-ids in the directory. By default, True.",
 )
@@ -107,6 +107,8 @@ def main(tag, run_id, glob_run_id, verbose, dry):
                 continue
             rid = int(rr.group(1))
             all_run_id.append(rid)
+    else:
+        all_run_id = [run_id]
 
     # Load existing points and marker_label, and append
     print(f"{cam_id=}")

@@ -53,7 +53,7 @@ class CameraOpticalFlow:
     )  # 0.017
 
     # Configuration: Color scheme
-    _color = np.random.randint(0, 235, (100, 3)).astype(int)  # 100 points for now
+    _color = np.random.randint(100, 235, (100, 3)).astype(int)  # 100 points for now
 
     def __init__(
         self,
@@ -281,9 +281,9 @@ class CameraOpticalFlow:
                 )
                 _frame = frame.copy()
                 _frame = cv2.circle(
-                    _frame, (a, b), 7, CameraOpticalFlow._color[qid].tolist(), -1
+                    _frame, (a, b), 5, CameraOpticalFlow._color[qid].tolist(), -1
                 )
-                alpha = 0.6  # Transparency factor.
+                alpha = 0.4  # Transparency factor.
                 # Following line overlays transparent circles over the image
                 frame = cv2.addWeighted(_frame, alpha, frame, 1 - alpha, 0)
 
@@ -291,7 +291,7 @@ class CameraOpticalFlow:
                 cv2.putText(
                     text_img,
                     tag,
-                    (a, b + 25),
+                    (a-10, b - 20),
                     fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                     fontScale=0.5,
                     color=(255, 255, 255),
@@ -304,7 +304,7 @@ class CameraOpticalFlow:
                 )
                 frame = cv2.add(frame, text_img)
 
-            img = cv2.add(frame, mask)
+            img = frame.copy()  #cv2.add(frame, mask)
             assert img.shape == (frame_width, frame_height, 3)
             writer.write(img)
         cap.release()

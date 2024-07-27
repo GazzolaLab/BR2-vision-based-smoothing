@@ -174,30 +174,15 @@ def create_movie(raw_data, file_path, delta_s_position, save_path):
     help="Experiment tag. Path ./tag should exist.",
 )
 @click.option("-r", "--run_id", required=True, type=int, help="Run ID")
-@click.option(
-    "-p",
-    "--file_path",
-    type=click.Path(exists=False),
-    default="results/{}/smoothing_{}.pkl",
-    help="Path to save the data",
-)
-@click.option(
-    "-p",
-    "--save_path",
-    type=click.Path(exists=False),
-    default="results/{}/smoothing_{}.mov",
-    help="Path to save the data",
-)
 @click.option("-v", "--verbose", is_flag=True, type=bool, help="Verbose output")
-def main(tag, run_id, file_path, save_path, verbose):
+def main(tag, run_id, verbose):
     config = br2_vision.load_config()
     config_logging(verbose)
     
-    file_path = Path(file_path.format(tag, run_id))
-    file_path.parent.mkdir(parents=True, exist_ok=True)
-
-    save_path = Path(save_path.format(tag, run_id))
-    save_path.parent.mkdir(parents=True, exist_ok=True)
+    result_path = config["PATHS"]["results_dir"].format(tag, run_id)
+    assert os.path.exists(result_path), "Run run_smoothing first"
+    file_path = os.path.join(result_path, "smoothing.pkl")
+    save_path = os.path.join(result_path, "smoothing.mov")
     # if problem == "bend":
     #     file_name = "bend"
     #     delta_s_position = np.array([23.9, 35.17, 33.82, 34.55, 32.8])
