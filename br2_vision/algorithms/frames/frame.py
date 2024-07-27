@@ -52,5 +52,5 @@ class Frame(object):
         figure_name = figure_name.replace("}", "")
         cmd += " -i " + self.folder_name + "/" + figure_name
         cmd += " -b:v 90M -c:v libx264 -pix_fmt yuv420p -f mov "
-        cmd += "-y " + movie_name.as_posix()
+        cmd += "-y " + movie_name
         os.system(cmd)
