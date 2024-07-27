@@ -22,7 +22,6 @@ import matplotlib.animation as animation
 import matplotlib.cm as cm
 
 
-
 def compute_positions_and_directors(
     path: str,
 ) -> tuple[
@@ -173,7 +172,7 @@ class PostureData:
         dpi = 300
         step = 1
         fps = 60
-        color_scheme = plt.rcParams['axes.prop_cycle'].by_key()['color']
+        color_scheme = plt.rcParams["axes.prop_cycle"].by_key()["color"]
         quiver_length = 0.120
 
         positions = self._positions
@@ -192,9 +191,12 @@ class PostureData:
         ax.set_ylabel("y")
         ax.set_zlabel("z")
 
-        ax.set_xlim((-0.13, 0.13))
-        ax.set_ylim((0, 0.3))
-        ax.set_zlim((-0.13, 0.13))
+        # ax.set_xlim((-0.13, 0.13))
+        # ax.set_ylim((0, 0.3))
+        # ax.set_zlim((-0.13, 0.13))
+        ax.set_xlim((positions[:, 0, :].min(), positions[:, 0, :].max()))
+        ax.set_ylim((positions[:, 1, :].min(), positions[:, 1, :].max()))
+        ax.set_zlim((positions[:, 2, :].min(), positions[:, 2, :].max()))
 
         ax.view_init(elev=-60, azim=-90)
 
@@ -204,21 +206,26 @@ class PostureData:
         with writer.saving(fig, video_name, dpi):
             time_idx = 0
             quiver_axes = [[] for _ in range(n_visualized_plane)]
-            #_rot = [] # Delete later
-            #for idx in range(n_visualized_plane):
+            # _rot = [] # Delete later
+            # for idx in range(n_visualized_plane):
             #    position = positions[time_idx,:,idx]
             #    director = directors[time_idx,:,:,idx]
             #    #_rot.append(np.matmul(directors[time_idx,:,:,0], director.T)) # Delete later
             #    #director = np.matmul(_rot[idx], director) # Delete later
             #    for i in range(3):
             #        quiver_axes[idx].append(ax.quiver(*position, *director[i], length=quiver_length, color=color_scheme[i])) #idx%10]))
-            #writer.grab_frame()
+            # writer.grab_frame()
 
-            #ax.set_aspect("equal")
-            ax.set_aspect("auto")
-
+            ax.set_aspect("equal")
+            # ax.set_aspect("auto")
+            position_sc = ax.scatter([], [], [], color="red", s=10)
             for time_idx in tqdm(range(0, timesteps, int(step))):
-                #for idx in range(n_visualized_plane):
+                position_sc._offsets3d = (
+                    positions[time_idx, 0, :],
+                    positions[time_idx, 1, :],
+                    positions[time_idx, 2, :],
+                )
+                # for idx in range(n_visualized_plane):
                 #    position = positions[time_idx,:,idx]
                 #    director = directors[time_idx,:,:,idx]
                 #    #director = np.matmul(_rot[idx], director) # Delete later
@@ -228,4 +235,3 @@ class PostureData:
                 #        quiver_axes[idx][i].set_segments(segs)
                 writer.grab_frame()
         plt.close(plt.gcf())
-
