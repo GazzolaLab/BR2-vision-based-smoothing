@@ -72,7 +72,7 @@ def extract_frames(
         frame_count = 0
         pbar = tqdm(total=total_frames)
 
-        figwidth = total_frames / 1600.
+        figwidth = total_frames / 1600.0
         fig, ax = plt.subplots(1, 1, figsize=(figwidth, 3))
 
         maxlen = 80

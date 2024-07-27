@@ -1,11 +1,11 @@
-import os
 import math
-
-import cv2
-import numpy as np
+import os
 import pickle
 
 import click
+import cv2
+import numpy as np
+
 
 # mouse callback function
 def handle_mouse_event(event, x, y, flags, param):
@@ -26,10 +26,11 @@ def handle_mouse_event(event, x, y, flags, param):
         points[min_index] = (x, y)
     else:
         state_changed = False
-       
+
     if state_changed:
         _frame = add_points_to_image(frame, points)
         cv2.imshow(window_name, _frame)
+
 
 def add_points_to_image(image, points):
     if not points:
@@ -38,6 +39,7 @@ def add_points_to_image(image, points):
     for point in points:
         cv2.circle(image, point, 5, (0, 240, 0), -1)
     return image
+
 
 # draw the tangent line
 def draw_tangent(image, x_points, y_points, color=(0, 0, 255)):
@@ -48,17 +50,22 @@ def draw_tangent(image, x_points, y_points, color=(0, 0, 255)):
     p2 = (width, int(slope * width + intercept))
     cv2.line(image, p1, p2, color, 2)
 
+
 def resize_image(image, width):
     height = int(image.shape[0] * (width / image.shape[1]))
     return cv2.resize(image, (width, height))
 
+
 def crop_image(image, roi):
     x, y, w, h = roi
-    return image[y:y+h, x:x+w]
+    return image[y : y + h, x : x + w]
+
 
 @click.command()
-@click.option('-f', '--file_path', type=click.Path(exists=True), help='Path to the image file')
-@click.option('-l', '--length', type=float, help='Length of the rod')
+@click.option(
+    "-f", "--file_path", type=click.Path(exists=True), help="Path to the image file"
+)
+@click.option("-l", "--length", type=float, help="Length of the rod")
 def main(file_path, length):
     # Load video
     cap = cv2.VideoCapture(file_path)
@@ -84,7 +91,11 @@ def main(file_path, length):
 
     window_name = "Select Points"
     cv2.namedWindow(window_name)
-    cv2.setMouseCallback(window_name, handle_mouse_event, {"points": points, "window_name": window_name, "frame": frame})
+    cv2.setMouseCallback(
+        window_name,
+        handle_mouse_event,
+        {"points": points, "window_name": window_name, "frame": frame},
+    )
     while True:
         # Navigate to the frame
         cap.set(cv2.CAP_PROP_POS_FRAMES, current_frame)
@@ -131,12 +142,14 @@ def main(file_path, length):
     cap.release()
     cv2.destroyAllWindows()
 
-    points = np.asarray(points) # (N, 2)
+    points = np.asarray(points)  # (N, 2)
     vectors = np.diff(points, axis=0)
     spacing = np.linalg.norm(vectors, axis=1)
 
     # Find cosine angles between the vectors
-    cosine_angles = (vectors[:-1] * vectors[1:]).sum(axis=1) / (spacing[:-1] * spacing[1:])
+    cosine_angles = (vectors[:-1] * vectors[1:]).sum(axis=1) / (
+        spacing[:-1] * spacing[1:]
+    )
     angles = np.arccos(cosine_angles)
     total_angle = angles.sum()
     print(f"Total angle: {total_angle} rad")
@@ -149,8 +162,8 @@ def main(file_path, length):
     d2x = np.gradient(dx, x)  # second derivatives
     d2y = np.gradient(dy, x)
 
-    cur = np.abs(d2y) / (np.sqrt(1 + dy ** 2)) ** 1.5  # curvature
-    cur[np.isnan(cur)] = 0.
+    cur = np.abs(d2y) / (np.sqrt(1 + dy**2)) ** 1.5  # curvature
+    cur[np.isnan(cur)] = 0.0
     max_curvature = cur.max()
     avg_curvature = cur.mean()
     print(f"Max Curvature: {max_curvature}")

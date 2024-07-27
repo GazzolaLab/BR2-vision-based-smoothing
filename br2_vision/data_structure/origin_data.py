@@ -16,7 +16,6 @@ from .tracking_data import TrackingData
 from .utils import raise_if_outside_context
 
 
-
 class OriginData:
     """
     Data structure for postures
@@ -49,7 +48,9 @@ class OriginData:
         }
 
     @raise_if_outside_context
-    def set_camera_frames(self, camera_ids: list[int], frames: NDArray[Shape["C, [u,v]"], Floating]):
+    def set_camera_frames(
+        self, camera_ids: list[int], frames: NDArray[Shape["C, [u,v]"], Floating]
+    ):
         self._camera_indices = camera_ids
         self._origin_frames = frames
 
@@ -97,7 +98,9 @@ class OriginData:
             if self._positions_key in h5f:
                 self._positions = np.array(h5f[self._positions_key], dtype=np.float64)
             if self._origin_frames_key in h5f:
-                self._origin_frames = np.array(h5f[self._origin_frames_key], dtype=np.float64)
+                self._origin_frames = np.array(
+                    h5f[self._origin_frames_key], dtype=np.float64
+                )
             if self._camera_indices_key in h5f:
                 self._camera_indices = list(h5f[self._camera_indices_key])
 

@@ -1,10 +1,10 @@
 import math
-
-import cv2
-import numpy as np
 from dataclasses import dataclass
 
 import click
+import cv2
+import numpy as np
+
 
 @dataclass
 class Line:
@@ -25,6 +25,7 @@ class Line:
         self.y1 = None
         self.x2 = None
         self.y2 = None
+
 
 def mouse_callback(event, x, y, flags, param):
     line_start = param["line_start"]
@@ -62,7 +63,7 @@ def main(path):
         ret, frame = cap.read()
         if not ret:
             break
-        
+
         # Display the frame
         line_start.draw(frame)
         line_end.draw(frame)

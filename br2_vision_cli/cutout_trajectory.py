@@ -11,7 +11,6 @@ from br2_vision.cv2_custom.extract_info import get_video_frame_count
 from br2_vision.data_structure import FlowQueue, MarkerPositions, TrackingData
 from br2_vision.utility.logging import config_logging, get_script_logger
 
-
 config = br2_vision.load_config()
 config_logging(False)
 logger = get_script_logger(os.path.basename(__file__))
@@ -86,5 +85,4 @@ def main(tag, cam_id, run_id, frame, z_index, label, verbose, dry):
             ].format(tag, cam_id, run_id)
 
             optical_flow.render_tracking_video(tracking_overlay_video_path, cam_id)
-
 

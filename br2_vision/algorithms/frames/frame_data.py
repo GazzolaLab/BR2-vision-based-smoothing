@@ -12,6 +12,7 @@ import numpy as np
 from matplotlib import gridspec
 from mpl_toolkits.mplot3d import Axes3D
 
+from br2_vision.algorithms.frame_tools import default_colors
 
 # def include_parent_folders(parent_folders):
 #     for parent_folder in parent_folders:
@@ -29,8 +30,6 @@ from mpl_toolkits.mplot3d import Axes3D
 #         "Smoothing",
 #     ]
 # )
-
-from br2_vision.algorithms.frame_tools import default_colors
 
 
 class PositionFrame(object):

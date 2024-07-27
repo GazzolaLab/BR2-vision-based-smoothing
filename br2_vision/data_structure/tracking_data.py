@@ -1,8 +1,8 @@
+import itertools
 import operator
 import os
-import itertools
 from dataclasses import dataclass
-from typing import List, Tuple, Union, Iterable
+from typing import Iterable, List, Tuple, Union
 
 import h5py
 import numpy as np

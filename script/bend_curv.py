@@ -1,8 +1,9 @@
-import cv2
-import numpy as np
+import math
 import tkinter as tk
 from tkinter import filedialog
-import math
+
+import cv2
+import numpy as np
 
 # store the selected points
 points = []

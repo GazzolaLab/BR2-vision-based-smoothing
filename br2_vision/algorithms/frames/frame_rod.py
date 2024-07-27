@@ -12,6 +12,12 @@ import numpy as np
 from matplotlib import gridspec
 from mpl_toolkits.mplot3d import Axes3D
 
+from br2_vision.algorithms.frames.frame import Frame
+from br2_vision.algorithms.rod_tools import (
+    calculate_dilatation,
+    kappa_to_curvature,
+    sigma_to_shear,
+)
 
 # def include_parent_folders(parent_folders):
 #     for parent_folder in parent_folders:
@@ -29,9 +35,6 @@ from mpl_toolkits.mplot3d import Axes3D
 #         "Smoothing",
 #     ]
 # )
-
-from br2_vision.algorithms.frames.frame import Frame
-from br2_vision.algorithms.rod_tools import calculate_dilatation, kappa_to_curvature, sigma_to_shear
 
 
 class RodFrame(Frame):
