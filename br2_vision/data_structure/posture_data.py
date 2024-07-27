@@ -178,6 +178,8 @@ class PostureData:
 
         positions = self._positions
         directors = self._directors
+        print(f"{positions.shape=}")
+        print(f"{directors.shape=}")
 
         n_visualized_plane = positions.shape[-1]
         timesteps = positions.shape[0]
@@ -198,32 +200,32 @@ class PostureData:
 
         # Write Video
         FFMpegWriter = animation.writers["ffmpeg"]
-        metadata = dict(title="Movie Test", artist="Matplotlib", comment="Movie support!")
-        writer = FFMpegWriter(fps=fps, metadata=metadata)
+        writer = FFMpegWriter(fps=fps)
         with writer.saving(fig, video_name, dpi):
             time_idx = 0
             quiver_axes = [[] for _ in range(n_visualized_plane)]
             #_rot = [] # Delete later
-            for idx in range(n_visualized_plane):
-                position = positions[time_idx,:,idx]
-                director = directors[time_idx,:,:,idx]
-                #_rot.append(np.matmul(directors[time_idx,:,:,0], director.T)) # Delete later
-                #director = np.matmul(_rot[idx], director) # Delete later
-                for i in range(3):
-                    quiver_axes[idx].append(ax.quiver(*position, *director[i], length=quiver_length, color=color_scheme[i])) #idx%10]))
-            writer.grab_frame()
+            #for idx in range(n_visualized_plane):
+            #    position = positions[time_idx,:,idx]
+            #    director = directors[time_idx,:,:,idx]
+            #    #_rot.append(np.matmul(directors[time_idx,:,:,0], director.T)) # Delete later
+            #    #director = np.matmul(_rot[idx], director) # Delete later
+            #    for i in range(3):
+            #        quiver_axes[idx].append(ax.quiver(*position, *director[i], length=quiver_length, color=color_scheme[i])) #idx%10]))
+            #writer.grab_frame()
 
             #ax.set_aspect("equal")
             ax.set_aspect("auto")
+
             for time_idx in tqdm(range(0, timesteps, int(step))):
-                for idx in range(n_visualized_plane):
-                    position = positions[time_idx,:,idx]
-                    director = directors[time_idx,:,:,idx]
-                    #director = np.matmul(_rot[idx], director) # Delete later
-                    director *= quiver_length
-                    for i in range(3):
-                        segs = [[position.tolist(), (position+director[i,:]).tolist()]]
-                        quiver_axes[idx][i].set_segments(segs)
+                #for idx in range(n_visualized_plane):
+                #    position = positions[time_idx,:,idx]
+                #    director = directors[time_idx,:,:,idx]
+                #    #director = np.matmul(_rot[idx], director) # Delete later
+                #    director *= quiver_length
+                #    for i in range(3):
+                #        segs = [[position.tolist(), (position+director[i,:]).tolist()]]
+                #        quiver_axes[idx][i].set_segments(segs)
                 writer.grab_frame()
         plt.close(plt.gcf())
 
