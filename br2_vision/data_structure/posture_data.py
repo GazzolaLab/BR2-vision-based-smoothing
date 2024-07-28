@@ -233,12 +233,14 @@ class PostureData:
             texts = []
             # _rot = [] # Delete later
             for idx in range(n_visualized_plane):
-               position = positions[time_idx,:,idx]
-               director = directors[time_idx,:,:,idx]
-               #_rot.append(np.matmul(directors[time_idx,:,:,0], director.T)) # Delete later
-               #director = np.matmul(_rot[idx], director) # Delete later
-               for i in range(3):
-                   quiver_axes[idx].append(ax.quiver(*position, *director[i], color=color_scheme[i])) #idx%10]))
+                position = positions[time_idx, :, idx]
+                director = directors[time_idx, :, :, idx]
+                # _rot.append(np.matmul(directors[time_idx,:,:,0], director.T)) # Delete later
+                # director = np.matmul(_rot[idx], director) # Delete later
+                for i in range(3):
+                    quiver_axes[idx].append(
+                        ax.quiver(*position, *director[i], color=color_scheme[i])
+                    )  # idx%10]))
                texts.append(ax.text(*position, f"plane {idx}"))
             # writer.grab_frame()
 
@@ -250,7 +252,7 @@ class PostureData:
             ax.legend(handles, labels, loc='best')
 
             ax.set_aspect("equal")
-            #ax.set_aspect("auto")
+            # ax.set_aspect("auto")
             position_sc = ax.scatter([], [], [], color="red", s=10)
             for time_idx in tqdm(range(0, timesteps, int(step))):
                 position_sc._offsets3d = (
