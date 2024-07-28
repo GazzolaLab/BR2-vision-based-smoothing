@@ -87,7 +87,7 @@ class MarkerPositions(DataclassYamlSaveLoadMixin):
             ]
         ).T
 
-    def get_position(self, zidx: int, tag: str) -> np.ndarray:
+    def get_position(self, zidx: int, tag: str, inplane=False) -> np.ndarray:
         """
         Get the absolute position of a marker.
         """
@@ -96,7 +96,10 @@ class MarkerPositions(DataclassYamlSaveLoadMixin):
         marker_position = np.array(self.marker_positions[tag])
         z_position = z_loc * np.array(self.marker_direction)
 
-        return z_position + marker_position - origin
+        if inplane:
+            return marker_position - origin
+        else:
+            return z_position + marker_position - origin
         # return np.array(self.origin) + z_position + vec_marker
 
     @classmethod

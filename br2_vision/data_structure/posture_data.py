@@ -35,6 +35,7 @@ def compute_positions_and_directors(
 
     with TrackingData.load(path) as dataset:
         marker_positions = dataset.marker_positions
+        marker_direction = marker_positions.marker_direction
 
         for z_index in tqdm(range(len(marker_positions)), position=1):
             euler_coords = []
@@ -43,7 +44,7 @@ def compute_positions_and_directors(
                 data = dataset.load_track(z_index, tag)
                 if data is None:
                     continue
-                euler_coords.append(marker_positions.get_position(z_index, tag))
+                euler_coords.append(marker_positions.get_position(z_index, tag, inplane=True))
                 data_collection.append(data)
             euler_coords = np.array(euler_coords)
 
@@ -54,11 +55,26 @@ def compute_positions_and_directors(
                 nan_index = np.isnan(P).any(axis=1)
                 P = P[~nan_index]
                 R = euler_coords[~nan_index]
-                # AR = P
-                A = LinearRegression().fit(R, P)
+                # Find Optimal Rotation Matrix
+                p = P - P.mean(axis=1, keepdims=True)
+                q = R - R.mean(axis=1, keepdims=True)
+                H = p.T @ q
+                u, s, vh = np.linalg.svd(H)
+                d = np.linalg.det(u @ vh)
+                Id = np.eye(3)
+                Id[2, 2] = d
+                Q = u @ Id @ vh
+                if np.arccos(Q[:,2] @ marker_direction) > np.arccos(-Q[:,2] @ marker_direction):
+                    Q = -Q
+                # Find Optimal Translation Matrix
+                r = ((R @ Q) - P).mean(axis=0)
 
-                positions.append(A.predict([marker_positions.origin])[0])
-                directors.append(A.predict(marker_positions.Q.T).T)
+                positions.append(r)
+                directors.append(Q.T)  # Row matrix
+
+                #A = LinearRegression().fit(R, P)
+                #positions.append(A.predict([marker_positions.origin])[0])
+                #directors.append(A.predict(marker_positions.Q.T).T)
             cross_section_center_position.append(np.array(positions))
             cross_section_director.append(np.array(directors))
 
@@ -130,17 +146,18 @@ class PostureData:
         If not, compute them from the trajectory data.
         """
 
-        flag = False
+        flag = True
+        #flag = False
         with h5py.File(self.path, "r") as h5f:
             if self._positions_key in h5f:
                 self._positions = np.array(h5f[self._positions_key], dtype=np.float64)
-            else:
-                flag = True
+            #else:
+            #    flag = True
 
             if self._directors_key in h5f:
                 self._directors = np.array(h5f[self._directors_key], dtype=np.float64)
-            else:
-                flag = True
+            #else:
+            #    flag = True
 
             self._time = np.array(h5f[self._time_key], dtype=np.float64)
 
@@ -167,13 +184,17 @@ class PostureData:
         self._inside_context = False
 
     def debug_plot(self, path):
+        self.render_pose_video(path)
+        self.render_markers_video(path)
+
+    def render_markers_video(self, path):
         # Configuration
-        video_name = os.path.join(path, "interpolated_poses.mp4")
+        video_name = os.path.join(path, "markers_location.mp4")
         dpi = 300
         step = 1
         fps = 60
         color_scheme = plt.rcParams["axes.prop_cycle"].by_key()["color"]
-        quiver_length = 0.120
+        quiver_length = 0.010
 
         positions = self._positions
         directors = self._directors
@@ -191,14 +212,17 @@ class PostureData:
         ax.set_ylabel("y")
         ax.set_zlabel("z")
 
-        # ax.set_xlim((-0.13, 0.13))
-        # ax.set_ylim((0, 0.3))
-        # ax.set_zlim((-0.13, 0.13))
-        ax.set_xlim((positions[:, 0, :].min(), positions[:, 0, :].max()))
-        ax.set_ylim((positions[:, 1, :].min(), positions[:, 1, :].max()))
-        ax.set_zlim((positions[:, 2, :].min(), positions[:, 2, :].max()))
+        #ax.set_xlim((-0.13, 0.13))
+        #ax.set_ylim((-0.05, 0.3))
+        #ax.set_zlim((-0.13, 0.13))
+        xrange = positions[:, 0, :].max() - positions[:, 0, :].min()
+        yrange = positions[:, 1, :].max() - positions[:, 1, :].min()
+        zrange = positions[:, 2, :].max() - positions[:, 2, :].min()
+        ax.set_xlim((positions[:, 0, :].min()-xrange*.5, positions[:, 0, :].max()+xrange*.5))
+        ax.set_ylim((positions[:, 1, :].min()-yrange*.5, positions[:, 1, :].max()+yrange*.5))
+        ax.set_zlim((positions[:, 2, :].min()-zrange*.5, positions[:, 2, :].max()+zrange*.5))
 
-        ax.view_init(elev=-40, azim=-90)
+        #ax.view_init(elev=-40, azim=-90)
 
         # Write Video
         FFMpegWriter = animation.writers["ffmpeg"]
@@ -206,6 +230,7 @@ class PostureData:
         with writer.saving(fig, video_name, dpi):
             time_idx = 0
             quiver_axes = [[] for _ in range(n_visualized_plane)]
+            texts = []
             # _rot = [] # Delete later
             for idx in range(n_visualized_plane):
                position = positions[time_idx,:,idx]
@@ -214,7 +239,15 @@ class PostureData:
                #director = np.matmul(_rot[idx], director) # Delete later
                for i in range(3):
                    quiver_axes[idx].append(ax.quiver(*position, *director[i], color=color_scheme[i])) #idx%10]))
+               texts.append(ax.text(*position, f"plane {idx}"))
             # writer.grab_frame()
+
+            # Create a custom legend
+            handles = [plt.Line2D([0], [0], color=color_scheme[i], lw=4) for i in range(3)]
+            labels = ['n', 'b', 't']
+
+            # Add the legend to the plot
+            ax.legend(handles, labels, loc='best')
 
             ax.set_aspect("equal")
             #ax.set_aspect("auto")
@@ -226,12 +259,96 @@ class PostureData:
                     positions[time_idx, 2, :],
                 )
                 for idx in range(n_visualized_plane):
-                   position = positions[time_idx,:,idx]
-                   director = directors[time_idx,:,:,idx]
-                   #director = np.matmul(_rot[idx], director) # Delete later
-                   director *= quiver_length
-                   for i in range(3):
-                       segs = [[position.tolist(), (position+director[i,:]).tolist()]]
-                       quiver_axes[idx][i].set_segments(segs)
+                    position = positions[time_idx,:,idx]
+                    director = directors[time_idx,:,:,idx]
+                    #director = np.matmul(_rot[idx], director) # Delete later
+                    director *= quiver_length
+                    for i in range(3):
+                        segs = [[position.tolist(), (position+director[i,:]).tolist()]]
+                        quiver_axes[idx][i].set_segments(segs)
+                    texts[idx].set_position(position)
+                writer.grab_frame()
+        plt.close(plt.gcf())
+
+    def render_pose_video(self, path):
+        # Configuration
+        video_name = os.path.join(path, "interpolated_poses.mp4")
+        dpi = 300
+        step = 1
+        fps = 60
+        color_scheme = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+        quiver_length = 0.010
+
+        positions = self._positions
+        directors = self._directors
+        print(f"{positions.shape=}")
+        print(f"{directors.shape=}")
+
+        n_visualized_plane = positions.shape[-1]
+        timesteps = positions.shape[0]
+
+        # Prepare Matplotlib axes
+        fig = plt.figure(1, figsize=(10, 8))
+        ax = plt.axes(projection="3d")
+
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
+        ax.set_zlabel("z")
+
+        #ax.set_xlim((-0.13, 0.13))
+        #ax.set_ylim((-0.05, 0.3))
+        #ax.set_zlim((-0.13, 0.13))
+        xrange = positions[:, 0, :].max() - positions[:, 0, :].min()
+        yrange = positions[:, 1, :].max() - positions[:, 1, :].min()
+        zrange = positions[:, 2, :].max() - positions[:, 2, :].min()
+        ax.set_xlim((positions[:, 0, :].min()-xrange*.5, positions[:, 0, :].max()+xrange*.5))
+        ax.set_ylim((positions[:, 1, :].min()-yrange*.5, positions[:, 1, :].max()+yrange*.5))
+        ax.set_zlim((positions[:, 2, :].min()-zrange*.5, positions[:, 2, :].max()+zrange*.5))
+
+        #ax.view_init(elev=-40, azim=-90)
+
+        # Write Video
+        FFMpegWriter = animation.writers["ffmpeg"]
+        writer = FFMpegWriter(fps=fps)
+        with writer.saving(fig, video_name, dpi):
+            time_idx = 0
+            quiver_axes = [[] for _ in range(n_visualized_plane)]
+            texts = []
+            # _rot = [] # Delete later
+            for idx in range(n_visualized_plane):
+               position = positions[time_idx,:,idx]
+               director = directors[time_idx,:,:,idx]
+               #_rot.append(np.matmul(directors[time_idx,:,:,0], director.T)) # Delete later
+               #director = np.matmul(_rot[idx], director) # Delete later
+               for i in range(3):
+                   quiver_axes[idx].append(ax.quiver(*position, *director[i], color=color_scheme[i])) #idx%10]))
+               texts.append(ax.text(*position, f"plane {idx}"))
+            # writer.grab_frame()
+
+            # Create a custom legend
+            handles = [plt.Line2D([0], [0], color=color_scheme[i], lw=4) for i in range(3)]
+            labels = ['n', 'b', 't']
+
+            # Add the legend to the plot
+            ax.legend(handles, labels, loc='best')
+
+            ax.set_aspect("equal")
+            #ax.set_aspect("auto")
+            position_sc = ax.scatter([], [], [], color="red", s=10)
+            for time_idx in tqdm(range(0, timesteps, int(step))):
+                position_sc._offsets3d = (
+                    positions[time_idx, 0, :],
+                    positions[time_idx, 1, :],
+                    positions[time_idx, 2, :],
+                )
+                for idx in range(n_visualized_plane):
+                    position = positions[time_idx,:,idx]
+                    director = directors[time_idx,:,:,idx]
+                    #director = np.matmul(_rot[idx], director) # Delete later
+                    director *= quiver_length
+                    for i in range(3):
+                        segs = [[position.tolist(), (position+director[i,:]).tolist()]]
+                        quiver_axes[idx][i].set_segments(segs)
+                    texts[idx].set_position(position)
                 writer.grab_frame()
         plt.close(plt.gcf())
