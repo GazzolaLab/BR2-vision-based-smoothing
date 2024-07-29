@@ -8,6 +8,8 @@ import h5py
 import numpy as np
 from nptyping import Floating, NDArray, Shape
 
+import matplotlib.pyplot as plt
+
 from br2_vision.utility.logging import get_script_logger
 
 from .marker_positions import MarkerPositions
@@ -556,3 +558,185 @@ class TrackingData:
                 continue
             ret.append(queue)
         return ret
+
+    def debug_plot(self, path):
+        self.render_xyz(path)
+
+    def render_xyz(self, path):
+        # Configuration
+        video_name = os.path.join(path, "markers.mp4")
+        dpi = 300
+        step = 1
+        fps = 60
+        color_scheme = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+        quiver_length = 0.010
+
+        from scipy.signal import savgol_filter
+        from scipy.signal import butter, filtfilt
+        window_size = 5
+        sg_window_length = 21
+        sg_order = 3
+
+        def piecewise_filtfilt(array):
+            sequences = []
+            current_sequence = []
+
+            order = 3
+            cutoff_freq=0.1
+            b, a = butter(order, cutoff_freq, btype='low')
+
+            for value in array:
+                if np.isnan(value):
+                    if current_sequence:
+                        filtered_array = filtfilt(b,a,current_sequence)
+                        sequences.extend(filtered_array.tolist())
+                        current_sequence = []
+                    sequences.append(np.nan)
+                else:
+                    current_sequence.append(value)
+
+            if current_sequence:  # Append the last sequence if it exists
+                filtered_array = filtfilt(b,a,current_sequence)
+                sequences.extend(filtered_array.tolist())
+            assert len(sequences) == len(array), f"{len(sequences)=}, {len(array)=}"
+            return np.array(sequences)
+
+        def piecewise_sg(array):
+            sequences = []
+            current_sequence = []
+
+            for value in array:
+                if np.isnan(value):
+                    if current_sequence:
+                        if len(current_sequence) < sg_window_length * 1.2:
+                            sequences.extend(current_sequence)
+                        else:
+                            filtered_array = savgol_filter(current_sequence, window_length=sg_window_length, polyorder=sg_order)
+                            sequences.extend(filtered_array.tolist())
+                        current_sequence = []
+                    sequences.append(np.nan)
+                else:
+                    current_sequence.append(value)
+
+            if current_sequence:  # Append the last sequence if it exists
+                filtered_array = savgol_filter(current_sequence, window_length=sg_window_length, polyorder=sg_order)
+                sequences.extend(filtered_array.tolist())
+
+            return np.array(sequences)
+
+
+        n_visualized_plane = len(self.marker_positions)
+        for zid in range(n_visualized_plane):
+            for label in self.marker_positions.tags:
+                txyz = self.load_track(zid, label)
+                if txyz is None:
+                    continue
+                if np.isnan(txyz).all():
+                    continue
+                
+                fig, axes = plt.subplots(3,1,figsize=(10,12), sharex=True)
+                arr = txyz[:, 0]
+                axes[0].plot(arr, label='recorded')
+                moving_avg = np.convolve(arr, np.ones(window_size)/window_size, mode='valid')
+                axes[0].plot(moving_avg, label="ma")
+                axes[0].plot(piecewise_sg(arr), label='sg')
+                axes[0].plot(piecewise_filtfilt(arr), label='filtfilt')
+                axes[0].grid(True)
+                axes[0].set_ylabel('x')
+                axes[0].legend()
+                arr = txyz[:, 1]
+                axes[1].plot(arr, label='recorded')
+                moving_avg = np.convolve(arr, np.ones(window_size)/window_size, mode='valid')
+                axes[1].plot(moving_avg, label="ma")
+                axes[1].plot(piecewise_sg(arr), label='sg')
+                axes[1].plot(piecewise_filtfilt(arr), label='filtfilt')
+                axes[1].grid(True)
+                axes[1].set_ylabel('y')
+                axes[1].legend()
+                arr = txyz[:, 2]
+                axes[2].plot(arr, label='recorded')
+                moving_avg = np.convolve(arr, np.ones(window_size)/window_size, mode='valid')
+                axes[2].plot(moving_avg, label="ma")
+                axes[2].plot(piecewise_sg(arr), label='sg')
+                axes[2].plot(piecewise_filtfilt(arr), label='filtfilt')
+                axes[2].grid(True)
+                axes[2].set_ylabel('z')
+                axes[2].set_xlabel('frame')
+                axes[2].legend()
+                plt.savefig(os.path.join(path, f"marker_z{zid}_{label}.png"), dpi=300)
+                plt.close('all')
+        return
+
+        positions = self._positions
+        directors = self._directors
+        print(f"{positions.shape=}")
+        print(f"{directors.shape=}")
+
+        n_visualized_plane = positions.shape[-1]
+        timesteps = positions.shape[0]
+
+        # Prepare Matplotlib axes
+        fig = plt.figure(1, figsize=(10, 8))
+        ax = plt.axes(projection="3d")
+
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
+        ax.set_zlabel("z")
+
+        #ax.set_xlim((-0.13, 0.13))
+        #ax.set_ylim((-0.05, 0.3))
+        #ax.set_zlim((-0.13, 0.13))
+        xrange = positions[:, 0, :].max() - positions[:, 0, :].min()
+        yrange = positions[:, 1, :].max() - positions[:, 1, :].min()
+        zrange = positions[:, 2, :].max() - positions[:, 2, :].min()
+        ax.set_xlim((positions[:, 0, :].min()-xrange*.5, positions[:, 0, :].max()+xrange*.5))
+        ax.set_ylim((positions[:, 1, :].min()-yrange*.5, positions[:, 1, :].max()+yrange*.5))
+        ax.set_zlim((positions[:, 2, :].min()-zrange*.5, positions[:, 2, :].max()+zrange*.5))
+
+        #ax.view_init(elev=-40, azim=-90)
+
+        # Write Video
+        FFMpegWriter = animation.writers["ffmpeg"]
+        writer = FFMpegWriter(fps=fps)
+        with writer.saving(fig, video_name, dpi):
+            time_idx = 0
+            quiver_axes = [[] for _ in range(n_visualized_plane)]
+            texts = []
+            # _rot = [] # Delete later
+            for idx in range(n_visualized_plane):
+               position = positions[time_idx,:,idx]
+               director = directors[time_idx,:,:,idx]
+               #_rot.append(np.matmul(directors[time_idx,:,:,0], director.T)) # Delete later
+               #director = np.matmul(_rot[idx], director) # Delete later
+               for i in range(3):
+                   quiver_axes[idx].append(ax.quiver(*position, *director[i], color=color_scheme[i])) #idx%10]))
+               texts.append(ax.text(*position, f"plane {idx}"))
+            # writer.grab_frame()
+
+            # Create a custom legend
+            handles = [plt.Line2D([0], [0], color=color_scheme[i], lw=4) for i in range(3)]
+            labels = ['n', 'b', 't']
+
+            # Add the legend to the plot
+            ax.legend(handles, labels, loc='best')
+
+            ax.set_aspect("equal")
+            #ax.set_aspect("auto")
+            position_sc = ax.scatter([], [], [], color="red", s=10)
+            for time_idx in tqdm(range(0, timesteps, int(step))):
+                position_sc._offsets3d = (
+                    positions[time_idx, 0, :],
+                    positions[time_idx, 1, :],
+                    positions[time_idx, 2, :],
+                )
+                for idx in range(n_visualized_plane):
+                    position = positions[time_idx,:,idx]
+                    director = directors[time_idx,:,:,idx]
+                    #director = np.matmul(_rot[idx], director) # Delete later
+                    director *= quiver_length
+                    for i in range(3):
+                        segs = [[position.tolist(), (position+director[i,:]).tolist()]]
+                        quiver_axes[idx][i].set_segments(segs)
+                    texts[idx].set_position(position)
+                writer.grab_frame()
+        plt.close(plt.gcf())

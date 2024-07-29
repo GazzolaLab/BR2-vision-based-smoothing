@@ -197,9 +197,9 @@ def process_dlt(tag, run_id, fps, verbose):
                 mapped_txyz = ops(txyz[~nan_indices])
                 txyz[~nan_indices] = mapped_txyz
             dataset.save_track(txyz, zid, label, prefix="xyz")
+        dataset.debug_plot(save_path)
 
     with PostureData(path=tracing_data_path) as dataset:
-        save_path = config["PATHS"]["results_dir"].format(tag, run_id)
         dataset.debug_plot(save_path)
 
     # Debugging plots
