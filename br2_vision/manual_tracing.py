@@ -92,7 +92,7 @@ class ManualTracing:
             return
 
         # Run inquiry
-        data = self.trace(start_frame, end_frame)
+        data, status = self.trace(start_frame, end_frame)
         if data is None:
             # Halting
             return False
@@ -102,13 +102,12 @@ class ManualTracing:
         if len(indices) < 2:
             raise ValueError("More point needs to be selected")
         for si, ei in zip(indices[:-1], indices[1:]):
-            data[si:ei] = np.linspace(data[si], data[ei], ei-si)
-        #points = data[indices, :]
-        #spline = CubicSpline(indices, points)
-        #data = spline(np.arange(end_frame - start_frame))
+            data[si:ei] = np.linspace(data[si], data[ei], ei - si)
 
         # Save
         q = self.flow_queue
+        if "truncated" in status:
+            q.end_frame = status["truncated"]
         self.dataset.save_pixel_flow_trajectory(data, q, self.num_frames)
         q.done = True
 
@@ -205,9 +204,12 @@ class ManualTracing:
             "q: -5 frames, w: -1 frame, e: +1 frame, r: +5 frames, x: exit (without save)"
         )
         print("^: first frame, $: last frame")
+        print("D: finish tracing with the current frame.")
+        print("o: optical flow")
         print("z: delete last trace point")
         prev_frame = -1
         force_refresh = False
+        status = {}
         while current_frame_idx[0] < data_length:
             # Only redraw when the frame is changed
             if prev_frame != current_frame_idx[0] or force_refresh:
@@ -235,9 +237,22 @@ class ManualTracing:
                 current_frame_idx[0] = 0
             elif key == ord("$"):
                 current_frame_idx[0] = data_length - 1
+            elif key == ord("D"):
+                status["truncated"] = current_frame_idx[0] + 1
+                data_collection = data_collection[: current_frame_idx[0] + 1]
+                break
             elif key == ord("x"):
                 data_collection = None
                 break
+            elif key == ord("o"):
+                if data_collection[current_frame_idx[0], 0] == -1:
+                    print("No point is selected as the starting point.")
+                    continue
+                self.inplace_optical_flow(
+                    frames[current_frame_idx[0] :],
+                    data_collection[current_frame_idx[0] :],
+                )
+                data_collection[current_frame_idx[0] :] = optical_flow_data
             elif key == ord("z"):
                 where = np.where(data_collection[:, 0] != -1)[0]
                 if len(where) > 0:
@@ -245,4 +260,60 @@ class ManualTracing:
                 force_refresh = True
 
         cv2.destroyAllWindows()
-        return data_collection
+        return data_collection, status
+
+    def inplace_optical_flow(
+        self, frames, data_collection, inquiry, stime, etime, debug=False
+    ):  # pragma: no cover
+        _lk_params = dict(
+            winSize=(15, 15),
+            maxLevel=3,
+            criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 35, 0.0001),
+            flags=cv2.OPTFLOW_LK_GET_MIN_EIGENVALS,
+            minEigThreshold=0.000,
+        )
+
+        # initialize data_collection: -1
+        data_length = frames.size
+        data_collection[1:] = -1
+
+        old_gray = flat_color(frames[0])
+
+        # Set initial points
+        for idx, qi in enumerate(inquiry):
+            point = self.flow_queues[qi].point  # (x, y)
+            data_collection[idx, 0, :] = point
+        p0 = data_collection[0, :].reshape(-1, 1, 2).astype(np.float32)
+
+        errors = []
+        status = None
+        for num_frame in tqdm(range(data_length - 1)):
+            frame = frames[num_frame + 1]
+            frame_gray = flat_color(frame)
+
+            # Preprocess (sharpen)
+            # sharpen_kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
+            # frame_gray = cv2.filter2D(frame_gray, -1, sharpen_kernel)
+
+            # Calculate optical flow
+            p1, new_status, err = cv2.calcOpticalFlowPyrLK(
+                old_gray, frame_gray, p0, None, **_lk_params
+            )  # p1: (n, 1, 2), new_status: (n, 1), err: (n, 1)
+            if status is None:
+                status = new_status[:, 0].astype(np.bool_)
+            else:
+                status = np.logical_and(status, new_status[:, 0])
+            if np.all(~status):
+                # If all points are lost, stop the flow
+                break
+
+            # Record
+            err[~status] = np.nan
+            errors.append(err)
+            data_collection[num_frame + 1, :] = p1[status, 0, :].astype(np.int_)
+
+            # Update the previous frame and previous points
+            old_gray = frame_gray.copy()
+            p0 = p1.reshape(-1, 1, 2)
+
+        return errors
