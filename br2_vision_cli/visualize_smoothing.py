@@ -6,6 +6,7 @@ Created on Aug. 10, 2021
 import os
 import pickle
 import sys
+import tempfile
 from pathlib import Path
 from types import SimpleNamespace as EmptyClass
 
@@ -98,72 +99,81 @@ def create_movie(raw_data, file_path, delta_s_position, save_path):
 
     orientation = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]])
 
-    frame = Frame(
-        figure_name="frame{:04d}.png",
-        folder_name="frames",
-        fig_dict=dict(figsize=(18, 9)),
-        gs_dict=dict(
-            nrows=3, ncols=6, width_ratios=[1, 1, 1, 1, 1, 1], height_ratios=[1, 1, 1]
-        ),
-        rod_color="black",
-        ax3d_flag=True,
-    )
-
-    rest_lengths = np.linalg.norm(position[0][:, 1:] - position[0][:, :-1], axis=0)
-    frame.set_ref_configuration(
-        position=rotate_frame(orientation, position=position[0]),
-        shear=shear[0],
-        kappa=kappa[0],
-        reference_length=rest_lengths,
-    )
-
-    print("Plotting frames ...")
-    for k in tqdm(range(len(time))):
-        frame.reset()
-        rod_ax = frame.plot_rod(
-            position=rotate_frame(orientation, position=position[k]),
-            director=rotate_frame(orientation, director=director[k]),
-            radius=radius[k],
-            color="black",
+    # Create temporary directory
+    with tempfile.TemporaryDirectory() as folder_name:
+        frame = Frame(
+            figure_name="frame{:04d}.png",
+            folder_name=folder_name,
+            fig_dict=dict(figsize=(18, 9)),
+            gs_dict=dict(
+                nrows=3,
+                ncols=6,
+                width_ratios=[1, 1, 1, 1, 1, 1],
+                height_ratios=[1, 1, 1],
+            ),
+            rod_color="black",
+            ax3d_flag=True,
         )
-        rod_ax.view_init(elev=10.0, azim=60)
 
-        axes_shear, axes_curvature = frame.plot_strains(shear=shear[k], kappa=kappa[k])
+        rest_lengths = np.linalg.norm(position[0][:, 1:] - position[0][:, :-1], axis=0)
+        frame.set_ref_configuration(
+            position=rotate_frame(orientation, position=position[0]),
+            shear=shear[0],
+            kappa=kappa[0],
+            reference_length=rest_lengths,
+        )
 
-        if k != 0:
-            frame.plot_data(
-                position=rotate_frame(
-                    orientation, position=data.position[data_index[k]]
-                ),
-                director=rotate_frame(
-                    orientation, director=data.director[data_index[k]]
-                ),
+        print("Plotting frames ...")
+        for k in tqdm(range(len(time))):
+            frame.reset()
+            rod_ax = frame.plot_rod(
+                position=rotate_frame(orientation, position=position[k]),
+                director=rotate_frame(orientation, director=director[k]),
+                radius=radius[k],
+                color="black",
+            )
+            rod_ax.view_init(elev=10.0, azim=60)
+
+            axes_shear, axes_curvature = frame.plot_strains(
+                shear=shear[k], kappa=kappa[k]
             )
 
-        position_for_director = (position[k][:, 1:] + position[k][:, :-1]) / 2
+            if k != 0:
+                frame.plot_data(
+                    position=rotate_frame(
+                        orientation, position=data.position[data_index[k]]
+                    ),
+                    director=rotate_frame(
+                        orientation, director=data.director[data_index[k]]
+                    ),
+                )
 
-        frame.plot_data(
-            position=rotate_frame(orientation, position=position_for_director[:, ::-5]),
-            director=rotate_frame(orientation, director=director[k][:, :, ::-5]),
-            color="black",
-        )
+            position_for_director = (position[k][:, 1:] + position[k][:, :-1]) / 2
 
-        frame.set_ax_rod_lim(
-            z_lim=[-1.1, 0.1], x_lim=[-0.55, 0.55], y_lim=[-0.55, 0.55]
-        )
-        frame.set_ax_strains_lim(
-            axes_shear_lim=[[-1.1, 1.1], [-1.1, 1.1], [-0.1, 2.1]],
-            axes_curvature_lim=[
-                [-66, 66],
-                [-66, 66],
-                [-66, 66],
-            ],
-        )
+            frame.plot_data(
+                position=rotate_frame(
+                    orientation, position=position_for_director[:, ::-5]
+                ),
+                director=rotate_frame(orientation, director=director[k][:, :, ::-5]),
+                color="black",
+            )
 
-        frame.set_labels(time[k])
-        frame.save()
+            frame.set_ax_rod_lim(
+                z_lim=[-1.1, 0.1], x_lim=[-0.55, 0.55], y_lim=[-0.55, 0.55]
+            )
+            frame.set_ax_strains_lim(
+                axes_shear_lim=[[-1.1, 1.1], [-1.1, 1.1], [-0.1, 2.1]],
+                axes_curvature_lim=[
+                    [-66, 66],
+                    [-66, 66],
+                    [-66, 66],
+                ],
+            )
 
-    frame.movie(frame_rate=30, movie_name=save_path)
+            frame.set_labels(time[k])
+            frame.save()
+
+        frame.movie(frame_rate=30, movie_name=save_path)
 
 
 @click.command()
@@ -178,7 +188,7 @@ def create_movie(raw_data, file_path, delta_s_position, save_path):
 def main(tag, run_id, verbose):
     config = br2_vision.load_config()
     config_logging(verbose)
-    
+
     result_path = config["PATHS"]["results_dir"].format(tag, run_id)
     assert os.path.exists(result_path), "Run run_smoothing first"
     file_path = os.path.join(result_path, "smoothing.pkl")
