@@ -40,6 +40,7 @@ def mouse_click_event(event, x, y, flags, param):
             param["frames"][current_frame_idx].copy(),
             data,
             param["window_name"],
+            current_frame_idx,
         )
 
 
@@ -100,21 +101,21 @@ class ManualTracing:
         # Interpolation
         indices = np.where(data[:, 0] != -1)[0]
         if len(indices) < 2:
-            raise ValueError("More point needs to be selected")
+            print("Bypassed: More point needs to be selected")
         for si, ei in zip(indices[:-1], indices[1:]):
             data[si:ei] = np.linspace(data[si], data[ei], ei - si)
 
         # Save
         q = self.flow_queue
-        if "truncated" in status:
-            q.end_frame = status["truncated"]
+        #if "truncated" in status:
+        #    q.end_frame = status["truncated"]
         self.dataset.save_pixel_flow_trajectory(data, q, self.num_frames)
         q.done = True
 
         return True
 
     def draw_points(
-        self, frame, points, radius=2, color=(0, 235, 0), thickness=-1
+        self, frame, points, radius=1, color=(0, 235, 0), thickness=-1
     ):  # pragma: no cover
         # draw the points (overlay)
         for i, point in enumerate(points):
@@ -124,12 +125,16 @@ class ManualTracing:
 
     def draw_track(self, frame, p0, p1, color=(0, 235, 0)):  # pragma: no cover
         # draw the tracks (overlay)
+        overlay = frame.copy()
         for i, (new, old) in enumerate(zip(p1, p0)):
             a, b = new.ravel()
             a, b = int(a), int(b)
             c, d = old.ravel()
             c, d = int(c), int(d)
-            frame[:] = cv2.line(frame, (a, b), (c, d), color, 2)
+            
+            overlay[:] = cv2.line(overlay, (a, b), (c, d), color, 2)
+        alpha = 0.5
+        frame[:] = cv2.addWeighted(overlay, alpha, frame, 1-alpha, 0)
 
     def stack_frames(self, start_frame: int, end_frame: int):
         cap = cv2.VideoCapture(self.video_path)
@@ -159,6 +164,7 @@ class ManualTracing:
         frame: NDArray,
         data_collection: NDArray,
         name: str,
+        current_frame_index,
     ):
         indices = np.where(data_collection[:, 0] != -1)[0]
         num_points = len(indices)
@@ -169,6 +175,8 @@ class ManualTracing:
         else:
             points = data_collection[indices, :]
             self.draw_points(frame, points)
+            if data_collection[current_frame_index][0] != -1:
+                self.draw_points(frame, [data_collection[current_frame_index]], color=(255,0,0), radius=2)
             self.draw_track(frame, points[:-1], points[1:])
 
         cv2.imshow(name, frame)
@@ -186,8 +194,10 @@ class ManualTracing:
         point = self.flow_queue.point
         data_collection[0, :] = point
 
-        window_name = "Tracing"
+        window_name = f"Tracing {self.flow_queue.get_tag()}"
         cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+        cv2.setWindowProperty(window_name, cv2.WND_PROP_AUTOSIZE, cv2.WINDOW_FULLSCREEN)
+        cv2.moveWindow(window_name, 5,5)
         cv2.setMouseCallback(
             window_name,
             mouse_click_event,
@@ -204,13 +214,18 @@ class ManualTracing:
             "q: -5 frames, w: -1 frame, e: +1 frame, r: +5 frames, x: exit (without save)"
         )
         print("^: first frame, $: last frame")
-        print("D: finish tracing with the current frame.")
-        print("o: optical flow")
+        print("d: finish tracing with the current frame.")
+        print("f: remove tracing before this point")
+        print("o: optical flow, p: reverse flow")
+        print("b: refresh window")
+        print("n: not exist (still remove queue)")
+        print("s: save")
         print("z: delete last trace point")
         prev_frame = -1
         force_refresh = False
         status = {}
-        while current_frame_idx[0] < data_length:
+        #while current_frame_idx[0] < data_length:
+        while True:
             # Only redraw when the frame is changed
             if prev_frame != current_frame_idx[0] or force_refresh:
                 prev_frame = current_frame_idx[0]
@@ -218,29 +233,36 @@ class ManualTracing:
                     frames[current_frame_idx[0]].copy(),
                     data_collection,
                     window_name,
+                    current_frame_idx[0]
                 )
-                print(
-                    f"(frame {current_frame_idx[0]+start_frame}){current_frame_idx[0]}/{data_length}"
-                )
+                # print(
+                #     f"(frame {current_frame_idx[0]+start_frame}){current_frame_idx[0]}/{data_length}"
+                # )
                 force_refresh = False
 
             key = cv2.waitKey(1) & 0xFF
-            if key == ord("q"):
+            if key == ord("s"):
+                break
+            elif key == ord("q"):
                 current_frame_idx[0] = max(0, current_frame_idx[0] - 5)
             elif key == ord("w"):
                 current_frame_idx[0] = max(0, current_frame_idx[0] - 1)
             elif key == ord("e"):
-                current_frame_idx[0] = current_frame_idx[0] + 1
+                current_frame_idx[0] = min(current_frame_idx[0] + 1, data_length - 1)
             elif key == ord("r"):
-                current_frame_idx[0] = current_frame_idx[0] + 5
+                current_frame_idx[0] = min(current_frame_idx[0] + 5, data_length - 1)
             elif key == ord("^"):
                 current_frame_idx[0] = 0
             elif key == ord("$"):
                 current_frame_idx[0] = data_length - 1
-            elif key == ord("D"):
+            elif key == ord("d"):
                 status["truncated"] = current_frame_idx[0] + 1
-                data_collection = data_collection[: current_frame_idx[0] + 1]
-                break
+                data_collection[current_frame_idx[0] + 1:] = -1
+                force_refresh = True
+            elif key == ord("f"):
+                status["truncated"] = current_frame_idx[0] + 1
+                data_collection[:current_frame_idx[0]] = -1
+                force_refresh = True
             elif key == ord("x"):
                 data_collection = None
                 break
@@ -252,18 +274,63 @@ class ManualTracing:
                     frames[current_frame_idx[0] :],
                     data_collection[current_frame_idx[0] :],
                 )
-                data_collection[current_frame_idx[0] :] = optical_flow_data
+                force_refresh = True
+            elif key == ord("p"):
+                if data_collection[current_frame_idx[0], 0] == -1:
+                    print("No point is selected as the starting point.")
+                    continue
+                self.inplace_optical_flow(
+                    frames[:current_frame_idx[0]+1][::-1],
+                    data_collection[:current_frame_idx[0]+1][::-1],
+                )
+                force_refresh = True
             elif key == ord("z"):
                 where = np.where(data_collection[:, 0] != -1)[0]
                 if len(where) > 0:
                     data_collection[:, where[-1]] = -1
                 force_refresh = True
+            elif key == ord("b"):
+                # Reset window
+                cv2.destroyAllWindows()
+                window_name = f"Tracing {self.flow_queue.get_tag()}"
+                cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+                cv2.setWindowProperty(window_name, cv2.WND_PROP_AUTOSIZE, cv2.WINDOW_FULLSCREEN)
+                cv2.moveWindow(window_name, 5,5)
+                cv2.setMouseCallback(
+                    window_name,
+                    mouse_click_event,
+                    param={
+                        "data": data_collection,
+                        "current_frame_idx": current_frame_idx,
+                        "frames": frames,
+                        "window_name": window_name,
+                        "func_display": self.display,
+                    },
+                )
+                force_refresh = True
+            elif key == ord("n"):
+                # Not exist
+                data_collection[:] = -1
+                break
+            elif key in [81, 82, 83, 84] or key in [ord('h'), ord('j'), ord('k'), ord('l')]:
+                # arrow key
+                if data_collection[current_frame_idx[0], 0] != -1:
+                    if key == 81 or key == ord('h'): # left
+                        data_collection[current_frame_idx[0], 0] -= 1
+                    elif key == 82 or key == ord('k'): # up
+                        data_collection[current_frame_idx[0], 1] -= 1
+                    elif key == 83 or key == ord('l'): # right
+                        data_collection[current_frame_idx[0], 0] += 1
+                    elif key == 84 or key == ord('j'): # down
+                        data_collection[current_frame_idx[0], 1] += 1
+                force_refresh = True
+
 
         cv2.destroyAllWindows()
         return data_collection, status
 
     def inplace_optical_flow(
-        self, frames, data_collection, inquiry, stime, etime, debug=False
+        self, frames, data_collection, 
     ):  # pragma: no cover
         _lk_params = dict(
             winSize=(15, 15),
@@ -274,15 +341,12 @@ class ManualTracing:
         )
 
         # initialize data_collection: -1
-        data_length = frames.size
+        data_length = frames.shape[0]
         data_collection[1:] = -1
 
         old_gray = flat_color(frames[0])
 
         # Set initial points
-        for idx, qi in enumerate(inquiry):
-            point = self.flow_queues[qi].point  # (x, y)
-            data_collection[idx, 0, :] = point
         p0 = data_collection[0, :].reshape(-1, 1, 2).astype(np.float32)
 
         errors = []
