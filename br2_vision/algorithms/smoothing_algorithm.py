@@ -3,32 +3,17 @@ Created on Apr. 27, 2021
 @author: Heng-Sheng (Hanson) Chang
 """
 
-import os
-import pickle
-import sys
-from collections import defaultdict
-
-import matplotlib.colors as mcolors
-import matplotlib.pyplot as plt
 import numpy as np
-from elastica._calculus import quadrature_kernel
-from elastica._linalg import _batch_cross, _batch_matrix_transpose, _batch_matvec
+from elastica._linalg import _batch_cross
 from elastica._rotations import _inv_rotate, _rotate
-from elastica.external_forces import inplace_addition
-from matplotlib import gridspec
 from numba import njit
-from tqdm import tqdm
 
 from .algorithm import Algorithm
-from .rod_tools import _lab_to_material  # _trapezoidal,
+from .rod_tools import _lab_to_material
 from .rod_tools import (
     _batch_cross,
     _material_to_lab,
-    average2D,
-    calculate_dilatation,
     forward_path,
-    kappa_to_curvature,
-    sigma_to_shear,
 )
 
 
@@ -298,7 +283,7 @@ class ForwardBackwardSmooth(Algorithm):
         )
         self.update_strain_and_forward_path()
 
-    def run(self, iter_number=1_000_000, threshold=1e-5):
+    def run(self, iter_number=1_000_000, threshold=1e-5, cost_threshold=1e6):
         # print("Running forward-backward algorithm to smooth the data")
         cost = []
         prev_cost = 0
@@ -306,7 +291,7 @@ class ForwardBackwardSmooth(Algorithm):
             self.update()
             cost.append(self.calculate_cost())
             delta = np.abs((prev_cost - cost[k]) / cost[k])
-            if threshold is not None and delta < threshold:
+            if threshold is not None and delta < threshold and cost[k] < cost_threshold:
                 break
             prev_cost = cost[k]
         return cost

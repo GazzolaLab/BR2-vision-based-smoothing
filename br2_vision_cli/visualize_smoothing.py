@@ -5,44 +5,20 @@ Created on Aug. 10, 2021
 
 import os
 import pickle
-import sys
 import tempfile
-from pathlib import Path
 from types import SimpleNamespace as EmptyClass
 
 import click
-import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
 
 import br2_vision
-from br2_vision.algorithms.frame_tools import rod_color
 from br2_vision.algorithms.frames.frame_data import DirectorFrame
 from br2_vision.algorithms.frames.frame_rod import RodFrame
 from br2_vision.data_structure.marker_positions import MarkerPositions
 from br2_vision.data_structure.posture_data import PostureData
 from br2_vision.utility.logging import config_logging
-from br2_vision_cli.run_smoothing import RequiredRawData, create_data_object
-
-# def include_parent_folders(parent_folders):
-#     for parent_folder in parent_folders:
-#         path = os.path.abspath(__file__)
-#         for directory in path.split("/")[::-1]:
-#             if directory == parent_folder:
-#                 break
-#             path = os.path.dirname(path)
-#         sys.path.append(path)
-
-
-# include_parent_folders(
-#     parent_folders=[
-#         "elastica-python",
-#         "Smoothing",
-#     ]
-# )
-
-# from br2_vision.data_structure.smoothing import create_data_object, read_data_from_file
-
+from br2_vision_cli.run_smoothing import create_data_object
 
 def rotate_frame(orientation, position=None, director=None):
     if position is not None:
@@ -85,7 +61,6 @@ class Frame(RodFrame, DirectorFrame):
 def create_movie(raw_data, file_path, delta_s_position, save_path):
     with open(file_path, "rb") as f:
         smoothed_data = pickle.load(f)
-        # datafile_name = smoothed_data["datafile_name"]
         time = smoothed_data["time"]
         data_index = smoothed_data["data_index"]
         radius = smoothed_data["radius"]
@@ -94,7 +69,6 @@ def create_movie(raw_data, file_path, delta_s_position, save_path):
         shear = smoothed_data["shear"]
         kappa = smoothed_data["kappa"]
 
-    # raw_data = read_data_from_file(datafile_name)
     data, L0 = create_data_object(raw_data, delta_s_position)
 
     orientation = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]])
@@ -173,7 +147,7 @@ def create_movie(raw_data, file_path, delta_s_position, save_path):
             frame.set_labels(time[k])
             frame.save()
 
-        frame.movie(frame_rate=30, movie_name=save_path)
+        frame.movie(frame_rate=60, movie_name=save_path)
 
 
 @click.command()
@@ -193,20 +167,6 @@ def main(tag, run_id, verbose):
     assert os.path.exists(result_path), "Run run_smoothing first"
     file_path = os.path.join(result_path, "smoothing.pkl")
     save_path = os.path.join(result_path, "smoothing.mov")
-    # if problem == "bend":
-    #     file_name = "bend"
-    #     delta_s_position = np.array([23.9, 35.17, 33.82, 34.55, 32.8])
-    # if problem == "twist":
-    #     file_name = "bend"
-    #     delta_s_position = np.array([23.9, 35.17, 33.82, 34.55, 32.8])
-    # if problem == "mix":
-    #     file_name = "mix"
-    #     delta_s_position = np.array([23.9, 35.17, 33.82, 34.55, 32.8])
-    # if problem == "cable":
-    #     file_name = "cable"
-    #     delta_s_position = np.array(
-    #         [27.5, 33.5, 28, 34, 30, 31, 36.5, 31.5, 32, 34.5, 30, 31]
-    #     )
 
     marker_positions = MarkerPositions.from_yaml(config["PATHS"]["marker_positions"])
     delta_s_position = np.array(marker_positions.marker_center_offset)
@@ -225,18 +185,3 @@ def main(tag, run_id, verbose):
         raw_data.cross_section_director = dataset.get_cross_section_director()
 
     create_movie(raw_data, file_path, delta_s_position, save_path)
-
-
-# if __name__ == "__main__":
-#     import argparse
-
-#     parser = argparse.ArgumentParser(description="Require problem keyword")
-#     parser.add_argument(
-#         "problem",
-#         metavar="subproblem number",
-#         type=str,
-#         nargs=1,
-#         help="problem keywork: bend, twist, mix",
-#     )
-#     args = parser.parse_args()
-#     main(args.problem[0])
