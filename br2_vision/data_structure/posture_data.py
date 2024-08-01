@@ -147,26 +147,30 @@ class PostureData:
         If not, compute them from the trajectory data.
         """
 
-        flag = True
-        #flag = False
+        flag = False
         with h5py.File(self.path, "r") as h5f:
             if self._positions_key in h5f:
                 self._positions = np.array(h5f[self._positions_key], dtype=np.float64)
-            #else:
-            #    flag = True
+            else:
+                flag = True
 
             if self._directors_key in h5f:
                 self._directors = np.array(h5f[self._directors_key], dtype=np.float64)
-            #else:
-            #    flag = True
+            else:
+                flag = True
 
             self._time = np.array(h5f[self._time_key], dtype=np.float64)
 
         if flag:
             self.logger.info("Computing positions and directors...")
-            self._positions, self._directors = compute_positions_and_directors(
-                self.path
-            )
+            self.compute_posture()
+            self.logger.info("Computing positions and directors Done.")
+
+    @raise_if_outside_context
+    def compute_posture(self):
+        self._positions, self._directors = compute_positions_and_directors(
+            self.path
+        )
 
     def __enter__(self):
         """
@@ -199,20 +203,31 @@ class PostureData:
 
         # Position
         fig, axes = plt.subplots(3,1,figsize=(10,12), sharex=True)
-        axes[0].plot(positions[:,0,:])
+        axes[0].plot(positions[:,0,:], '.')
         axes[0].legend([str(i) for i in range(n_plane)])
         axes[0].grid(True)
         axes[0].set_ylabel('x')
-        axes[1].plot(positions[:,1,:])
+        axes[1].plot(positions[:,1,:], '.')
         axes[1].legend([str(i) for i in range(n_plane)])
         axes[1].grid(True)
         axes[1].set_ylabel('y')
-        axes[2].plot(positions[:,2,:])
+        axes[2].plot(positions[:,2,:], '.')
         axes[2].legend([str(i) for i in range(n_plane)])
         axes[2].grid(True)
         axes[2].set_ylabel('z')
         axes[2].set_xlabel('frame')
         plt.savefig(os.path.join(path, "xyz.png"), dpi=dpi)
+        plt.close('all')
+
+        # Directors
+        fig, axes = plt.subplots(3,3,figsize=(10,12), sharex=True, sharey=True)
+        for i in range(3):
+            for j in range(3):
+                axes[i,j].plot
+                axes[i,j].plot(directors[:,i,j,:], '.')
+                axes[i,j].legend([str(i) for i in range(n_plane)])
+                axes[i,j].grid(True)
+        plt.savefig(os.path.join(path, "Q.png"), dpi=dpi)
         plt.close('all')
 
     def render_pose_video(self, path):
@@ -267,7 +282,7 @@ class PostureData:
                #director = np.matmul(_rot[idx], director) # Delete later
                for i in range(3):
                    quiver_axes[idx].append(ax.quiver(*position, *director[i], color=color_scheme[i])) #idx%10]))
-               texts.append(ax.text(*position, f"plane {idx}"))
+               texts.append(ax.text2D(0, 0, f"plane {idx}"))
             # writer.grab_frame()
 
             # Create a custom legend
@@ -294,6 +309,9 @@ class PostureData:
                     for i in range(3):
                         segs = [[position.tolist(), (position+director[i,:]).tolist()]]
                         quiver_axes[idx][i].set_segments(segs)
-                    texts[idx].set_position(position)
+                    _x, _y, _ = proj3d.proj_transform(*position, ax.get_proj())
+                    texts[idx].set_position((_x, _y))
                 writer.grab_frame()
         plt.close(plt.gcf())
+
+
