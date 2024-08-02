@@ -138,8 +138,8 @@ def create_movie(raw_data, file_path, delta_s_position, save_path):
             frame.set_ax_strains_lim(
                 axes_shear_lim=[[-1.1, 1.1], [-1.1, 1.1], [-0.1, 2.1]],
                 axes_curvature_lim=[
-                    [-66, 66],
-                    [-66, 66],
+                    [-11, 11],
+                    [-11, 11],
                     [-66, 66],
                 ],
             )
