@@ -6,7 +6,6 @@ Created on Aug. 01, 2021
 
 import os
 import pickle
-import sys
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -14,12 +13,8 @@ from types import SimpleNamespace as EmptyClass
 from typing import Protocol
 
 import click
-import matplotlib.pyplot as plt
 import numpy as np
 from elastica.rod.cosserat_rod import CosseratRod
-from matplotlib import gridspec
-from mpl_toolkits.mplot3d import Axes3D
-from tqdm import tqdm
 
 import br2_vision
 from br2_vision.algorithms.smoothing_algorithm import ForwardBackwardSmooth
@@ -63,6 +58,21 @@ def create_data_object(
     # delta_s_position = np.array([12.0, 92.0, 89.0, 91.0])
     # delta_s_position = np.array([12, 63, 61, 57.5, 60, 58])
 
+    # if problem == "bend":
+    #     file_name = "bend"
+    #     delta_s_position = np.array([23.9, 35.17, 33.82, 34.55, 32.8])
+    # if problem == "twist":
+    #     file_name = "bend"
+    #     delta_s_position = np.array([23.9, 35.17, 33.82, 34.55, 32.8])
+    # if problem == "mix":
+    #     file_name = "mix"
+    #     delta_s_position = np.array([23.9, 35.17, 33.82, 34.55, 32.8])
+    # if problem == "cable":
+    #     file_name = "cable"
+    #     delta_s_position = np.array(
+    #         [27.5, 33.5, 28, 34, 30, 31, 36.5, 31.5, 32, 34.5, 30, 31]
+    #     )
+
     data.s_position = np.cumsum(delta_s_position)
     L0 = data.s_position[-1]
     data.s_position /= data.s_position[-1]
@@ -70,47 +80,59 @@ def create_data_object(
     return data, L0
 
 
-def create_BR2(n=500, L0=0.16, radius=0.0075, youngs_modulus=1e7):
-    damp_coefficient = 0.03
-
+def create_BR2(
+    n=500, 
+    L0=0.16, 
+    radius=0.0075, 
+    direction=np.array([0.0, 1.0, 0.0]),
+    normal=np.array([1.0, 0.0, 0.0]),
+    youngs_modulus=1e7,
+):
     radii = radius * np.ones(n + 1)
     radii_mean = (radii[:-1] + radii[1:]) / 2
     rod = CosseratRod.straight_rod(
         n_elements=n,
         start=np.zeros((3,)),
-        direction=np.array([0.0, 1.0, 0.0]),
-        normal=np.array([1.0, 0.0, 0.0]),
-        # normal=np.array([0.0, 0.0, 1.0]),
+        direction=direction,
+        normal=normal,
         base_length=L0,
         base_radius=radii_mean.copy(),
         density=700,
         youngs_modulus=youngs_modulus,
-        # nu=damp_coefficient * ((radii_mean / radius) ** 2),
-        # poisson_ratio=0.5,
-        # nu_for_torques=damp_coefficient * ((radii_mean / radius) ** 4),
     )
     return rod
 
 
 def process_data(
     raw_data: RequiredRawData,
-    delta_s_position: np.typing.NDArray[np.float64],
+    markers: MarkerPositions,
     save_path: Path,
     h5_path: Path,
 ):
-    data, L0 = create_data_object(raw_data, delta_s_position)
+
+    data, L0 = create_data_object(
+        raw_data=raw_data, 
+        delta_s_position=np.array(markers.marker_center_offset)
+    )
 
     # define rod
     n_elem = 100
     radius = 0.0075 * 2.742
-    rod = create_BR2(n=n_elem, L0=L0, radius=radius)
+    rod = create_BR2(
+        n=n_elem, 
+        L0=L0, 
+        radius=radius,
+        direction=np.array(markers.marker_direction),
+        normal=np.array(markers.normal_direction),
+    )
 
     # define smoothing algorithm
     algo_config = EmptyClass()
     algo_config.argument_weight = 1
     algo_config.step_size = 1e-6
-    algo_config.data_deviation_weight_cost_position = 1_000_000
-    algo_config.data_deviation_weight_cost_director = 1_000_000
+    algo_config.data_deviation_weight_cost = 1_000_000
+    algo_config.data_deviation_weight_cost_position = algo_config.data_deviation_weight_cost
+    algo_config.data_deviation_weight_cost_director = algo_config.data_deviation_weight_cost
 
     # run smoothing algorithm
     algo = ForwardBackwardSmooth(rod, algo_config, data)
@@ -130,10 +152,15 @@ def process_data(
 
         # Run
         stime = time.time()
-        cost = algo.run(iter_number=100_000, threshold=5e-5)
+        cost = algo.run(
+            iter_number=100_000, 
+            threshold=1e-5,
+            cost_threshold=algo_config.data_deviation_weight_cost*10,
+        )
         runtime = time.time() - stime
 
         # Report delta
+        last_cost = cost[-1]/algo_config.data_deviation_weight_cost
         delta_cost = np.abs((cost[-1] - cost[-2]) / cost[-2])
         delta_position = (
             np.abs(smoothed_data["position"][-1] - algo.position).max() * 1000
@@ -143,7 +170,7 @@ def process_data(
         delta_kappa = np.abs(smoothed_data["kappa"][-1] - algo.kappa).max()
         num_iter = len(cost)
         print(
-            f"time={k} : {runtime=:0.2e} sec, {delta_cost=:0.2e}, {delta_position=:0.2f} mm, {delta_director=:0.2e}, {delta_shear=:0.2e}, {delta_kappa=:0.2e}, {num_iter=}"
+            f"time step {k=} ({data.time[k]=:0.2e}) : {runtime=:0.2e} sec, {last_cost=:0.2e}, {delta_cost=:0.2e}, {delta_position=:0.2f} mm, {delta_director=:0.2e}, {delta_shear=:0.2e}, {delta_kappa=:0.2e}, {num_iter=}"
         )
 
         # Save
@@ -199,8 +226,7 @@ def main(tag, run_id, verbose):
     save_path = config["PATHS"]["results_dir"].format(tag, run_id)
     os.makedirs(save_path, exist_ok=True)
 
-    marker_positions = MarkerPositions.from_yaml(config["PATHS"]["marker_positions"])
-    delta_s_position = np.array(marker_positions.marker_center_offset)
+    markers = MarkerPositions.from_yaml(config["PATHS"]["marker_positions"])
 
     # Create raw data
     raw_data = EmptyClass()
@@ -217,7 +243,7 @@ def main(tag, run_id, verbose):
 
     process_data(
         raw_data,
-        delta_s_position,
+        markers,
         os.path.join(save_path, "smoothing.pkl"),
         h5_path=tracing_data_path,
     )
