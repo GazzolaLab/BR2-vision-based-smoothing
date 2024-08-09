@@ -21,7 +21,7 @@ class SmoothingData:
     def __new__(cls, path):
         with cls._lock:
             if cls._instance is None:
-                cls._instance = super(HDF5Singleton, cls).__new__(cls)
+                cls._instance = super(SmoothingData, cls).__new__(cls)
                 cls._instance._initialized = False
         return cls._instance
 
