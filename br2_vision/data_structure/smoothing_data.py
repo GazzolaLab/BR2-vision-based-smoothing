@@ -92,18 +92,32 @@ class SmoothingData:
         kappa=None,
     ):
         if time is not None:
+            if len(time) != len(self.file[self._key_time]):
+                self.file[self._key_time].resize(len(time), axis=0)
             self.file[self._key_time][:] = time
         if data_index is not None:
+            if len(data_index) != len(self.file[self._key_data_index]):
+                self.file[self._key_data_index].resize(len(data_index), axis=0)
             self.file[self._key_data_index][:] = data_index
         if radius is not None:
+            if len(radius) != len(self.file[self._key_radius]):
+                self.file[self._key_radius].resize(len(radius), axis=0)
             self.file[self._key_radius][:] = radius
         if position is not None:
+            if len(position) != len(self.file[self._key_position]):
+                self.file[self._key_position].resize(len(position), axis=0)
             self.file[self._key_position][:] = position
         if director is not None:
+            if len(director) != len(self.file[self._key_director]):
+                self.file[self._key_director].resize(len(director), axis=0)
             self.file[self._key_director][:] = director
         if shear is not None:
+            if len(shear) != len(self.file[self._key_shear]):
+                self.file[self._key_shear].resize(len(shear), axis=0)
             self.file[self._key_shear][:] = shear
         if kappa is not None:
+            if len(kappa) != len(self.file[self._key_kappa]):
+                self.file[self._key_kappa].resize(len(kappa), axis=0)
             self.file[self._key_kappa][:] = kappa
 
 
