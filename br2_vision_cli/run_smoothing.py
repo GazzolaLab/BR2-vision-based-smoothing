@@ -24,7 +24,7 @@ from tqdm import tqdm
 import br2_vision
 from br2_vision.algorithms.smoothing_algorithm import ForwardBackwardSmooth
 from br2_vision.data_structure.marker_positions import MarkerPositions
-from br2_vision.data_structure.posture_data import PostureData
+from br2_vision.data_structure.posture_data import PostureData, SmoothingData
 from br2_vision.utility.logging import config_logging, get_script_logger
 
 
@@ -96,6 +96,7 @@ def process_data(
     raw_data: RequiredRawData,
     delta_s_position: np.typing.NDArray[np.float64],
     save_path: Path,
+    h5_path: Path,
 ):
     data, L0 = create_data_object(raw_data, delta_s_position)
 
@@ -169,6 +170,17 @@ def process_data(
         )
         pickle.dump(data, data_file)
 
+    with SmoothingData(h5_path) as data:
+        data.set(
+            time=np.array(smoothed_data["time"]),
+            data_index=np.array(smoothed_data["data_index"]),
+            radius=np.array(smoothed_data["radius"]),
+            position=np.array(smoothed_data["position"]),
+            director=np.array(smoothed_data["director"]),
+            shear=np.array(smoothed_data["shear"]),
+            kappa=np.array(smoothed_data["kappa"]),
+        )
+
 
 @click.command()
 @click.option(
@@ -203,4 +215,9 @@ def main(tag, run_id, verbose):
         )
         raw_data.cross_section_director = dataset.get_cross_section_director()
 
-    process_data(raw_data, delta_s_position, os.path.join(save_path, "smoothing.pkl"))
+    process_data(
+        raw_data,
+        delta_s_position,
+        os.path.join(save_path, "smoothing.pkl"),
+        h5_path=tracing_data_path,
+    )
