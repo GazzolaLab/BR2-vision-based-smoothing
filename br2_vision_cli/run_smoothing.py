@@ -19,7 +19,8 @@ from elastica.rod.cosserat_rod import CosseratRod
 import br2_vision
 from br2_vision.algorithms.smoothing_algorithm import ForwardBackwardSmooth
 from br2_vision.data_structure.marker_positions import MarkerPositions
-from br2_vision.data_structure.posture_data import PostureData, SmoothingData
+from br2_vision.data_structure.posture_data import PostureData
+from br2_vision.data_structure.smoothing_data import SmoothingData
 from br2_vision.utility.logging import config_logging, get_script_logger
 
 

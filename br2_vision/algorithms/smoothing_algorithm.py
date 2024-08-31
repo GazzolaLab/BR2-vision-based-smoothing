@@ -76,7 +76,7 @@ class ForwardBackwardSmooth(Algorithm):
                     s_plus = self.s_director[s_index] + s_range_plus
                     s_minus = self.s_director[s_index] - s_range_minus
 
-                    if (s_plus - s) * (s - s_minus) >= -1e-5:
+                    if (s_plus - s) * (s - s_minus) >= -5e-5:
                         self.s_director_jump_index[s_index] = index
                         # self.s_director_jump_index.append(s_index)
                         break
@@ -84,6 +84,7 @@ class ForwardBackwardSmooth(Algorithm):
         else:
             self.update = self.update_without_director_jump
         self.s_director_jump_index = np.array(self.s_director_jump_index, dtype=int)
+
 
     def calculate_cost(
         self,
