@@ -7,6 +7,7 @@ import numpy as np
 from elastica._linalg import _batch_cross
 from elastica._rotations import _inv_rotate, _rotate
 from numba import njit
+from tqdm import tqdm
 
 from .algorithm import Algorithm
 from .rod_tools import _lab_to_material
@@ -75,7 +76,8 @@ class ForwardBackwardSmooth(Algorithm):
                         ) / 2
                     s_plus = self.s_director[s_index] + s_range_plus
                     s_minus = self.s_director[s_index] - s_range_minus
-
+                    if s_index == (len(self.s_director) - 1):
+                        s_plus = 1.0
                     if (s_plus - s) * (s - s_minus) >= -5e-5:
                         self.s_director_jump_index[s_index] = index
                         # self.s_director_jump_index.append(s_index)
@@ -89,8 +91,7 @@ class ForwardBackwardSmooth(Algorithm):
     def calculate_cost(
         self,
     ):
-        cost = 0
-        cost += self.energy_cost(
+        energy_cost = self.energy_cost(
             self.dl,
             self.shear,
             self.kappa,
@@ -99,26 +100,29 @@ class ForwardBackwardSmooth(Algorithm):
             self.shear_matrix,
             self.bend_matrix,
         )
-        cost += self.argument_cost(
+        argument_cost = self.argument_cost(
             self.dl,
             self.argument_rotational,
             self.argument_translational,
             self.config.argument_weight,
         )
-        cost += self.data_position_cost(
+        position_cost = self.data_position_cost(
             self.position,
             self.s_position_jump_index,
             self.data.noisy_position,
             self.config.data_deviation_weight_cost_position,
         )
         if self.director_flag:
-            cost += self.data_director_cost(
+            director_cost = self.data_director_cost(
                 self.director,
                 self.s_director_jump_index,
                 self.data.noisy_director,
                 self.config.data_deviation_weight_cost_director,
             )
-
+        else:
+            director_cost = 0
+        cost = energy_cost + argument_cost + position_cost + director_cost
+        # print(energy_cost, argument_cost, position_cost, director_cost)
         return cost
 
     @staticmethod
@@ -288,14 +292,14 @@ class ForwardBackwardSmooth(Algorithm):
         # print("Running forward-backward algorithm to smooth the data")
         cost = []
         prev_cost = 0
-        for k in range(iter_number):
+        for k in tqdm(range(iter_number)):
             self.update()
             cost.append(self.calculate_cost())
             delta = np.abs((prev_cost - cost[k]) / cost[k])
             if threshold is not None and delta < threshold and cost[k] < cost_threshold:
                 break
             prev_cost = cost[k]
-        return cost
+        return cost, k
 
     @staticmethod
     @njit(cache=True)
@@ -323,7 +327,7 @@ class ForwardBackwardSmooth(Algorithm):
         step_size,
     ):
         for n in range(argument_rotational.shape[1]):
-            argument_rotational[:, n] += step_size * (
+            argument_rotational[:, n] += step_size * 1000 * (
                 costate_rotational[:, n] - argument_weight * argument_rotational[:, n]
             )
             argument_translational[:, n] += step_size * (
@@ -657,13 +661,18 @@ def position_cost(position1, position2):
     cost = 0
     for i in range(3):
         cost += (position1[i] - position2[i]) ** 2
-    cost = 0.5 * np.sqrt(cost)
+    cost = 0.5 * cost
     return cost
 
 
 @njit(cache=True)
 def director_cost(director1, director2):
-    identity = np.eye(3)
-    matrix = identity - _mat1mat2t(director1, director2)
-    cost = np.trace(_mat1mat2t(matrix, matrix))
+    # identity = np.eye(3)
+    # matrix = identity - _mat1mat2t(director1, director2)
+    # cost = np.trace(_mat1mat2t(matrix, matrix))
+    cost = 0
+    for i in range(3):
+        for j in range(3):
+            cost += (director1[i, j] - director2[i, j]) ** 2
+    cost = 0.5 * cost
     return cost

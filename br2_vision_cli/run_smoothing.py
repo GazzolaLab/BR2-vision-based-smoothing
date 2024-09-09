@@ -153,7 +153,7 @@ def process_data(
 
         # Run
         stime = time.time()
-        cost = algo.run(
+        cost, _ = algo.run(
             iter_number=100_000, 
             threshold=1e-5,
             cost_threshold=algo_config.data_deviation_weight_cost*10,
