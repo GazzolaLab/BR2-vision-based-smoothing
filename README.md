@@ -12,6 +12,8 @@
 git clone https://github.com/GazzolaLab/BR2-vision-based-smoothing.git
 cd BR2-vision-based-smoothing
 uv sync
+```
+
 ### Unit-Tests
 
 ```bash
