@@ -5,7 +5,7 @@ description = "Video tracking and strain reconstruction algorithm for soft-arm p
 authors = [{ name = "Seung Hyun Kim", email = "skim449@illinois.edu" }]
 license = { text = "MIT" }
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "pyelastica>=0.3.1.post1,<0.4.0",
     "opencv-python>=4.0,<5.0",

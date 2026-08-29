@@ -25,7 +25,7 @@ uv run pytest
 
 ## Requirements
 
-All the tools are developed using Python 3.9+ and openCV. We recommend installing dependencies using [uv](https://docs.astral.sh/uv/).
+All the tools are developed using Python 3.10+ and openCV. We recommend installing dependencies using [uv](https://docs.astral.sh/uv/).
 To visualize the data, we used `ffmpeg` tool to render video.
 
 - [PyElastica](https://github.com/GazzolaLab/PyElastica)
