@@ -54,7 +54,7 @@ import numpy as np
 from br2_vision import ForwardBackwardSmoother, DenseFrame, SparseFrame, SparseSequence
 
 marker_center_offset = [0.04, 0.04, 0.04, 0.04]  # meters between markers
-smoother = ForwardBackwardSmoother(marker_center_offset=marker_center_offset)
+smoother = ForwardBackwardSmoother(marker_center_offset)
 ```
 
 **Single frame (`SparseFrame`)** — shapes `(3, n_markers)` and `(3, 3, n_markers)`:
