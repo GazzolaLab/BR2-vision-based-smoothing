@@ -1,5 +1,7 @@
 # A physics-informed, vision-based method to reconstruct all deformation modes in slender bodies
 
+[![CI](https://github.com/GazzolaLab/BR2-vision-based-smoothing/actions/workflows/ci.yml/badge.svg)](https://github.com/GazzolaLab/BR2-vision-based-smoothing/actions/workflows/ci.yml)
+
 [Paper (arXiv)](https://arxiv.org/abs/2109.08372) - ICRA 2022
 
 > The code to reproduce the result for the paper is in [v0.1](https://github.com/GazzolaLab/BR2-vision-based-smoothing/tree/v0.1). The current version is under further development for utilization. While we are trying our best to keep the code back-compatible, past version might require installing deprecated packages and python.
