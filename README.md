@@ -51,7 +51,7 @@ Use this when you already have sparse center positions and cross-section orienta
 
 ```python
 import numpy as np
-from br2_vision import ForwardBackwardSmoother, SparseFrame, SparseSequence
+from br2_vision import ForwardBackwardSmoother, DenseFrame, SparseFrame, SparseSequence
 
 marker_center_offset = [0.04, 0.04, 0.04, 0.04]  # meters between markers
 smoother = ForwardBackwardSmoother(marker_center_offset=marker_center_offset)
@@ -64,7 +64,7 @@ sparse = SparseFrame(
     position=position,  # (3, n_markers)
     director=director,  # (3, 3, n_markers)
 )
-dense = smoother.fit_transform(sparse)  # returns one DenseFrame
+dense: DenseFrame = smoother.fit_transform(sparse)
 
 print(dense.strain.shape, dense.cost)
 ```
@@ -77,7 +77,7 @@ sparse = SparseSequence(
     position=position,  # (n_frames, 3, n_markers)
     director=director,  # (n_frames, 3, 3, n_markers)
 )
-dense_frames = smoother.fit_transform(sparse)  # returns list[DenseFrame]
+dense_frames: list[DenseFrame] = smoother.fit_transform(sparse)
 
 print(dense_frames[0].strain.shape, dense_frames[-1].cost)
 ```
