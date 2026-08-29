@@ -9,24 +9,19 @@
 ## How to install
 
 ```bash
-cd <path to the repository>
 git clone https://github.com/GazzolaLab/BR2-vision-based-smoothing.git
 cd BR2-vision-based-smoothing
-# <optional> activate virtual environment
-pip install .
-```
-
+uv sync
 ### Unit-Tests
 
 ```bash
 cd BR2-vision-based-smoothing
-# <optional> activate virtual environment
-pytest
+uv run pytest
 ```
 
 ## Requirements
 
-All the tools are developed using Python3.9 and openCV. We recommend installing dependencies using `poetry`.
+All the tools are developed using Python 3.9+ and openCV. We recommend installing dependencies using [uv](https://docs.astral.sh/uv/).
 To visualize the data, we used `ffmpeg` tool to render video.
 
 - [PyElastica](https://github.com/GazzolaLab/PyElastica)
