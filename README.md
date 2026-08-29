@@ -45,6 +45,43 @@ booktitle = "2022 IEEE International Conference on Robotics and Automation, ICRA
 }
 ```
 
+## Quick Smoothing API (scikit-learn style)
+
+Use this when you already have sparse center positions and cross-section orientations from your own pipeline (vision, mocap, etc.). Pass them as NumPy arrays.
+
+```python
+import numpy as np
+from br2_vision import ForwardBackwardSmoother, SparseFrame, SparseSequence
+
+marker_center_offset = [0.04, 0.04, 0.04, 0.04]  # meters between markers
+smoother = ForwardBackwardSmoother(marker_center_offset=marker_center_offset)
+```
+
+**Single frame (`SparseFrame`)** — shapes `(3, n_markers)` and `(3, 3, n_markers)`:
+
+```python
+sparse = SparseFrame(
+    position=position,  # (3, n_markers)
+    director=director,  # (3, 3, n_markers)
+)
+dense = smoother.fit_transform(sparse)  # returns one DenseFrame
+
+print(dense.strain.shape, dense.cost)
+```
+
+**Time series (`SparseSequence`)** — shapes `(n_frames, 3, n_markers)` and `(n_frames, 3, 3, n_markers)`:
+
+```python
+sparse = SparseSequence(
+    time=time,          # (n_frames,)
+    position=position,  # (n_frames, 3, n_markers)
+    director=director,  # (n_frames, 3, 3, n_markers)
+)
+dense_frames = smoother.fit_transform(sparse)  # returns list[DenseFrame]
+
+print(dense_frames[0].strain.shape, dense_frames[-1].cost)
+```
+
 ## How To Use
 
 To process the video data, check out section [(Calibration Steps)](#calibration-steps) for camera calibration and [(Optical Flow: Data Point Tracking)](#optical-flow-data-point-tracking) for the point tracking.
