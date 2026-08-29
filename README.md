@@ -1,5 +1,7 @@
 # A physics-informed, vision-based method to reconstruct all deformation modes in slender bodies
 
+[![CI](https://github.com/GazzolaLab/BR2-vision-based-smoothing/actions/workflows/ci.yml/badge.svg)](https://github.com/GazzolaLab/BR2-vision-based-smoothing/actions/workflows/ci.yml)
+
 [Paper (arXiv)](https://arxiv.org/abs/2109.08372) - ICRA 2022
 
 > The code to reproduce the result for the paper is in [v0.1](https://github.com/GazzolaLab/BR2-vision-based-smoothing/tree/v0.1). The current version is under further development for utilization. While we are trying our best to keep the code back-compatible, past version might require installing deprecated packages and python.
@@ -9,24 +11,21 @@
 ## How to install
 
 ```bash
-cd <path to the repository>
 git clone https://github.com/GazzolaLab/BR2-vision-based-smoothing.git
 cd BR2-vision-based-smoothing
-# <optional> activate virtual environment
-pip install .
+uv sync
 ```
 
 ### Unit-Tests
 
 ```bash
 cd BR2-vision-based-smoothing
-# <optional> activate virtual environment
-pytest
+uv run pytest
 ```
 
 ## Requirements
 
-All the tools are developed using Python3.9 and openCV. We recommend installing dependencies using `poetry`.
+All the tools are developed using Python 3.10+ and openCV. We recommend installing dependencies using [uv](https://docs.astral.sh/uv/).
 To visualize the data, we used `ffmpeg` tool to render video.
 
 - [PyElastica](https://github.com/GazzolaLab/PyElastica)

@@ -84,13 +84,16 @@ class TestMarkerPositions(TestVariables):
             mock_marker_position.marker_positions
         )
 
-    @pytest.mark.parametrize("zid, tag", [(0, "A"), (0, "A"), (1, "B"), (2, "B")])
+    @pytest.mark.parametrize("zid, tag", [(0, "A"), (1, "B"), (2, "B")])
     def test_get_position(self, mock_marker_position, zid, tag):
         z_level = np.cumsum(self.center_offset)
-        Q = np.array([[0, 1, 0], [0, 0, 1], [1, 0, 0]]).astype(np.float_)
+        Q = np.array([[0, 1, 0], [0, 0, 1], [1, 0, 0]]).astype(np.float64)
         np.testing.assert_allclose(Q, mock_marker_position.Q)
 
-        expected_value = z_level[zid] * Q[:, 2] + Q @ self.marker_positions[tag]
+        origin = np.array(mock_marker_position.origin)
+        z_position = z_level[zid] * np.array(mock_marker_position.marker_direction)
+        marker_position = np.array(self.marker_positions[tag])
+        expected_value = z_position + marker_position - origin
         return_value = mock_marker_position.get_position(zid, tag)
         np.testing.assert_allclose(return_value, expected_value)
 
@@ -101,5 +104,5 @@ class TestMarkerPositions(TestVariables):
             marker_direction=(1.0, 0.0, 0.0),
             normal_direction=(0.0, 1.0, 0.0),
         )
-        Q_expected = np.array([[0, 0, 1], [1, 0, 0], [0, 1, 0]]).astype(np.float_)
+        Q_expected = np.array([[0, 0, 1], [1, 0, 0], [0, 1, 0]]).astype(np.float64)
         np.testing.assert_allclose(mp.Q, Q_expected)

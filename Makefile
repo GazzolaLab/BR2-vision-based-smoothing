@@ -2,22 +2,21 @@
 PYTHON := python3
 PYTHONPATH := `pwd`
 
-#* Poetry
+#* uv
 #* Installation
 .PHONY: install
 install:
-	poetry export --without-hashes > requirements.txt
-	poetry install -n
+	uv sync
 
 .PHONY: pre-commit-install
 pre-commit-install:
-	poetry run pre-commit install
+	uv run pre-commit install
 
 #* Formatters
 .PHONY: codestyle
 codestyle:
-	poetry run isort --settings-path pyproject.toml ./
-	poetry run black --config pyproject.toml ./
+	uv run --no-sync isort --settings-path pyproject.toml ./
+	uv run --no-sync black --config pyproject.toml ./
 
 .PHONY: formatting
 formatting: codestyle
@@ -25,12 +24,12 @@ formatting: codestyle
 #* Linting
 .PHONY: test
 test:
-	poetry run pytest -c pyproject.toml --cov=br2_vision --cov=br2_vision_cli
-	coverage html
+	uv run --no-sync pytest -c pyproject.toml --cov=br2_vision --cov=br2_vision_cli
+	uv run --no-sync coverage html
 
 .PHONY: mypy
 mypy:
-	poetry run mypy --config-file pyproject.toml miv
+	uv run --no-sync mypy --config-file pyproject.toml miv
 
 #* Cleaning
 .PHONY: pycache-remove
